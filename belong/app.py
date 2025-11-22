@@ -1,7 +1,7 @@
 from flask import Flask
 
 from belong.web.api import api_bp # belong패키지/web패키지/api.py or api/__init__.py 모듈에서 api_bp 객체 import
-from belong.web import web_bp # web/__init__.py안에 web_bp
+from belong.web.main import web_bp # web/__init__.py안에 web_bp
 
 
 
@@ -11,6 +11,11 @@ web_bp → /, /login, /dashboard 같은 화면 렌더링용 엔드포인트 모�
 
 앱실행시 실행되는 것들, init으로 create_app를 옮겨도 됨
 '''
+def safe_register(app, bp):
+    if bp.name not in app.blueprints:
+        app.register_blueprint(bp)
+    else:
+        print(f"[WARN] Blueprint '{bp.name}' already registered. Skipping.")
 
 def create_app():
     '''
@@ -18,6 +23,7 @@ def create_app():
     app객체를 만들고 라우터 등록 (@app.route/app.register_blueprint)
     설정 적용 app.config
     '''
+
     app = Flask(__name__) 
     app.config.from_object("config.Config")
     # config안에 Config 클래스에 있는 Flask 설정을 담고있는 객체 생성
