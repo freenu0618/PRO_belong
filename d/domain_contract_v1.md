@@ -24,16 +24,16 @@
 ---
 
 # Entity 2: RegionStatistics (독거노인 관련 지표)
-| 필드명                | 타입 | 설명        |
-|--------------------|------|-----------|
-| region             | string | 서울 25개 구  |
-| year               | int | 기준 연도     |
-| solo_household     | int | 1인 가구 수   |
-| age_65_plus         | int | 65세 이상 인구 |
-| aging_index        | float | 고령화지수     |
-| low_income_old     | int | 저소득 노인    |
-| welfare_facilities | int | 노인 복지시설   |
-| etc_features       | ... | 확장용       |
+| 필드명 | 타입 | 설명 |
+|--------|------|-------|
+| region | string | 서울 25개 구 |
+| year | int | 기준 연도 |
+| solo_household | int | 1인 가구 수 |
+| age_80_plus | int | 80세 이상 인구 |
+| aging_index | float | 고령화지수 |
+| low_income_old | int | 저소득 노인 |
+| welfare_facilities | int | 노인 복지시설 |
+| etc_features | ... | 확장용 |
 
 ---
 
@@ -46,7 +46,7 @@
 - solo_household  
 - aging_index  
 - low_income_old  
-- age_65_plus  
+- age_80_plus  
 - welfare_facilities  
 - elderly_growth_rate  
 
@@ -67,7 +67,7 @@ elderly_population
 low_income_old
 aging_index
 welfare_facilities
-age_65_plus
+age_80_plus
 solo_household
 ```
 
@@ -76,7 +76,7 @@ solo_household
 low_income_old: "저소득 노인 수"
 aging_index: "고령화 지수"
 welfare_facilities: "노인 복지시설 수"
-age_65_plus: "65세 이상 노인"
+age_80_plus: "80세 이상 노인"
 solo_household: "1인 가구 수"
 elderly_population: "독거노인 인구"
 ```
@@ -119,51 +119,3 @@ elderly_population: "독거노인 인구"
 6) correlation.py, forecast.py는 오직 이 파일만 사용  
 
 ※ raw 데이터를 API에서 직접 읽는 것은 금지  
-
-
-## 추가 컬럼 
- "구": "region",
-    "연도": "year",
-
-    # 주거 유형 (계 = total)
-    "단독주택_계": "single_house_total",
-    "아파트_계": "apartment_total",
-    "연립주택_계": "row_house_total",
-    "다세대주택_계": "multi_house_total",
-    "비주거용 건물내 주택_계": "non_residential_housing_total",
-
-    # Target (값 → 모델 예측값 또는 고독사 값이라면 아래 중 선택)
-    # → 데이터 정의 확정 필요
-    "값": "target_value",
-
-    # 인구 지표
-    "총인구": "population_total",
-    "총인구_남자": "population_male",
-    "총인구_여자": "population_female",
-
-    # 연령 구조
-    "20세 미만": "under_20",
-    "65세 이상": "age_65_over",
-    "0~14세": "age_0_14",
-
-    # 1인가구 관련
-    "1인가구_비율": "single_household_ratio",
-
-    # 경제/환경 지표
-    "소비자물가": "cpi_index",  # Consumer Price Index
-
-    # 노령화 지표
-    "노령화지수": "aging_index",
-
-    # 변화율 관련
-    "전년 대비 증감": "population_change_count",
-    "증감률": "population_growth_ratio",
-
-    # 저소득 노인 비율
-    "저소득노인_65~79비율": "low_income_elderly_65_79_ratio",
-    "저소득노인_80이상비율": "low_income_elderly_80_over_ratio",
-
-    # 기초생활수급자
-    "기초생활수급자총인원": "basic_pension_recipient_count",
-    "기초생활수급자비율": "basic_pension_recipient_ratio"
-}
