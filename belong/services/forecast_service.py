@@ -9,13 +9,32 @@ class ForecastService:
     '''
     예측 관련 기능 서비스 클래스
     '''
-    def __init__(self):
-        self.models: Dict[str, Dict[str, Any]] = joblib.load(MODEL_PATH)
 
+    def __init__(self) -> None:
+        if MODEL_PATH.exists() and MODEL_PATH.stat().st_size > 0:
+            try:
+                self.models: Dict[str, Dict[str, Any]] = joblib.load(MODEL_PATH)
+            except Exception:
+                print("[WARNING] Forecast model file exists but is invalid/corrupted.")
+                self.models = {}
+        else:
+            print("[INFO] No trained forecast model found. Forecasting disabled.")
+            self.models = {}  # 모델 없이 동작
         #                     강남구,강서구등  기본2년예측 =5로바꾸면 기본 5년
     def forecast_region(self, region : str, n_years: int =2) -> Optional[Dict[str, Any]]:
+        if not self.models:
+            return {
+                "region": region,
+                "forecast": None,
+                "message": "Forecast model not trained yet."
+            }
+
         if region not in self.models:
-            return None
+            return {
+                "region": region,
+                "forecast": None,
+                "message": f"No trained forecast model for region: {region}"
+            }
         # region에 대한 모델 정보가 없으면 예측 불가능이기때문에 None반환
 
         info: Dict[str,any]= self.models[region]
