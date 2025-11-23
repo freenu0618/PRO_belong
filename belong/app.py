@@ -23,7 +23,6 @@ def create_app():
     app객체를 만들고 라우터 등록 (@app.route/app.register_blueprint)
     설정 적용 app.config
     '''
-
     app = Flask(__name__) 
     app.config.from_object("config.Config")
     # config안에 Config 클래스에 있는 Flask 설정을 담고있는 객체 생성
