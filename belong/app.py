@@ -70,8 +70,8 @@ def create_app() -> Flask:
     # 4) 블루프린트 등록
     #    - API: /api/v1/...
     #    - WEB: 화면 렌더링용
-    safe_register(app, api_bp)
-    safe_register(app, web_bp)
+    app.register_blueprint(api_bp)
+    app.register_blueprint(web_bp)
 
     logger.info("Flask app created with Oracle + SQLAlchemy configuration.")
 

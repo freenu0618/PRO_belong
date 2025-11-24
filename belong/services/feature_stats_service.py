@@ -33,8 +33,7 @@ class FeatureStatsService:
         - 출력: 11593 (없으면 None)
         """
         stats: Optional[ElderlyStats] = (
-            self.elderly_stats_repo.get_by_region_code_and_year(region_code, year)
-        )
+            self.elderly_stats_repo.get_by_region_name_and_year(region_code, year))
         if stats is None:
             return None
 
@@ -59,7 +58,7 @@ class FeatureStatsService:
             ...
         ]
         """
-        region = self.region_repo.get_by_code(region_code)
+        region = self.region_repo.get_by_name(region_code)
         if region is None:
             return []
 
@@ -88,7 +87,7 @@ class FeatureStatsService:
 
         반환 형식은 get_time_series와 동일.
         """
-        region = self.region_repo.get_by_code(region_code)
+        region = self.region_repo.get_by_name(region_code)
         if region is None:
             return []
 
