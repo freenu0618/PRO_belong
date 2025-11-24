@@ -1,67 +1,72 @@
-let chart = null;
-
-document.addEventListener("DOMContentLoaded", function () {
-    const ctx = document.getElementById('forecastChart');
-
-    chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                label: "예측 위험도",
-                data: [],
-                borderWidth: 2,
-                borderColor: "#3b82f6",
-                backgroundColor: "rgba(59,130,246,0.3)"
-            }]
-        },
-        options: {
-            responsive: true,
-            tension: 0.3
-        }
-    });
-
-    // 페이지 처음 로딩 시 기본 데이터 Fetch
-//    fetchPrediction("강남구");
-});
-const REGION_MAP = {
-    "강남구": "gangnam",
-    "종로구": "jongno",
-    "동작구": "dongjak"
-    };
-
-async function fetchPrediction(region) {
-    showLoading(true);
+// ✅ 1) API → 실패 시 mock fallback
+async function fetchForecast(region) {
+    const apiUrl = `/api/v1/predict?region=${region}`;
+    const mockUrl = `/static/mock/forecast_${region}.json`;
 
     try {
-        // MOCK 데이터 사용 (백엔드 완성 후 변경)
-        const filename = `/static/mock/forecast_${REGION_MAP[region]}.json`;
-        const response = await fetch(filename);
+        const response = await fetch(apiUrl);
+
+        if (!response.ok) {
+            console.warn(`API returned ${response.status}, switching to mock...`);
+            return await fetchMock(mockUrl);
+        }
+
         const json = await response.json();
 
+        if (!json?.data || !json.data.forecast) {
+            console.warn(`API responded but no forecast available, using mock`);
+            return await fetchMock(mockUrl);
+        }
 
-        const history = json.data.history;
-
-        const labels = history.map(h => h.year);
-        const values = history.map(h => h.value);
-
-        updateChart(labels, values);
-
-    } catch (error) {
-        console.error("데이터 요청 실패:", error);
-    } finally {
-        showLoading(false);
+        return json.data;
+    } catch (err) {
+        console.error("API request failed, switching to mock:", err);
+        return await fetchMock(mockUrl);
     }
 }
 
-
-function updateChart(labels, dataset) {
-    chart.data.labels = labels;
-    chart.data.datasets[0].data = dataset;
-    chart.update();
+// Helper fn
+async function fetchMock(url) {
+    const res = await fetch(url);
+    return res.json();
 }
 
-function showLoading(state) {
-    const loader = document.getElementById("loading");
-    if (loader) loader.style.display = state ? "block" : "none";
+
+// ✅ 2) Update Chart with new data
+async function updateForecastChart(region) {
+    showLoading();
+
+    const data = await fetchForecast(region);
+
+    hideLoading();
+
+    updateChart(
+        data.history.map(d => d.year),
+        [
+            {
+                label: "과거 데이터",
+                data: data.history.map(d => d.value)
+            },
+            {
+                label: "예측 데이터",
+                data: data.forecast ? data.forecast.map(d => d.value) : [],
+                dashed: true
+            }
+        ]
+    );
+}
+function showError(msg) {
+    document.getElementById("error-message").innerText = msg;
+    document.getElementById("error-message").style.display = "block";
+}
+
+function hideError() {
+    document.getElementById("error-message").style.display = "none";
+}
+function showLoading() {
+    document.getElementById("loading").style.display = "block";
+}
+
+function hideLoading() {
+    document.getElementById("loading").style.display = "none";
 }
