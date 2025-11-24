@@ -5,7 +5,9 @@ from belong.web.main import web_bp  # 화면 렌더링용 엔드포인트 모음
 
 from belong.extensions import db, migrate, logger
 from config import Config
-
+from belong.repositories.feature_stats_repo import ElderlyStatsRepository
+from belong.repositories.region_repo import RegionRepository
+from belong.services.feature_stats_service import FeatureStatsService
 
 """
 api_bp → /api/v1/... 같은 REST API 엔드포인트 모음
@@ -43,6 +45,27 @@ def create_app() -> Flask:
 
     # 3) 마이그레이션 초기화
     migrate.init_app(app, db)
+
+    # --- Repository 인스턴스 생성 ---
+    elderly_stats_repo = ElderlyStatsRepository()
+    region_repo = RegionRepository()
+
+    # --- Service 인스턴스 생성 ---
+    feature_stats_service = FeatureStatsService(
+        elderly_stats_repo=elderly_stats_repo,
+        region_repo=region_repo,
+    )
+
+    # --- app.config["services"]에 등록 ---
+    app.config.setdefault("services", {})
+    app.config["services"].update(
+        {
+            "elderly_stats_repo": elderly_stats_repo,
+            "region_repo": region_repo,
+            "feature_stats_service": feature_stats_service,
+        }
+    )
+
 
     # 4) 블루프린트 등록
     #    - API: /api/v1/...

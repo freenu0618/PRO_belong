@@ -1,4 +1,4 @@
-from flask import jsonify, request  # 딕셔너리를 JSON 응답으로 감싸주는 유틸
+from flask import jsonify, request, current_app  # 딕셔너리를 JSON 응답으로 감싸주는 유틸
 from . import api_bp
 from belong.services.population_service import PopulationService
 from belong.services.forecast_service import ForecastService
@@ -161,3 +161,18 @@ def elderly_correlation():
     """
     data = correlation_service.compute()
     return jsonify({"status": "success", "data": data})
+
+@api_bp.get("/elderly-stats/<region_code>/<int:start_year>/<int:end_year>")
+def get_elderly_stats_series(region_code: str, start_year: int, end_year: int):
+    service = current_app.config["services"]["feature_stats_service"]
+
+    series = service.get_time_series(
+        region_code=region_code,
+        start_year=start_year,
+        end_year=end_year,
+    )
+
+    if not series:
+        return jsonify({"error": "no data", "region_code": region_code}), 404
+
+    return jsonify(series)
