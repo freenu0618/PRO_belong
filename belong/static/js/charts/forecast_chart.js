@@ -1,6 +1,6 @@
 // ✅ 1) API → 실패 시 mock fallback
 async function fetchForecast(region) {
-    const apiUrl = `/api/v1/predict?region=${region}`;
+    const apiUrl = `/api/predict?region=${region}`;
     const mockUrl = `/static/mock/forecast_${region}.json`;
 
     try {

@@ -164,15 +164,29 @@ def elderly_correlation():
 
 @api_bp.get("/elderly-stats/<region_code>/<int:start_year>/<int:end_year>")
 def get_elderly_stats_series(region_code: str, start_year: int, end_year: int):
-    service = current_app.config["services"]["feature_stats_service"]
+    """
+    예: GET /api/elderly-stats/강남구/2017/2023
+    """
+    services = current_app.config.get("services", {})
+    feature_stats_service = services.get("feature_stats_service")
 
-    series = service.get_time_series(
+    if feature_stats_service is None:
+        return jsonify({"error": "service_not_configured"}), 500
+
+    series = feature_stats_service.get_time_series(
         region_code=region_code,
         start_year=start_year,
         end_year=end_year,
     )
 
     if not series:
-        return jsonify({"error": "no data", "region_code": region_code}), 404
+        return jsonify(
+            {
+                "error": "no_data",
+                "region_code": region_code,
+                "start_year": start_year,
+                "end_year": end_year,
+            }
+        ), 404
 
     return jsonify(series)
