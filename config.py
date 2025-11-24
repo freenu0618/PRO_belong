@@ -1,3 +1,8 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 class Config:
-    SECRET_KEY ="dev"
-    JSON_AS_ASCII = False # 한글 깨짐 방지
+    MODEL_PATH = os.getenv("MODEL_PATH")
+    ENV = os.getenv("APP_ENV", "development")

@@ -1,6 +1,12 @@
 import joblib
 from pathlib import Path
 from typing import List, Dict, Any,Optional
+from config import Config
+from belong.extensions import logger
+
+logger.info(f"Forecast service called for region: {region}")
+
+model_path = Config.MODEL_PATH
 
 MODEL_PATH = Path(__file__).resolve().parent.parent / "ml" / "forecast_model.pkl"
 
@@ -22,19 +28,14 @@ class ForecastService:
             self.models = {}  # 모델 없이 동작
         #                     강남구,강서구등  기본2년예측 =5로바꾸면 기본 5년
     def forecast_region(self, region : str, n_years: int =2) -> Optional[Dict[str, Any]]:
-        if not self.models:
+        if region not in self.models or self.models[region] is None:
             return {
                 "region": region,
+                "history": self.region_history.get(region, []),
                 "forecast": None,
-                "message": "Forecast model not trained yet."
+                "message": "No trained model available for this region."
             }
 
-        if region not in self.models:
-            return {
-                "region": region,
-                "forecast": None,
-                "message": f"No trained forecast model for region: {region}"
-            }
         # region에 대한 모델 정보가 없으면 예측 불가능이기때문에 None반환
 
         info: Dict[str,any]= self.models[region]

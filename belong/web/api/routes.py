@@ -3,59 +3,45 @@ from . import api_bp
 from belong.services.population_service import PopulationService
 from belong.services.forecast_service import ForecastService
 from belong.services.correlation_service import CorrelationService
+from ...services.prediction_service import PredictionService
+
 
 population_service = PopulationService()
 forecast_service = ForecastService()
 correlation_service = CorrelationService()
 
-# TODO: 이후 DB/ML 연동 대신하는 Mock 데이터
-MOCK_DATA = {
-    "강남구": {
-        "history": [
-            {"year": 2019, "value": 12000},
-            {"year": 2020, "value": 12400},
-            {"year": 2021, "value": 13000},
-            {"year": 2022, "value": 13800},
-        ],
-        "forecast": [
-            {"year": 2023, "value": 14500},
-            {"year": 2024, "value": 15000}
-        ]
-    },
-    "종로구": {
-        "history": [
-            {"year": 2019, "value": 12400},
-            {"year": 2020, "value": 12600},
-            {"year": 2021, "value": 12850},
-            {"year": 2022, "value": 13120},
-        ],
-        "forecast": [
-            {"year": 2023, "value": 13700},
-            {"year": 2024, "value": 14300}
-        ]
-    }
-}
+service = PredictionService()
 
 @api_bp.get("/predict")
 def predict():
+
+
     region = request.args.get("region")
+    years = request.args.get("years", default=2, type=int)
 
+    # 1) 필수값 검증
     if not region:
-        return jsonify({"status": "error", "message": "region parameter is required"}), 400
+        return jsonify({
+            "status": "error",
+            "message": "Missing required parameter: region"
+        }), 400
 
-    if region not in MOCK_DATA:
-        return jsonify({"status": "error", "message": "region not found"}), 404
+    # 2) 서비스 호출
+    result = forecast_service.forecast_region(region, n_years=years)
 
-    result = {
+    # 3) 모델 없거나 예측 실패
+    if result is None or result.get("forecast") is None:
+        return jsonify({
+            "status": "error",
+            "message": f"No forecast model available for region '{region}'"
+        }), 404
+
+    # 4) 정상 응답
+    return jsonify({
         "status": "success",
-        "data": {
-            "region": region,
-            "history": MOCK_DATA[region]["history"],
-            "forecast": MOCK_DATA[region]["forecast"]
-        }
-    }
+        "data": result
+    }), 200
 
-    return jsonify(result), 200
 
 
 @api_bp.route('/health') # 실행흐름 : 브라우저 요청 → /api/v1/health → api_bp.route 등록된 health 함수 실행
