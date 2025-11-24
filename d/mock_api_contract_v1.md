@@ -54,20 +54,21 @@
   "status": "success",
   "data": {
     "correlations": [
-      {"feature": "low_income_old", "corr": 0.72},
+      {"feature": "single_household_ratio", "corr": 0.72},
       {"feature": "aging_index", "corr": 0.63},
-      {"feature": "welfare_facilities", "corr": -0.28},
-      {"feature": "age_80_plus", "corr": 0.71}
+      {"feature": "cpi_index", "corr": -0.28},
+      {"feature": "age_65_over", "corr": -0.28},
+      {"feature": "single_house_total", "corr": 0.71}
     ],
     "feature_desc": {
-      "low_income_old": "저소득 노인 수",
+      "single_household_ratio": "1인가구 비율",
       "aging_index": "고령화 지수",
-      "welfare_facilities": "노인 복지시설 수",
-      "age_80_plus": "80세 이상 노인"
+      "cpi_index": "소비자 물가",
+      "age_65_over": "65세 이상 노인",
+      "single_house_total": "1인 가구 수",
     }
   }
 }
-```
 
 ---
 

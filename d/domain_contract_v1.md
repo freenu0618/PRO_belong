@@ -62,23 +62,24 @@
 ## 3-4. 상관관계 분석용 Feature 정의
 
 ### Feature 목록
-```
-elderly_population
-low_income_old
-aging_index
-welfare_facilities
-age_65_plus
-solo_household
-```
+
+FEATURE_COLUMNS = [
+    "single_household_ratio",
+    "aging_index",
+    "cpi_index",
+    "age_65_over",
+    "single_house_total",
+]
 
 ### feature_desc
 ```
-low_income_old: "저소득 노인 수"
-aging_index: "고령화 지수"
-welfare_facilities: "노인 복지시설 수"
-age_65_plus: "65세 이상 노인"
-solo_household: "1인 가구 수"
-elderly_population: "독거노인 인구"
+
+FEATURE_DESC = {
+    "single_household_ratio": "1인가구 비율",
+    "aging_index": "고령화 지수",
+    "cpi_index": "소비자 물가",
+    "age_65_over": "65세 이상 노인",
+    "single_house_total": "1인 가구 수",
 ```
 
 ---
