@@ -1,0 +1,30 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+# Editor-based HTTP Client requests
+/httpRequests/
+venv/
+.env/
+*.pyc
+__pycache__/
+.env
+*.key
+*.pem
+secrets.json
+.DS_Store
+Thumbs.db
+*.log
+*.sqlite3
+*.db
+.vscode/
+.idea/
+*.pkl
+*.h5
+*.onnx
+*.joblib
+models/
+checkpoints/
+data/
+*.csv
+*.xlsx
+*.json
