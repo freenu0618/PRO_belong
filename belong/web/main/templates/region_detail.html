@@ -2,7 +2,9 @@
 {% block content %}
 <h1>{{ region }} 상세 분석</h1>
 <div class="border p-4 bg-light text-center mt-3">
-    📊 Forecast Chart Placeholder
+    <canvas id="forecastChart" width="600" height="300"></canvas>
+
+<script src="{{ url_for('static', filename='js/charts/forecast_chart.js') }}"></script>
 </div>
 <div id="region-history"></div>
 <div id="region-forecast"></div>

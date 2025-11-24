@@ -18,6 +18,10 @@ def region_detail(region): # 위에 <region>을 Flask가 함수인자인()안에
 # 템플릿에서 region 변수를 {{ region }}으로 사용가능 jinja2언어로
 # region변수를 DB조회,데이버 분석, 조건 분기 등으로 활용
 
+@web_bp.route("/region")
+def region():
+    return render_template("region_detail.html")
+
 @web_bp.route("/correlation")
 def correlation():
     return render_template("correlation.html")

@@ -1,10 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>상관관계 분석</h2>
-<p>이 영역에서 히트맵이 표시됩니다.</p>
-
 <div class="border p-4 text-center bg-light">
-    🔧 Mock Heatmap Placeholder
+    <canvas id="heatmap" width="600" height="400"></canvas>
+<script src="{{ url_for('static', filename='js/charts/heatmap_mock.js') }}"></script>
 </div>
 
 {% endblock %}
