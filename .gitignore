@@ -28,3 +28,4 @@ data/
 *.csv
 *.xlsx
 *.json
+/migrations/

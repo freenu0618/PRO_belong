@@ -3,7 +3,7 @@ from flask import Flask
 from belong.web.api import api_bp  # /api/v1/... REST API 엔드포인트 모음
 from belong.web.main import web_bp  # 화면 렌더링용 엔드포인트 모음
 
-from belong.extensions import db
+from belong.extensions import db, migrate, logger
 from config import Config
 
 
@@ -41,11 +41,16 @@ def create_app() -> Flask:
     # 2) 확장 초기화 (SQLAlchemy ORM 연결)
     db.init_app(app)
 
-    # 3) 블루프린트 등록
+    # 3) 마이그레이션 초기화
+    migrate.init_app(app, db)
+
+    # 4) 블루프린트 등록
     #    - API: /api/v1/...
     #    - WEB: 화면 렌더링용
     safe_register(app, api_bp)
     safe_register(app, web_bp)
+
+    logger.info("Flask app created with Oracle + SQLAlchemy configuration.")
 
     return app
 
