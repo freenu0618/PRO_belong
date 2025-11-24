@@ -1,44 +1,56 @@
 from flask import Flask
 
-from belong.web.api import api_bp # belong패키지/web패키지/api.py or api/__init__.py 모듈에서 api_bp 객체 import
-from belong.web.main import web_bp # web/__init__.py안에 web_bp
+from belong.web.api import api_bp  # /api/v1/... REST API 엔드포인트 모음
+from belong.web.main import web_bp  # 화면 렌더링용 엔드포인트 모음
+
+from belong.extensions import db
+from config import Config
 
 
-
-'''
+"""
 api_bp → /api/v1/... 같은 REST API 엔드포인트 모음
-web_bp → /, /login, /dashboard 같은 화면 렌더링용 엔드포인트 모음
+web_bp → /, /dashboard 같은 화면 렌더링용 엔드포인트 모음
+"""
 
-앱실행시 실행되는 것들, init으로 create_app를 옮겨도 됨
-'''
-def safe_register(app, bp):
+
+def safe_register(app: Flask, bp):
+    """
+    같은 Blueprint가 중복 등록되는 걸 방지하기 위한 유틸 함수.
+    (나중에 create_app을 여러 번 호출하는 경우를 대비해서.)
+    """
     if bp.name not in app.blueprints:
         app.register_blueprint(bp)
     else:
         print(f"[WARN] Blueprint '{bp.name}' already registered. Skipping.")
 
-def create_app():
-    '''
-    __name__은 현재 모듈의 이름
-    app객체를 만들고 라우터 등록 (@app.route/app.register_blueprint)
-    설정 적용 app.config
-    '''
-    app = Flask(__name__) 
-    app.config.from_object("config.Config")
-    # config안에 Config 클래스에 있는 Flask 설정을 담고있는 객체 생성
 
-    # 블루 프린트 등록    
-    app.register_blueprint(api_bp, url_prefix="/api/v1")
-    app.register_blueprint(web_bp)
-    # url_prefix가 있을경우 api_bp가 가지고있는 라우트가 뒤에 붙음 (/api/v1/user, api/v1/predict)
-    # url_prefix가 없을경우 web_bp안에 정의된 URL들이 그대로 루트 기준으로 매핑
+def create_app() -> Flask:
+    """
+    Flask 애플리케이션 팩토리 함수.
+
+    1) Flask 인스턴스 생성
+    2) Config 적용 (Oracle/SQLAlchemy 설정 포함)
+    3) 확장(extenstions) 초기화 (db.init_app)
+    4) Blueprint 등록
+    """
+    app = Flask(__name__)
+
+    # 1) 설정 로드 (config.Config 클래스 사용)
+    app.config.from_object(Config)
+
+    # 2) 확장 초기화 (SQLAlchemy ORM 연결)
+    db.init_app(app)
+
+    # 3) 블루프린트 등록
+    #    - API: /api/v1/...
+    #    - WEB: 화면 렌더링용
+    safe_register(app, api_bp)
+    safe_register(app, web_bp)
 
     return app
 
 
-if __name__ == "__main__":   # 실행되는곳 파일이름이랑 같음(main이 실행되면 name=main이됨)
+if __name__ == "__main__":
+    # python app.py 로 직접 실행할 때 진입점
     app = create_app()
     app.run(debug=True)
-
-# 실제 실행  python app.py 일때 __name__ = "__main__"
-# import app 할때는 __name__ 값은 "app"(파일명)이 됨
