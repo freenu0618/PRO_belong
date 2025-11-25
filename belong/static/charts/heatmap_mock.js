@@ -1,6 +1,6 @@
 async function fetchCorrelation() {
     try {
-        const res = await fetch("/api/v1/elderly/correlation");
+        const res = await fetch("/api/elderly/correlation");
 
         if (!res.ok) throw new Error();
 

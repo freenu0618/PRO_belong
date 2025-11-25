@@ -3,7 +3,7 @@
 // ----------------------------------------------------
 async function fetchDashboard() {
     try {
-        const res = await fetch("/api/v1/elderly/population");
+        const res = await fetch("/api/elderly/population");
         if (!res.ok) throw new Error("API 오류");
         return await res.json();
     } catch (e) {
