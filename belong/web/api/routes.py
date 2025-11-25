@@ -12,6 +12,24 @@ repo = SqlAlchemyElderlyHistoryRepository()
 forecast_service = ForecastService(repo=repo)
 
 correlation_service = CorrelationService()
+
+# 공통 API 에러 응답 헬퍼
+def api_error(status_code: int, code: str, message: str, **details):
+    """
+    통일된 API 에러 응답 형식 생성 헬퍼.
+
+    예:
+        return api_error(400, "invalid_input", "year is out of range", value=2099)
+    """
+    payload = {
+        "error": code,
+        "message": message,
+    }
+    if details:
+        payload["details"] = details
+    return jsonify(payload), status_code
+
+
 # ---- 입력값 Validation 설정 ----
 # 상수 설정해서 최소연도, 최대 연도 설정
 MIN_YEAR = 2017
@@ -208,23 +226,131 @@ def elderly_correlation():
     data = correlation_service.compute()
     return jsonify({"status": "success", "data": data})
 
+
+@api_bp.get("/predictions/<region_name>/<int:year>")
+def get_prediction(region_name: str, year: int):
+    # 1) year 검증
+    ok, error_detail = _validate_year(year)
+    if not ok:
+        return api_error(
+            400,
+            "invalid_input",
+            "year is out of allowed range",
+            **error_detail,
+        )
+
+    region_name = region_name.strip()
+
+    services = current_app.config.get("services", {})
+    prediction_service = services.get("prediction_service")
+
+    if prediction_service is None:
+        return api_error(
+            500,
+            "service_not_configured",
+            "prediction_service is not configured in app.config['services']",
+        )
+
+    result = prediction_service.predict(region_name, year)
+    if result is None:
+        return api_error(
+            404,
+            "no_data",
+            "no prediction data available for given region and year",
+            region=region_name,
+            year=year,
+        )
+
+    return jsonify(result)
+
+#나중에 사용할 코드
+#
+## 핵심 코드 return 부분이 jsonify로 되어있음 나중에 교체 예정
+# @api_bp.get("/predictions/<region_name>/<int:year>")
+# def get_prediction(region_name: str, year: int):
+#     # 1) year 검증
+#     ok, error_detail = _validate_year(year)
+#     if not ok:
+#         return jsonify(
+#             {
+#                 "error": "invalid_input",
+#                 "details": error_detail,
+#             }
+#         ), 400
+#
+#     # region_name 공백 제거 정도는 여기서 처리해도 좋음
+#     region_name = region_name.strip()
+#
+#     services = current_app.config.get("services", {})
+#     prediction_service = services.get("prediction_service")
+#
+#     if prediction_service is None:
+#         return jsonify({"error": "service_not_configured"}), 500
+#
+#     result = prediction_service.predict(region_name, year)
+#     if result is None:
+#         return jsonify(
+#             {"error": "no_data", "region": region_name, "year": year}
+#         ), 404
+#
+#     return jsonify(result)
+# @api_bp.get("/elderly-stats/<region_code>/<int:start_year>/<int:end_year>")
+# def get_elderly_stats_series(region_code: str, start_year: int, end_year: int):
+#     # 1) 입력값 검증
+#     ok, error_detail = _validate_year_range(start_year, end_year)
+#     if not ok:
+#         return jsonify(
+#             {
+#                 "error": "invalid_input",
+#                 "details": error_detail,
+#             }
+#         ), 400
+#
+#     services = current_app.config.get("services", {})
+#     feature_stats_service = services.get("feature_stats_service")
+#
+#     if feature_stats_service is None:
+#         return jsonify({"error": "service_not_configured"}), 500
+#
+#     series = feature_stats_service.get_time_series(
+#         region_code=region_code,
+#         start_year=start_year,
+#         end_year=end_year,
+#     )
+#
+#     if not series:
+#         return jsonify(
+#             {
+#                 "error": "no_data",
+#                 "region_code": region_code,
+#                 "start_year": start_year,
+#                 "end_year": end_year,
+#             }
+#         ), 404
+#
+#     return jsonify(series)
+
 @api_bp.get("/elderly-stats/<region_code>/<int:start_year>/<int:end_year>")
 def get_elderly_stats_series(region_code: str, start_year: int, end_year: int):
     # 1) 입력값 검증
     ok, error_detail = _validate_year_range(start_year, end_year)
     if not ok:
-        return jsonify(
-            {
-                "error": "invalid_input",
-                "details": error_detail,
-            }
-        ), 400
+        return api_error(
+            400,
+            "invalid_input",
+            "invalid year range",
+            **error_detail,
+        )
 
     services = current_app.config.get("services", {})
     feature_stats_service = services.get("feature_stats_service")
 
     if feature_stats_service is None:
-        return jsonify({"error": "service_not_configured"}), 500
+        return api_error(
+            500,
+            "service_not_configured",
+            "feature_stats_service is not configured in app.config['services']",
+        )
 
     series = feature_stats_service.get_time_series(
         region_code=region_code,
@@ -233,43 +359,13 @@ def get_elderly_stats_series(region_code: str, start_year: int, end_year: int):
     )
 
     if not series:
-        return jsonify(
-            {
-                "error": "no_data",
-                "region_code": region_code,
-                "start_year": start_year,
-                "end_year": end_year,
-            }
-        ), 404
+        return api_error(
+            404,
+            "no_data",
+            "no elderly stats found for given region and year range",
+            region_code=region_code,
+            start_year=start_year,
+            end_year=end_year,
+        )
 
     return jsonify(series)
-
-@api_bp.get("/predictions/<region_name>/<int:year>")
-def get_prediction(region_name: str, year: int):
-    # 1) year 검증
-    ok, error_detail = _validate_year(year)
-    if not ok:
-        return jsonify(
-            {
-                "error": "invalid_input",
-                "details": error_detail,
-            }
-        ), 400
-
-    # region_name 공백 제거 정도는 여기서 처리해도 좋음
-    region_name = region_name.strip()
-
-    services = current_app.config.get("services", {})
-    prediction_service = services.get("prediction_service")
-
-    if prediction_service is None:
-        return jsonify({"error": "service_not_configured"}), 500
-
-    result = prediction_service.predict(region_name, year)
-    if result is None:
-        return jsonify(
-            {"error": "no_data", "region": region_name, "year": year}
-        ), 404
-
-    return jsonify(result)
-
