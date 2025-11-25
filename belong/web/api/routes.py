@@ -12,6 +12,57 @@ repo = SqlAlchemyElderlyHistoryRepository()
 forecast_service = ForecastService(repo=repo)
 
 correlation_service = CorrelationService()
+# ---- 입력값 Validation 설정 ----
+# 상수 설정해서 최소연도, 최대 연도 설정
+MIN_YEAR = 2017
+MAX_YEAR = 2050
+
+def _validate_year(year: int):
+    """
+    단일 연도(year)에 대한 범위 검증.
+    유효하면 (True, None), 아니면 (False, error_detail_dict)를 반환.
+    """
+    if year < MIN_YEAR or year > MAX_YEAR:
+        return False, {
+            "code": "year_out_of_range",
+            "message": f"year must be between {MIN_YEAR} and {MAX_YEAR}",
+            "value": year,
+        }
+    return True, None
+
+
+def _validate_year_range(start_year: int, end_year: int):
+    """
+    (start_year, end_year) 구간에 대한 검증.
+    - start_year <= end_year
+    - 둘 다 MIN_YEAR ~ MAX_YEAR 범위
+    """
+    ok_start, err_start = _validate_year(start_year)
+    ok_end, err_end = _validate_year(end_year)
+
+    if not ok_start:
+        return False, {
+            "code": "invalid_start_year",
+            "message": "start_year is invalid",
+            "detail": err_start,
+        }
+
+    if not ok_end:
+        return False, {
+            "code": "invalid_end_year",
+            "message": "end_year is invalid",
+            "detail": err_end,
+        }
+
+    if start_year > end_year:
+        return False, {
+            "code": "start_after_end",
+            "message": "start_year must be less than or equal to end_year",
+            "start_year": start_year,
+            "end_year": end_year,
+        }
+
+    return True, None
 
 
 @api_bp.get("/predict")
@@ -159,6 +210,16 @@ def elderly_correlation():
 
 @api_bp.get("/elderly-stats/<region_code>/<int:start_year>/<int:end_year>")
 def get_elderly_stats_series(region_code: str, start_year: int, end_year: int):
+    # 1) 입력값 검증
+    ok, error_detail = _validate_year_range(start_year, end_year)
+    if not ok:
+        return jsonify(
+            {
+                "error": "invalid_input",
+                "details": error_detail,
+            }
+        ), 400
+
     services = current_app.config.get("services", {})
     feature_stats_service = services.get("feature_stats_service")
 
@@ -185,18 +246,19 @@ def get_elderly_stats_series(region_code: str, start_year: int, end_year: int):
 
 @api_bp.get("/predictions/<region_name>/<int:year>")
 def get_prediction(region_name: str, year: int):
-    """
-    예: GET /api/predictions/강남구/2025
+    # 1) year 검증
+    ok, error_detail = _validate_year(year)
+    if not ok:
+        return jsonify(
+            {
+                "error": "invalid_input",
+                "details": error_detail,
+            }
+        ), 400
 
-    응답 예:
-    {
-      "region": "강남구",
-      "year": 2025,
-      "prediction": 12345.0,
-      "source": "rule_based" or "model",
-      "history": [...],
-    }
-    """
+    # region_name 공백 제거 정도는 여기서 처리해도 좋음
+    region_name = region_name.strip()
+
     services = current_app.config.get("services", {})
     prediction_service = services.get("prediction_service")
 
@@ -210,3 +272,4 @@ def get_prediction(region_name: str, year: int):
         ), 404
 
     return jsonify(result)
+
