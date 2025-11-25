@@ -3,48 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>{% block title %}Belong{% endblock %}</title>
 
-    <!-- 전체 기본 틀: margin/padding 0 고정 -->
-    <style>
-        html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 100%;
-            height: 100%;
-            overflow-x: hidden;
-            background: #f8f9fa;
-        }
-    </style>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
 
-    <!-- Bootstrap CSS (현재 static/js 안에 있음) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='js/bootstrap.min.css') }}">
-
-    <!-- 프로젝트 CSS (현재 static/js 안에 있음) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='js/style.css') }}">
-
-    {% block head_extra %}{% endblock %}
+    <!-- Global style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
+
 <body>
 
-    {% include "navbar.html" %}
+    {% include 'navbar.html' %}
 
-    <!-- freefrontend 템플릿도 그대로 꽂을 수 있는 full-width 영역 -->
-    <main id="main-container" class="container-fluid px-0" style="min-height:100vh;">
+    <!-- fixed navbar 공간 확보 -->
+    <main style="margin-top: 70px;">
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="text-center text-muted py-3">
+    <footer class="text-center text-muted py-4">
         <small>Belong Project © 2025</small>
     </footer>
 
-    <!-- Vendor JS -->
+    <!-- JS -->
     <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
-
-    <!-- 공통 JS (현재 static/css 안에 있음) -->
-    <script src="{{ url_for('static', filename='css/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 
     {% block scripts %}{% endblock %}
 </body>

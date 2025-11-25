@@ -1,14 +1,91 @@
-textarea {
-    width:100%;
+/* ===== Fixed Navbar 보정 ===== */
+body {
+    margin: 0;
+    padding: 0;
 }
 
-input[type=submit] {
-    margin-top:10px;
+/* ===== Uracle 스타일: Fullscreen Carousel ===== */
+.main-slide {
+    position: relative;
+    height: 100vh;
+    background-size: cover;
+    background-position: center;
 }
 
-@media (max-width: 768px) {
-    #belongCarousel,
-    .belong-carousel-img {
-        height: 25vh;
-    }
+.main-slide:nth-child(1) {
+    background-image: url("https://source.unsplash.com/1600x900/?ai,tech");
+}
+.main-slide:nth-child(2) {
+    background-image: url("https://source.unsplash.com/1600x900/?seoul,city");
+}
+.main-slide:nth-child(3) {
+    background-image: url("https://source.unsplash.com/1600x900/?data,visualization");
+}
+
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+}
+
+.carousel-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: white;
+}
+
+.carousel-content h1 {
+    font-size: 3.2rem;
+    font-weight: 700;
+}
+
+.carousel-content p {
+    margin-top: 15px;
+    font-size: 1.2rem;
+}
+
+
+/* ===== Freefrontend Card Section ===== */
+
+.wrapper {
+    margin-top: 80px;
+}
+
+.card {
+    border: none;
+    overflow: hidden;
+    border-radius: 20px;
+    min-height: 450px;
+    transition: all 0.4s ease;
+    box-shadow: 0 0 12px rgba(0,0,0,0.2);
+}
+
+.card-has-bg {
+    background-size: 120%;
+    background-repeat: no-repeat;
+}
+
+.card-has-bg:hover {
+    background-size: 130%;
+    transform: scale(0.98);
+}
+
+.card-img-overlay {
+    background: linear-gradient(0deg, rgba(255,186,33,0.3), rgba(255,186,33,1));
+    transition: background 0.4s ease;
+}
+
+.card:hover .card-img-overlay {
+    background: linear-gradient(0deg, rgba(255,186,33,0.6), rgba(255,186,33,1));
+}
+
+.card-body {
+    transition: margin 0.4s ease;
+}
+
+.card:hover .card-body {
+    margin-top: 20px;
 }

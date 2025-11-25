@@ -25,3 +25,27 @@ def region():
 @web_bp.route("/correlation")
 def correlation():
     return render_template("correlation.html")
+
+# -------------------------
+# 🔐 로그인 페이지(UI)
+# -------------------------
+@web_bp.route("/login")
+def login():
+    return render_template("auth/login.html")
+
+
+# -------------------------
+# 📝 회원가입 페이지(UI)
+# -------------------------
+@web_bp.route("/signup")
+def signup():
+    return render_template("auth/signup.html")
+
+
+# -------------------------
+# 🚪 로그아웃 (UI only, JS에서 localStorage 삭제)
+# -------------------------
+@web_bp.route("/logout")
+def logout():
+    # UI 기준: JS에서 localStorage 제거 후 메인으로 이동
+    return redirect(url_for("web.index"))
