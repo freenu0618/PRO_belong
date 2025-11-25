@@ -43,7 +43,6 @@ def create_app() -> Flask:
 
     # 3) 마이그레이션 초기화
     migrate.init_app(app, db)
-
     # New : 서비스 등록 reister_services새로만듬
     register_services(app)
 

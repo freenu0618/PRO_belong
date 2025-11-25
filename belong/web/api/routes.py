@@ -369,3 +369,36 @@ def get_elderly_stats_series(region_code: str, start_year: int, end_year: int):
         )
 
     return jsonify(series)
+
+@api_bp.post("/predictions/<region>/<int:year>")
+def create_prediction(region: str, year: int):
+    ok, err = _validate_year(year)
+    if not ok:
+        return api_error(400, "invalid_input", "year not valid", **err)
+
+    services = current_app.config["services"]
+    prediction_service = services["prediction_service"]
+
+    result = prediction_service.predict_and_store(region, year)
+
+    if result is None:
+        return api_error(404, "no_data", "prediction unavailable", region=region, year=year)
+
+    return jsonify({"saved": True, "result": result})
+
+
+@api_bp.get("/predictions/history/<region>")
+def get_prediction_history(region: str):
+    repo = current_app.config["services"]["prediction_repo"]
+    rows = repo.list_by_region(region)
+
+    return jsonify([
+        {
+            "region": r.region_name,
+            "year": r.year,
+            "prediction": r.prediction_value,
+            "source": r.source,
+            "created_at": r.created_at.isoformat(),
+        }
+        for r in rows
+    ])

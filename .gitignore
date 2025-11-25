@@ -22,7 +22,7 @@ Thumbs.db
 *.h5
 *.onnx
 *.joblib
-models/
+
 checkpoints/
 data/
 *.csv

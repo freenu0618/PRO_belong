@@ -86,6 +86,7 @@ class PredictionService:
             "history": history,
         }
 
+
     # ------------------------------------------------------------------
     # 내부 헬퍼들
     # ------------------------------------------------------------------
@@ -172,3 +173,18 @@ class PredictionService:
         for _ in range(years_ahead):
             value *= (1 + growth_rate)
         return int(round(value))
+
+
+# prediction_repo 는 DI 컨테이너에서 주입
+def predict_and_store(self, region_name: str, year: int):
+    result = self.predict(region_name, year)
+    if not result:
+        return None
+
+    self.prediction_repo.save(
+        region=result["region"],
+        year=result["year"],
+        value=result["prediction"],
+        source=result["source"],
+    )
+    return result

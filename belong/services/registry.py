@@ -4,7 +4,7 @@ from belong.services.feature_stats_service import FeatureStatsService
 from belong.services.prediction_service import PredictionService
 from belong.services.correlation_service import CorrelationService
 from belong.services.population_service import PopulationService
-
+from belong.repositories.prediction_repo import PredictionRepository
 
 def register_services(app):
     """
@@ -20,11 +20,11 @@ def register_services(app):
         elderly_stats_repo=elderly_stats_repo,
         region_repo=region_repo,
     )
-
+    prediction_repo = PredictionRepository()
     prediction_service = PredictionService(
         feature_stats_service=feature_stats_service
     )
-
+    prediction_service.prediction_repo = prediction_repo
     correlation_service = CorrelationService()
     population_service = PopulationService()
 
@@ -33,9 +33,11 @@ def register_services(app):
         "region_repo": region_repo,
         "elderly_stats_repo": elderly_stats_repo,
         "feature_stats_service": feature_stats_service,
+        "prediction_repo": prediction_repo,
         "prediction_service": prediction_service,
         "correlation_service": correlation_service,
         "population_service": population_service,
+
     }
 
     app.config["services"] = services
