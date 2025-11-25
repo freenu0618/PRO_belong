@@ -6,7 +6,7 @@ from config import Config
 from belong.extensions import logger
 from belong.repositories.elderly_repo import (
     ElderlyHistoryRepository,
-    InMemoryElderlyHistoryRepository,
+    SqlAlchemyElderlyHistoryRepository,
 )
 
 
@@ -14,12 +14,12 @@ class ForecastService:
     def __init__(self, repo: Optional[ElderlyHistoryRepository] = None) -> None:
         """
         repo: 독거노인/고령인구 히스토리를 제공하는 Repository
-              - 기본값: InMemoryElderlyHistoryRepository
+              - 기본값: SqlAlchemyElderlyHistoryRepository
               - 나중에 Oracle/SQLAlchemy 기반 Repo로 교체 예정
         """
         # 1) Repository DI
         self.repo: ElderlyHistoryRepository = (
-            repo if repo is not None else InMemoryElderlyHistoryRepository()
+            repo if repo is not None else SqlAlchemyElderlyHistoryRepository()
         )
 
         # 2) 모델 로딩 (환경변수 우선, 없으면 로컬 pkl 경로)
@@ -38,7 +38,7 @@ class ForecastService:
 
     def _get_history(self, region: str):
         """
-        v0.2: InMemoryElderlyHistoryRepository에서 조회.
+        v0.2: SqlAlchemyElderlyHistoryRepository에서 조회.
         v0.3~: Oracle/SQLAlchemy 기반 Repo로 교체 가능.
         """
         return self.repo.get_history(region)

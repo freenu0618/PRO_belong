@@ -13,6 +13,75 @@ forecast_service = ForecastService(repo=repo)
 
 correlation_service = CorrelationService()
 
+# 공통 API 에러 응답 헬퍼
+def api_error(status_code: int, code: str, message: str, **details):
+    """
+    통일된 API 에러 응답 형식 생성 헬퍼.
+
+    예:
+        return api_error(400, "invalid_input", "year is out of range", value=2099)
+    """
+    payload = {
+        "error": code,
+        "message": message,
+    }
+    if details:
+        payload["details"] = details
+    return jsonify(payload), status_code
+
+
+# ---- 입력값 Validation 설정 ----
+# 상수 설정해서 최소연도, 최대 연도 설정
+MIN_YEAR = 2017
+MAX_YEAR = 2050
+
+def _validate_year(year: int):
+    """
+    단일 연도(year)에 대한 범위 검증.
+    유효하면 (True, None), 아니면 (False, error_detail_dict)를 반환.
+    """
+    if year < MIN_YEAR or year > MAX_YEAR:
+        return False, {
+            "code": "year_out_of_range",
+            "message": f"year must be between {MIN_YEAR} and {MAX_YEAR}",
+            "value": year,
+        }
+    return True, None
+
+
+def _validate_year_range(start_year: int, end_year: int):
+    """
+    (start_year, end_year) 구간에 대한 검증.
+    - start_year <= end_year
+    - 둘 다 MIN_YEAR ~ MAX_YEAR 범위
+    """
+    ok_start, err_start = _validate_year(start_year)
+    ok_end, err_end = _validate_year(end_year)
+
+    if not ok_start:
+        return False, {
+            "code": "invalid_start_year",
+            "message": "start_year is invalid",
+            "detail": err_start,
+        }
+
+    if not ok_end:
+        return False, {
+            "code": "invalid_end_year",
+            "message": "end_year is invalid",
+            "detail": err_end,
+        }
+
+    if start_year > end_year:
+        return False, {
+            "code": "start_after_end",
+            "message": "start_year must be less than or equal to end_year",
+            "start_year": start_year,
+            "end_year": end_year,
+        }
+
+    return True, None
+
 
 @api_bp.get("/predict")
 def predict():
@@ -25,9 +94,9 @@ def predict():
       - years: 선택, 정수. 주어지면 horizon보다 우선.
 
     예:
-      GET /api/v1/predict?region=강남구                -> short(3년) 예측
-      GET /api/v1/predict?region=강남구&horizon=long  -> long(10년) 예측
-      GET /api/v1/predict?region=강남구&years=5       -> 5년 예측
+      GET /api/predict?region=강남구                -> short(3년) 예측
+      GET /api/predict?region=강남구&horizon=long  -> long(10년) 예측
+      GET /api/predict?region=강남구&years=5       -> 5년 예측
     """
     region = request.args.get("region")
     horizon = request.args.get("horizon", "short")
@@ -90,7 +159,7 @@ def health():
     """
     서비스 헬스 체크용 엔드포인트
 
-    - 브라우저나 모니터링 도구에서 /api/v1/health 를 호출해서
+    - 브라우저나 모니터링 도구에서 /api/health 를 호출해서
       서버가 살아있는지 확인하는 목적.
     """
     return jsonify({"status": "ok"})
@@ -157,13 +226,119 @@ def elderly_correlation():
     data = correlation_service.compute()
     return jsonify({"status": "success", "data": data})
 
+
+@api_bp.get("/predictions/<region>/<int:year>")
+def get_prediction(region: str, year: int):
+    """
+    예: GET /api/predictions/강남구/2025
+    → 예측만 수행 (저장은 안 해도 됨)
+    """
+    ok, err = _validate_year(year)
+    if not ok:
+        return api_error(400, "invalid_input", "year is out of allowed range", **err)
+
+    services = current_app.config["services"]
+    prediction_service = services.get("prediction_service")
+    if prediction_service is None:
+        return api_error(500, "service_not_configured",
+                         "prediction_service is not configured")
+
+    result = prediction_service.predict(region, year)
+    if result is None:
+        return api_error(404, "no_data",
+                         "no prediction data available for given region and year",
+                         region=region, year=year)
+
+    return jsonify(result)
+
+#나중에 사용할 코드
+#
+## 핵심 코드 return 부분이 jsonify로 되어있음 나중에 교체 예정
+# @api_bp.get("/predictions/<region_name>/<int:year>")
+# def get_prediction(region_name: str, year: int):
+#     # 1) year 검증
+#     ok, error_detail = _validate_year(year)
+#     if not ok:
+#         return jsonify(
+#             {
+#                 "error": "invalid_input",
+#                 "details": error_detail,
+#             }
+#         ), 400
+#
+#     # region_name 공백 제거 정도는 여기서 처리해도 좋음
+#     region_name = region_name.strip()
+#
+#     services = current_app.config.get("services", {})
+#     prediction_service = services.get("prediction_service")
+#
+#     if prediction_service is None:
+#         return jsonify({"error": "service_not_configured"}), 500
+#
+#     result = prediction_service.predict(region_name, year)
+#     if result is None:
+#         return jsonify(
+#             {"error": "no_data", "region": region_name, "year": year}
+#         ), 404
+#
+#     return jsonify(result)
+# @api_bp.get("/elderly-stats/<region_code>/<int:start_year>/<int:end_year>")
+# def get_elderly_stats_series(region_code: str, start_year: int, end_year: int):
+#     # 1) 입력값 검증
+#     ok, error_detail = _validate_year_range(start_year, end_year)
+#     if not ok:
+#         return jsonify(
+#             {
+#                 "error": "invalid_input",
+#                 "details": error_detail,
+#             }
+#         ), 400
+#
+#     services = current_app.config.get("services", {})
+#     feature_stats_service = services.get("feature_stats_service")
+#
+#     if feature_stats_service is None:
+#         return jsonify({"error": "service_not_configured"}), 500
+#
+#     series = feature_stats_service.get_time_series(
+#         region_code=region_code,
+#         start_year=start_year,
+#         end_year=end_year,
+#     )
+#
+#     if not series:
+#         return jsonify(
+#             {
+#                 "error": "no_data",
+#                 "region_code": region_code,
+#                 "start_year": start_year,
+#                 "end_year": end_year,
+#             }
+#         ), 404
+#
+#     return jsonify(series)
+
 @api_bp.get("/elderly-stats/<region_code>/<int:start_year>/<int:end_year>")
 def get_elderly_stats_series(region_code: str, start_year: int, end_year: int):
+    # 1) 입력값 검증
+    ok, error_detail = _validate_year_range(start_year, end_year)
+    if not ok:
+        return api_error(
+            400,
+            "invalid_input",
+            "invalid year range",
+            **error_detail,
+        )
+
     services = current_app.config.get("services", {})
     feature_stats_service = services.get("feature_stats_service")
 
     if feature_stats_service is None:
-        return jsonify({"error": "service_not_configured"}), 500
+        return api_error(
+            500,
+            "service_not_configured",
+            "feature_stats_service is not configured in app.config['services']",
+        )
 
     series = feature_stats_service.get_time_series(
         region_code=region_code,
@@ -172,13 +347,61 @@ def get_elderly_stats_series(region_code: str, start_year: int, end_year: int):
     )
 
     if not series:
-        return jsonify(
-            {
-                "error": "no_data",
-                "region_code": region_code,
-                "start_year": start_year,
-                "end_year": end_year,
-            }
-        ), 404
+        return api_error(
+            404,
+            "no_data",
+            "no elderly stats found for given region and year range",
+            region_code=region_code,
+            start_year=start_year,
+            end_year=end_year,
+        )
 
     return jsonify(series)
+
+@api_bp.post("/predictions/<region>/<int:year>")
+def create_prediction(region: str, year: int):
+    """
+    예: POST /api/predictions/강남구/2025
+    → 예측을 수행하고 PREDICTION_RESULT에 저장
+    """
+    ok, err = _validate_year(year)
+    if not ok:
+        return api_error(400, "invalid_input", "year not valid", **err)
+
+    services = current_app.config.get("services", {})
+    prediction_service = services.get("prediction_service")
+    if prediction_service is None:
+        return api_error(
+            500,
+            "service_not_configured",
+            "prediction_service is not configured in app.config['services']",
+        )
+
+    result = prediction_service.predict_and_store(region, year)
+    if result is None:
+        return api_error(
+            404,
+            "no_data",
+            "prediction unavailable",
+            region=region,
+            year=year,
+        )
+
+    return jsonify({"saved": True, "result": result})
+
+
+@api_bp.get("/predictions/history/<region>")
+def get_prediction_history(region: str):
+    repo = current_app.config["services"]["prediction_repo"]
+    rows = repo.list_by_region(region)
+
+    return jsonify([
+        {
+            "region": r.region_name,
+            "year": r.year,
+            "prediction": r.prediction_value,
+            "source": r.source,
+            "created_at": r.created_at.isoformat(),
+        }
+        for r in rows
+    ])
