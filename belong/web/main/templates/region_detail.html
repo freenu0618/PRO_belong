@@ -1,61 +1,46 @@
 {% extends "base.html" %}
-{% block title %}Belong - 지역별 예측{% endblock %}
+{% block title %}지역 예측 결과{% endblock %}
 
 {% block content %}
 
 <div class="container py-4">
 
-    <!-- 제목 -->
-    <h2 class="fw-bold mb-4">{{ region }} 상세 분석</h2>
+    <!-- 지역명 타이틀 -->
+    <h2 class="fw-bold mb-4">{{ region }} 예측 결과</h2>
 
-    <!-- 지역 선택 -->
-    <div class="d-flex align-items-center gap-3 mb-3">
-        <select id="regionSelect" class="form-select" style="width:200px;">
-            <option value="강남구">강남구</option>
-            <option value="종로구">종로구</option>
-            <option value="동작구">동작구</option>
-            <!-- 필요하면 region 리스트 동적으로 백엔드에서 넘겨도 가능 -->
-        </select>
-
-        <button id="predict-btn" class="btn btn-primary">
-            예측 실행
-        </button>
-    </div>
-
-    <!-- 로딩 -->
-    <div id="loading" class="alert alert-info" style="display:none;">
-        ⏳ 예측 분석 중입니다. 잠시만 기다려주세요...
-    </div>
-
-    <!-- 에러 메시지 -->
+    <!-- 로딩 / 에러 메시지 -->
+    <div id="loading" class="alert alert-info" style="display:none;">불러오는 중...</div>
     <div id="error-message" class="alert alert-danger" style="display:none;"></div>
 
-    <!-- 차트 영역 -->
-    <div class="card shadow-sm mt-3">
-        <div class="card-body">
-            <h5 class="fw-bold mb-3">연도별 변화 및 예측 결과</h5>
-            <canvas id="forecast-chart-canvas" height="140"></canvas>
+    <!-- ✔ Summary 카드 3개 -->
+    <div class="row g-3 mb-4" id="summary-section" style="display:none;">
+        <div class="col-md-4">
+            <div class="card l-bg-blue-dark p-3 text-white shadow-sm">
+                <h6>최신 인구</h6>
+                <h3 id="latest-value">-</h3>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card l-bg-green-dark p-3 text-white shadow-sm">
+                <h6>증가율</h6>
+                <h3 id="growth-rate">-</h3>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card l-bg-orange-dark p-3 text-white shadow-sm">
+                <h6>예측 요약</h6>
+                <h3 id="forecast-summary">-</h3>
+            </div>
         </div>
     </div>
 
-    <!-- 인사이트 카드 (예측/최근값 등) -->
-    <div class="row g-3 mt-3" id="summary-card">
-        <div class="col-md-4">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <div class="text-muted">최근 값</div>
-                    <h4 id="latest-value" class="fw-bold mb-0">-</h4>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <div class="text-muted">최근 증가율</div>
-                    <h4 id="latest-growth" class="fw-bold mb-0">-</h4>
-                </div>
-            </div>
+    <!-- ✔ 차트 -->
+    <div class="card shadow-sm mb-4" id="chart-section" style="display:none;">
+        <div class="card-body">
+            <h5 class="fw-bold mb-3">{{ region }} 인구 추세</h5>
+            <canvas id="forecast-chart" height="130"></canvas>
         </div>
     </div>
 
@@ -64,33 +49,12 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-    // Flask에서 region 전달받았다면 그대로 사용
-    const REGION_NAME = "{{ region }}";
-</script>
-
-<!-- 페이지 전용 JS -->
-<script src="{{ url_for('static', filename='charts/forecast_chart.js') }}"></script>
-
-<!-- 초기 자동 호출 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='charts/region_predict.js') }}"></script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-
-    // 기본 region select를 Flask 변수와 동기화
-    const select = document.getElementById("regionSelect");
-    if (REGION_NAME) {
-        select.value = REGION_NAME;
-    }
-
-    // 버튼 클릭 시 예측 실행
-    document.getElementById("predict-btn").addEventListener("click", () => {
-        hideError();
-        updateForecastChart(select.value);
-    });
-
-    // 페이지 로딩 시 자동 초기 실행
-    hideError();
-    updateForecastChart(select.value);
+    const region = "{{ region }}";
+    updateForecastChart(region);
 });
 </script>
 {% endblock %}

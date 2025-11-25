@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}지역별 예측{% endblock %}
+
+{% block content %}
+
+<div class="container d-flex justify-content-center" style="margin-top:130px; margin-bottom:120px;">
+
+    <!-- 🔹 index.html 카드 스타일 기반 + 하늘색 배경 카드 -->
+    <div class="card shadow-lg" 
+         style="width: 500px; border-radius: 16px; background: #e8f4ff; border:none;">
+
+        <div class="card-body p-4">
+
+            <h3 class="fw-bold text-center mb-3">지역별 예측</h3>
+            <p class="text-muted text-center mb-4">
+                예측할 지역명을 입력하세요. (예: 강남구, 동작구, 종로구)
+            </p>
+
+            <!-- 🔥 지역 입력 -->
+            <div class="input-group input-group-lg mb-3">
+                <input id="region-input" type="text" class="form-control"
+                       placeholder="예: 강남구 입력">
+                <button id="region-search-btn" class="btn btn-primary">
+                    예측하기
+                </button>
+            </div>
+
+            <!-- ❗ 오류 메시지 -->
+            <p id="region-search-error" class="text-danger text-center mt-2" style="display:none;"></p>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    const input = document.getElementById("region-input");
+    const btn = document.getElementById("region-search-btn");
+    const err = document.getElementById("region-search-error");
+
+    btn.addEventListener("click", () => {
+        const region = input.value.trim();
+
+        if (!region) {
+            err.innerText = "구 이름을 입력하세요.";
+            err.style.display = "block";
+            return;
+        }
+
+        err.style.display = "none";
+        window.location.href = `/region/${region}`;
+    });
+
+});
+</script>
+{% endblock %}
