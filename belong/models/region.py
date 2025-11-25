@@ -1,4 +1,3 @@
-# belong/models/region.py
 
 from belong.extensions import db
 
