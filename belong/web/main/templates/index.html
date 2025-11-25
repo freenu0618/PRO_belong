@@ -3,118 +3,111 @@
 
 {% block content %}
 
-<!-- 🔵 FULLSCREEN MAIN SLIDER -->
+<!-- Fullscreen Carousel -->
 <div id="mainCarousel" class="carousel slide" data-bs-ride="carousel">
+
   <div class="carousel-inner">
-
-    <!-- Slide 1 -->
-    <div class="carousel-item active main-slide">
-      <div class="overlay"></div>
-      <div class="carousel-content">
-        <h1 class="fw-bold">Belong</h1>
-        <h3>서울 25개 구 데이터 기반 AI 예측 서비스</h3>
-        <p>독거노인 리스크 분석과 미래 예측 제공</p>
+    <div class="carousel-item active">
+      <div class="main-slide">
+        <div class="overlay"></div>
+        <div class="carousel-content">
+          <h1>서울 25개 구 독거노인 리스크 예측</h1>
+          <p>데이터 기반 통합 분석 서비스</p>
+        </div>
       </div>
     </div>
 
-    <!-- Slide 2 -->
-    <div class="carousel-item main-slide">
-      <div class="overlay"></div>
-      <div class="carousel-content">
-        <h1 class="fw-bold">지역별 상세 분석</h1>
-        <p>과거 데이터와 미래 예측을 시각적으로 확인</p>
+    <div class="carousel-item">
+      <div class="main-slide">
+        <div class="overlay"></div>
+        <div class="carousel-content">
+          <h1>구별 상세 분석</h1>
+          <p>각 구의 고령 인구 추세를 시각적으로 분석</p>
+        </div>
       </div>
     </div>
 
-    <!-- Slide 3 -->
-    <div class="carousel-item main-slide">
-      <div class="overlay"></div>
-      <div class="carousel-content">
-        <h1 class="fw-bold">상관관계 분석</h1>
-        <p>고령층 지표 간의 상관도를 데이터 기반으로 분석</p>
+    <div class="carousel-item">
+      <div class="main-slide">
+        <div class="overlay"></div>
+        <div class="carousel-content">
+          <h1>상관관계 분석</h1>
+          <p>주거, 연령, 경제 지표 기반 데이터 인사이트 제공</p>
+        </div>
       </div>
     </div>
-
   </div>
 
-  <!-- Controls -->
-  <button class="carousel-control-prev" type="button"
-          data-bs-target="#mainCarousel" data-bs-slide="prev">
+  <button class="carousel-control-prev" type="button" data-bs-target="#mainCarousel" data-bs-slide="prev">
     <span class="carousel-control-prev-icon"></span>
   </button>
-
-  <button class="carousel-control-next" type="button"
-          data-bs-target="#mainCarousel" data-bs-slide="next">
+  <button class="carousel-control-next" type="button" data-bs-target="#mainCarousel" data-bs-slide="next">
     <span class="carousel-control-next-icon"></span>
   </button>
 </div>
 
 
-<!-- 🔵 FEATURE CARDS SECTION -->
-<section class="wrapper my-5">
+<!-- 기능 카드 섹션 -->
+<section class="main-wrapper">
   <div class="container">
 
-    <div class="row">
-      <div class="col text-center mb-5">
-        <h2 class="display-6 fw-bold">Belong 서비스 기능</h2>
-        <p class="text-muted">서울 25개 구 기반 고령층 데이터 분석</p>
-      </div>
+    <div class="row mb-5 text-center">
+      <h2 class="fw-bold">Belong 기능 안내</h2>
+      <p class="text-muted">서울 25개 구 데이터 기반 예측/분석 서비스</p>
     </div>
 
     <div class="row">
 
       <!-- Dashboard -->
-      <div class="col-sm-12 col-md-6 col-lg-4 mb-4">
-        <div class="card text-dark card-has-bg click-col"
-             style="background-image:url('https://source.unsplash.com/600x900/?data,analytics');">
-          <div class="card-img-overlay d-flex flex-column justify-content-end">
-            <div class="card-body bg-white bg-opacity-75 rounded p-3">
+      <div class="col-md-4 mb-4">
+        <div class="main-card main-card-has-bg" style="background-image:url('https://source.unsplash.com/600x900/?analytics');">
+          <div class="main-card-img-overlay d-flex flex-column justify-content-end">
+            <div class="main-card-body bg-white bg-opacity-75 p-3 rounded">
               <h4 class="fw-bold">
-                <a class="text-dark text-decoration-none"
-                   href="{{ url_for('web.dashboard') }}">
+                <a href="{{ url_for('web.dashboard') }}" class="text-dark text-decoration-none">
                   구별 현황 대시보드
                 </a>
               </h4>
+              <p class="text-muted">서울 25개 구 독거노인 현황 종합 분석</p>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Region -->
-      <div class="col-sm-12 col-md-6 col-lg-4 mb-4">
-        <div class="card text-dark card-has-bg click-col"
-             style="background-image:url('https://source.unsplash.com/600x900/?city,chart');">
-          <div class="card-img-overlay d-flex flex-column justify-content-end">
-            <div class="card-body bg-white bg-opacity-75 rounded p-3">
+      <div class="col-md-4 mb-4">
+        <div class="main-card main-card-has-bg" style="background-image:url('https://source.unsplash.com/600x900/?city');">
+          <div class="main-card-img-overlay d-flex flex-column justify-content-end">
+            <div class="main-card-body bg-white bg-opacity-75 p-3 rounded">
               <h4 class="fw-bold">
-                <a class="text-dark text-decoration-none"
-                   href="{{ url_for('web.region_detail', region='강남구') }}">
+                <a href="{{ url_for('web.region_detail', region='강남구') }}" class="text-dark text-decoration-none">
                   지역별 예측
                 </a>
               </h4>
+              <p class="text-muted">구별 데이터 기반 단기/중기 예측</p>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Correlation -->
-      <div class="col-sm-12 col-md-6 col-lg-4 mb-4">
-        <div class="card text-dark card-has-bg click-col"
-             style="background-image:url('https://source.unsplash.com/600x900/?heatmap,data');">
-          <div class="card-img-overlay d-flex flex-column justify-content-end">
-            <div class="card-body bg-white bg-opacity-75 rounded p-3">
+      <div class="col-md-4 mb-4">
+        <div class="main-card main-card-has-bg" style="background-image:url('https://source.unsplash.com/600x900/?heatmap');">
+          <div class="main-card-img-overlay d-flex flex-column justify-content-end">
+            <div class="main-card-body bg-white bg-opacity-75 p-3 rounded">
               <h4 class="fw-bold">
-                <a class="text-dark text-decoration-none"
-                   href="{{ url_for('web.correlation') }}">
+                <a href="{{ url_for('web.correlation') }}" class="text-dark text-decoration-none">
                   상관관계 분석
                 </a>
               </h4>
+              <p class="text-muted">변수 ↔ 독거노인 증가율 관계 분석</p>
             </div>
           </div>
         </div>
       </div>
 
     </div>
+
   </div>
 </section>
 
