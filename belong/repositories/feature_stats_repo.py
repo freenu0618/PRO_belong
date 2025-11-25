@@ -53,3 +53,17 @@ class ElderlyStatsRepository:
             .order_by(ElderlyStats.year)
             .all()
         )
+
+    def get_by_region_name_and_year(self, region_name: str, year: int) -> Optional[ElderlyStats]:
+        """
+        '강남구' 같은 지역 이름 + 연도로 ElderlyStats 1건 조회
+        """
+        region = Region.query.filter_by(name=region_name).one_or_none()
+        if region is None:
+            return None
+
+        return (
+            ElderlyStats.query
+            .filter_by(region_id=region.id, year=year)
+            .one_or_none()
+        )

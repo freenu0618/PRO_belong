@@ -1,66 +1,66 @@
-<!--{% extends "base.html" %}-->
-<!--{% block content %}-->
+{% extends "base.html" %}
+{% block content %}
 
-<!--&lt;!&ndash; 캐러셀 &ndash;&gt;-->
-<!--<div id="mainCarousel" class="carousel slide mb-4" data-bs-ride="carousel">-->
-<!--  <div class="carousel-inner">-->
-<!--    <div class="carousel-item active bg-dark text-white p-5">-->
-<!--      <h2>서울 25개 구 독거노인 리스크 예측</h2>-->
-<!--      <p>과거 데이터와 ML 모델을 기반으로, 단기·장기 고독사 위험을 예측합니다.</p>-->
-<!--    </div>-->
-<!--    <div class="carousel-item bg-secondary text-white p-5">-->
-<!--      <h2>구별 상세 분석</h2>-->
-<!--      <p>각 구의 고령 인구 추이, 독거노인 수, 주요 지표를 한 눈에 확인해 보세요.</p>-->
-<!--    </div>-->
-<!--    <div class="carousel-item bg-info text-dark p-5">-->
-<!--      <h2>데이터 기반 상관관계 분석</h2>-->
-<!--      <p>소득, 주거형태, 인구 구조 등과 고독사 발생의 관계를 시각화합니다.</p>-->
-<!--    </div>-->
-<!--  </div>-->
+<!-- 캐러셀 -->
+<div id="mainCarousel" class="carousel slide mb-4" data-bs-ride="carousel">
+  <div class="carousel-inner">
+    <div class="carousel-item active bg-dark text-white p-5">
+      <h2>서울 25개 구 독거노인 리스크 예측</h2>
+      <p>과거 데이터와 ML 모델을 기반으로, 단기·장기 고독사 위험을 예측합니다.</p>
+    </div>
+    <div class="carousel-item bg-secondary text-white p-5">
+      <h2>구별 상세 분석</h2>
+      <p>각 구의 고령 인구 추이, 독거노인 수, 주요 지표를 한 눈에 확인해 보세요.</p>
+    </div>
+    <div class="carousel-item bg-info text-dark p-5">
+      <h2>데이터 기반 상관관계 분석</h2>
+      <p>소득, 주거형태, 인구 구조 등과 고독사 발생의 관계를 시각화합니다.</p>
+    </div>
+  </div>
 
-<!--  <button class="carousel-control-prev" type="button"-->
-<!--          data-bs-target="#mainCarousel" data-bs-slide="prev">-->
-<!--    <span class="carousel-control-prev-icon"></span>-->
-<!--  </button>-->
-<!--  <button class="carousel-control-next" type="button"-->
-<!--          data-bs-target="#mainCarousel" data-bs-slide="next">-->
-<!--    <span class="carousel-control-next-icon"></span>-->
-<!--  </button>-->
-<!--</div>-->
+  <button class="carousel-control-prev" type="button"
+          data-bs-target="#mainCarousel" data-bs-slide="prev">
+    <span class="carousel-control-prev-icon"></span>
+  </button>
+  <button class="carousel-control-next" type="button"
+          data-bs-target="#mainCarousel" data-bs-slide="next">
+    <span class="carousel-control-next-icon"></span>
+  </button>
+</div>
 
-<!--&lt;!&ndash; 기능 카드 영역 &ndash;&gt;-->
-<!--<div class="row g-3">-->
-<!--  <div class="col-md-4">-->
-<!--    <div class="card h-100">-->
-<!--      <div class="card-body">-->
-<!--        <h5 class="card-title">구별 현황 대시보드</h5>-->
-<!--        <p class="card-text">서울 25개 구의 독거노인 현황과 주요 지표를 한 번에 확인.</p>-->
-<!--        <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary">대시보드로 이동</a>-->
-<!--      </div>-->
-<!--    </div>-->
-<!--  </div>-->
+<!-- 기능 카드 영역 -->
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">구별 현황 대시보드</h5>
+        <p class="card-text">서울 25개 구의 독거노인 현황과 주요 지표를 한 번에 확인.</p>
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary">대시보드로 이동</a>
+      </div>
+    </div>
+  </div>
 
-<!--  <div class="col-md-4">-->
-<!--    <div class="card h-100">-->
-<!--      <div class="card-body">-->
-<!--        <h5 class="card-title">지역별 예측</h5>-->
-<!--        <p class="card-text">관심 있는 구를 선택하고 단기 예측 결과를 확인해 보세요.</p>-->
-<!--        <a href="{{ url_for('main.region_detail', region='강남구') }}" class="btn btn-primary">-->
-<!--          지역 상세 보기-->
-<!--        </a>-->
-<!--      </div>-->
-<!--    </div>-->
-<!--  </div>-->
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">지역별 예측</h5>
+        <p class="card-text">관심 있는 구를 선택하고 단기 예측 결과를 확인해 보세요.</p>
+        <a href="{{ url_for('main.region_detail', region='강남구') }}" class="btn btn-primary">
+          지역 상세 보기
+        </a>
+      </div>
+    </div>
+  </div>
 
-<!--  <div class="col-md-4">-->
-<!--    <div class="card h-100">-->
-<!--      <div class="card-body">-->
-<!--        <h5 class="card-title">상관관계 분석</h5>-->
-<!--        <p class="card-text">각 지표와 고독사 발생 간의 상관관계를 히트맵으로 제공합니다.</p>-->
-<!--        <a href="{{ url_for('main.correlation') }}" class="btn btn-primary">분석 화면</a>-->
-<!--      </div>-->
-<!--    </div>-->
-<!--  </div>-->
-<!--</div>-->
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">상관관계 분석</h5>
+        <p class="card-text">각 지표와 고독사 발생 간의 상관관계를 히트맵으로 제공합니다.</p>
+        <a href="{{ url_for('main.correlation') }}" class="btn btn-primary">분석 화면</a>
+      </div>
+    </div>
+  </div>
+</div>
 
-<!--{% endblock %}-->
+{% endblock %}

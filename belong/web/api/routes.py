@@ -3,12 +3,7 @@ from . import api_bp
 from belong.services.population_service import PopulationService
 from belong.services.forecast_service import ForecastService
 from belong.services.correlation_service import CorrelationService
-from belong.repositories.elderly_repo import (
-    InMemoryElderlyHistoryRepository,
-    SqlAlchemyElderlyHistoryRepository,
-)
-from belong.extensions import logger
-from config import Config
+from belong.repositories.elderly_repo import SqlAlchemyElderlyHistoryRepository
 
 # Service 인스턴스들은 지금은 간단히 전역으로 올려도 괜찮음
 population_service = PopulationService()
@@ -164,15 +159,26 @@ def elderly_correlation():
 
 @api_bp.get("/elderly-stats/<region_code>/<int:start_year>/<int:end_year>")
 def get_elderly_stats_series(region_code: str, start_year: int, end_year: int):
-    service = current_app.config["services"]["feature_stats_service"]
+    services = current_app.config.get("services", {})
+    feature_stats_service = services.get("feature_stats_service")
 
-    series = service.get_time_series(
+    if feature_stats_service is None:
+        return jsonify({"error": "service_not_configured"}), 500
+
+    series = feature_stats_service.get_time_series(
         region_code=region_code,
         start_year=start_year,
         end_year=end_year,
     )
 
     if not series:
-        return jsonify({"error": "no data", "region_code": region_code}), 404
+        return jsonify(
+            {
+                "error": "no_data",
+                "region_code": region_code,
+                "start_year": start_year,
+                "end_year": end_year,
+            }
+        ), 404
 
     return jsonify(series)

@@ -2,16 +2,20 @@
 from belong.extensions import db
 from sqlalchemy import UniqueConstraint
 
+
 class ElderlyStats(db.Model):
     __tablename__ = "ELDERLY_STATS"
 
     id = db.Column("ID", db.Integer, primary_key=True)
-    region_id = db.Column("REGION_ID", db.Integer,
-                          db.ForeignKey("REGION.ID"), nullable=False)
+    region_id = db.Column(
+        "REGION_ID",
+        db.Integer,
+        db.ForeignKey("REGION.id"),   # 🔴 여기만 이렇게 바꿔주면 됨
+        nullable=False,
+    )
     year = db.Column("YEAR", db.Integer, nullable=False)
     elderly_population = db.Column("ELDERLY_POPULATION", db.Integer, nullable=False)
 
-    # Region과의 관계 (N:1)
     region = db.relationship(
         "Region",
         back_populates="elderly_stats",
