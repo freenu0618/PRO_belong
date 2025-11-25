@@ -1,0 +1,136 @@
+/* ===== Fixed Navbar 보정 ===== */
+body {
+    margin: 0;
+    padding: 0;
+}
+
+/* ===== Uracle 스타일: Fullscreen Carousel ===== */
+.main-slide {
+    position: relative;
+    height: 100vh;
+    background-size: cover;
+    background-position: center;
+}
+
+.main-slide:nth-child(1) {
+    background-image: url("https://source.unsplash.com/1600x900/?ai,tech");
+}
+.main-slide:nth-child(2) {
+    background-image: url("https://source.unsplash.com/1600x900/?seoul,city");
+}
+.main-slide:nth-child(3) {
+    background-image: url("https://source.unsplash.com/1600x900/?data,visualization");
+}
+
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+}
+
+.carousel-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: white;
+}
+
+.carousel-content h1 {
+    font-size: 3.2rem;
+    font-weight: 700;
+}
+
+.carousel-content p {
+    margin-top: 15px;
+    font-size: 1.2rem;
+}
+
+
+
+/* =====================================================
+   🔵 메인 페이지 (index.html) 전용 카드 스타일
+   Prefix: .main-card
+===================================================== */
+.main-wrapper {
+    margin-top: 80px;
+}
+
+.main-card {
+    border: none;
+    overflow: hidden;
+    border-radius: 20px;
+    min-height: 450px;
+    transition: all 0.4s ease;
+    box-shadow: 0 0 12px rgba(0,0,0,0.2);
+}
+
+.main-card-has-bg {
+    background-size: 120%;
+    background-repeat: no-repeat;
+}
+
+.main-card-has-bg:hover {
+    background-size: 130%;
+    transform: scale(0.98);
+}
+
+.main-card-img-overlay {
+    background: linear-gradient(0deg, rgba(255,186,33,0.3), rgba(255,186,33,1));
+    transition: background 0.4s ease;
+}
+
+.main-card:hover .main-card-img-overlay {
+    background: linear-gradient(0deg, rgba(255,186,33,0.6), rgba(255,186,33,1));
+}
+
+.main-card-body {
+    transition: margin 0.4s ease;
+}
+
+.main-card:hover .main-card-body {
+    margin-top: 20px;
+}
+
+
+
+/* =====================================================
+   🔵 대시보드 페이지 (dashboard.html) 전용 카드 스타일
+   Prefix: .dash-card
+===================================================== */
+
+.dash-card {
+    background-color: #fff;
+    border-radius: 10px;
+    border: none;
+    position: relative;
+    margin-bottom: 30px;
+    padding: 20px;
+    box-shadow: 
+        0 0.46875rem 2.1875rem rgba(90,97,105,0.1),
+        0 0.9375rem 1.40625rem rgba(90,97,105,0.1),
+        0 0.25rem 0.53125rem rgba(90,97,105,0.12),
+        0 0.125rem 0.1875rem rgba(90,97,105,0.1);
+}
+
+.l-bg-purple {
+    background: linear-gradient(to right, #7b4397, #dc2430) !important;
+    color: #fff;
+}
+.l-bg-blue {
+    background: linear-gradient(to right, #373b44, #4286f4) !important;
+    color: #fff;
+}
+.l-bg-green {
+    background: linear-gradient(to right, #0a504a, #38ef7d) !important;
+    color: #fff;
+}
+
+.card-icon-large i {
+    font-size: 75px;
+    opacity: 0.15;
+    position: absolute;
+    right: 20px;
+    top: 20px;
+}

@@ -1,8 +1,66 @@
 {% extends "base.html" %}
+{% block title %}Belong - Dashboard{% endblock %}
+
 {% block content %}
-<h1>서울 25개 구 독거노인 대시보드</h1>
-<div id="dashboard-table">
-  <!-- JS로 채울 영역 -->
+
+<div class="container py-4">
+
+    <!-- Summary Cards -->
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="dash-card l-bg-purple">
+                <div class="card-icon-large"><i class="fas fa-users"></i></div>
+                <h5 class="mb-1">총 독거노인 수</h5>
+                <h2 id="summary-total">-</h2>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="dash-card l-bg-blue">
+                <div class="card-icon-large"><i class="fas fa-chart-line"></i></div>
+                <h5 class="mb-1">증가 TOP 구</h5>
+                <h2 id="summary-growth-top">-</h2>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="dash-card l-bg-green">
+                <div class="card-icon-large"><i class="fas fa-arrow-down"></i></div>
+                <h5 class="mb-1">감소 TOP 구</h5>
+                <h2 id="summary-growth-bottom">-</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="dash-card mb-4">
+        <h5 class="fw-bold mb-3">서울 25개 구 추세 미리보기</h5>
+        <canvas id="dashboard-chart" height="120"></canvas>
+    </div>
+
+    <!-- Table -->
+    <div class="dash-card">
+        <h5 class="fw-bold mb-3">구별 최신 데이터</h5>
+
+        <div class="table-responsive">
+            <table class="table text-center">
+                <thead class="table-dark">
+                    <tr>
+                        <th>구</th>
+                        <th>최신 인구</th>
+                        <th>증가율</th>
+                        <th>상세보기</th>
+                    </tr>
+                </thead>
+
+                <tbody id="population-table-body"></tbody>
+            </table>
+        </div>
+    </div>
 </div>
+
 {% endblock %}
 
+{% block scripts %}
+<script src="{{ url_for('static', filename='charts/dashboard.js') }}"></script>
+{% endblock %}

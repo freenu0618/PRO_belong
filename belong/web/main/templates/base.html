@@ -1,26 +1,37 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8">
-  <title>Belong 프로젝트</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{% block title %}Belong{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+
+    <!-- Global style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
+
 <body>
-  <header>
-    <nav>
-      <a href="{{ url_for('web.dashboard') }}">Dashboard</a>
-      <a href="{{ url_for('web.correlation') }}">Correlation</a>
-    </nav>
-  </header>
-  {% include "layout.html" %}
 
-  <main>
-    {% block content %}{% endblock %}
-  </main>
+    {% include 'navbar.html' %}
 
-  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- fixed navbar 공간 확보 -->
+    <main style="margin-top: 70px;">
+        {% block content %}{% endblock %}
+    </main>
 
+    <footer class="text-center text-muted py-4">
+        <small>Belong Project © 2025</small>
+    </footer>
+
+    <!-- JS -->
+    <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+    {% block scripts %}{% endblock %}
 </body>
 </html>
-
