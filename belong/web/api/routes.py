@@ -182,3 +182,31 @@ def get_elderly_stats_series(region_code: str, start_year: int, end_year: int):
         ), 404
 
     return jsonify(series)
+
+@api_bp.get("/predictions/<region_name>/<int:year>")
+def get_prediction(region_name: str, year: int):
+    """
+    예: GET /api/predictions/강남구/2025
+
+    응답 예:
+    {
+      "region": "강남구",
+      "year": 2025,
+      "prediction": 12345.0,
+      "source": "rule_based" or "model",
+      "history": [...],
+    }
+    """
+    services = current_app.config.get("services", {})
+    prediction_service = services.get("prediction_service")
+
+    if prediction_service is None:
+        return jsonify({"error": "service_not_configured"}), 500
+
+    result = prediction_service.predict(region_name, year)
+    if result is None:
+        return jsonify(
+            {"error": "no_data", "region": region_name, "year": year}
+        ), 404
+
+    return jsonify(result)

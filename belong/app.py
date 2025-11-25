@@ -8,6 +8,7 @@ from config import Config
 from belong.repositories.feature_stats_repo import ElderlyStatsRepository
 from belong.repositories.region_repo import RegionRepository
 from belong.services.feature_stats_service import FeatureStatsService
+from belong.services.prediction_service import PredictionService
 
 """
 api_bp → /api/v1/... 같은 REST API 엔드포인트 모음
@@ -55,6 +56,7 @@ def create_app() -> Flask:
         elderly_stats_repo=elderly_stats_repo,
         region_repo=region_repo,
     )
+    prediction_service = PredictionService(feature_stats_service=feature_stats_service)
 
     # --- app.config["services"]에 등록 ---
     app.config.setdefault("services", {})
@@ -63,6 +65,7 @@ def create_app() -> Flask:
             "elderly_stats_repo": elderly_stats_repo,
             "region_repo": region_repo,
             "feature_stats_service": feature_stats_service,
+            "prediction_service": prediction_service,
         }
     )
 
