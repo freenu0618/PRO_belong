@@ -2,65 +2,117 @@
 {% block title %}Belong - Dashboard{% endblock %}
 
 {% block content %}
-
 <div class="container py-4">
 
-    <!-- Summary Cards -->
-    <div class="row">
-        <div class="col-md-4 mb-4">
-            <div class="dash-card l-bg-purple">
-                <div class="card-icon-large"><i class="fas fa-users"></i></div>
-                <h5 class="mb-1">총 독거노인 수</h5>
-                <h2 id="summary-total">-</h2>
+    <!-- 🔹 Summary Cards -->
+    <div class="row g-3 mb-4">
+        <!-- 총 독거노인 수 -->
+        <div class="col-md-4">
+            <div class="card l-bg-blue-dark text-white">
+                <div class="card-statistic-3 p-4">
+                    <div class="card-icon card-icon-large">
+                        <i class="fas fa-user-friends"></i>
+                    </div>
+                    <div class="mb-4">
+                        <h5 class="card-title mb-0">총 노인 인구</h5>
+                    </div>
+                    <div class="row align-items-center mb-2 d-flex">
+                        <div class="col-12">
+                            <h2 id="summary-total" class="d-flex align-items-center mb-0">
+                                -
+                            </h2>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="col-md-4 mb-4">
-            <div class="dash-card l-bg-blue">
-                <div class="card-icon-large"><i class="fas fa-chart-line"></i></div>
-                <h5 class="mb-1">증가 TOP 구</h5>
-                <h2 id="summary-growth-top">-</h2>
+        <!-- 증가 TOP 구 -->
+        <div class="col-md-4">
+            <div class="card l-bg-green-dark text-white">
+                <div class="card-statistic-3 p-4">
+                    <div class="card-icon card-icon-large">
+                        <i class="fas fa-arrow-up"></i>
+                    </div>
+                    <div class="mb-4">
+                        <h5 class="card-title mb-0">증가 TOP 구</h5>
+                    </div>
+                    <div class="row align-items-center mb-2 d-flex">
+                        <div class="col-12">
+                            <h3 id="summary-growth-top" class="d-flex align-items-center mb-0">
+                                -
+                            </h3>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="col-md-4 mb-4">
-            <div class="dash-card l-bg-green">
-                <div class="card-icon-large"><i class="fas fa-arrow-down"></i></div>
-                <h5 class="mb-1">감소 TOP 구</h5>
-                <h2 id="summary-growth-bottom">-</h2>
+        <!-- 감소 TOP 구 -->
+        <div class="col-md-4">
+            <div class="card l-bg-orange-dark text-white">
+                <div class="card-statistic-3 p-4">
+                    <div class="card-icon card-icon-large">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                    <div class="mb-4">
+                        <h5 class="card-title mb-0">증가율 최하위 구</h5>
+                    </div>
+                    <div class="row align-items-center mb-2 d-flex">
+                        <div class="col-12">
+                            <h3 id="summary-growth-bottom" class="d-flex align-items-center mb-0">
+                                -
+                            </h3>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Chart -->
-    <div class="dash-card mb-4">
-        <h5 class="fw-bold mb-3">서울 25개 구 추세 미리보기</h5>
-        <canvas id="dashboard-chart" height="120"></canvas>
-    </div>
-
-    <!-- Table -->
-    <div class="dash-card">
-        <h5 class="fw-bold mb-3">구별 최신 데이터</h5>
-
-        <div class="table-responsive">
-            <table class="table text-center">
-                <thead class="table-dark">
-                    <tr>
-                        <th>구</th>
-                        <th>최신 인구</th>
-                        <th>증가율</th>
-                        <th>상세보기</th>
-                    </tr>
-                </thead>
-
-                <tbody id="population-table-body"></tbody>
-            </table>
+    <!-- 🔹 Chart Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="fw-bold mb-3">서울 25개 구 노인 인구 추세</h5>
+            <p class="text-muted mb-2">
+                각 구의 연도별 노인 인구 변화를 선 그래프로 표시합니다.
+            </p>
+            <canvas id="dashboard-chart" height="140"></canvas>
         </div>
     </div>
+
+    <!-- 🔹 Table -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="fw-bold mb-3">구별 최신 데이터</h5>
+
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>구</th>
+                            <th>최신 노인 인구</th>
+                            <th>증가율(%)</th>
+                            <th>상세보기</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="population-table-body">
+                        <!-- dashboard.js 에서 렌더링 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 </div>
-
 {% endblock %}
 
 {% block scripts %}
+<!-- Font Awesome (아이콘용, 한 번만 전역에서 쓰면 됨) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/js/all.min.js"
+        integrity="sha256-MAgcygDRz31QK+owsXv7LQ3FKzP0iGY6HYaacJfLZU="
+        crossorigin="anonymous"></script>
+
 <script src="{{ url_for('static', filename='charts/dashboard.js') }}"></script>
 {% endblock %}

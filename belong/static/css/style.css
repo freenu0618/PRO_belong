@@ -1,7 +1,7 @@
 /* ===== Fixed Navbar 보정 ===== */
 body {
-    margin: 0;
-    padding: 0;
+    padding-top: 0 !important;
+    margin-top: 0 !important;
 }
 
 /* ===== Uracle 스타일: Fullscreen Carousel ===== */

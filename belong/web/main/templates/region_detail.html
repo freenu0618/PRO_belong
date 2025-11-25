@@ -1,49 +1,77 @@
 {% extends "base.html" %}
-{% block title %}지역 예측 결과{% endblock %}
+{% block title %}{{ region }} 예측 결과{% endblock %}
 
 {% block content %}
 
-<div class="container py-4">
+<div class="container mt-4">
 
-    <!-- 지역명 타이틀 -->
-    <h2 class="fw-bold mb-4">{{ region }} 예측 결과</h2>
+    <!-- 제목 -->
+    <h2 class="fw-bold">{{ region }} 예측 결과</h2>
+    <p class="text-muted">예측 연도: {{ year }}</p>
 
-    <!-- 로딩 / 에러 메시지 -->
-    <div id="loading" class="alert alert-info" style="display:none;">불러오는 중...</div>
+    <!-- 로딩 -->
+    <div id="loading" class="text-center my-5" style="display:none;">
+        <div class="spinner-border text-primary"></div>
+        <p class="mt-2 fw-bold">데이터 불러오는 중...</p>
+    </div>
+
+    <!-- 오류 메시지 -->
     <div id="error-message" class="alert alert-danger" style="display:none;"></div>
 
-    <!-- ✔ Summary 카드 3개 -->
-    <div class="row g-3 mb-4" id="summary-section" style="display:none;">
-        <div class="col-md-4">
-            <div class="card l-bg-blue-dark p-3 text-white shadow-sm">
-                <h6>최신 인구</h6>
-                <h3 id="latest-value">-</h3>
-            </div>
-        </div>
+    <!-- 예측 요약 카드 -->
+    <div id="summary-section" style="display:none;">
+        <div class="row g-3">
 
-        <div class="col-md-4">
-            <div class="card l-bg-green-dark p-3 text-white shadow-sm">
-                <h6>증가율</h6>
-                <h3 id="growth-rate">-</h3>
+            <div class="col-md-4">
+                <div class="card shadow-sm p-3">
+                    <small class="text-muted">최신 노인 인구</small>
+                    <h3 id="latest-pop" class="fw-bold mb-0">-</h3>
+                </div>
             </div>
-        </div>
 
-        <div class="col-md-4">
-            <div class="card l-bg-orange-dark p-3 text-white shadow-sm">
-                <h6>예측 요약</h6>
-                <h3 id="forecast-summary">-</h3>
+            <div class="col-md-4">
+                <div class="card shadow-sm p-3">
+                    <small class="text-muted">예측값 ({{ year }})</small>
+                    <h3 id="predicted-pop" class="fw-bold mb-0">-</h3>
+                </div>
             </div>
+
+            <div class="col-md-4">
+                <div class="card shadow-sm p-3">
+                    <small class="text-muted">증가율</small>
+                    <h3 id="growth-rate" class="fw-bold mb-0">-</h3>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    <!-- ✔ 차트 -->
-    <div class="card shadow-sm mb-4" id="chart-section" style="display:none;">
-        <div class="card-body">
-            <h5 class="fw-bold mb-3">{{ region }} 인구 추세</h5>
-            <canvas id="forecast-chart" height="130"></canvas>
-        </div>
+    <!-- 차트 표시 버튼 -->
+    <div class="text-center mt-5" id="chart-btn-section" style="display:none;">
+        <button class="btn btn-info btn-lg" data-bs-toggle="modal" data-bs-target="#forecastModal">
+            예측 차트 보기
+        </button>
     </div>
 
+</div>
+
+
+<!-- 예측 차트 팝업 Modal -->
+<div class="modal fade" id="forecastModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">{{ region }} 예측 차트</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+          <canvas id="forecast-chart" height="150"></canvas>
+      </div>
+
+    </div>
+  </div>
 </div>
 
 {% endblock %}
@@ -52,9 +80,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ url_for('static', filename='charts/region_predict.js') }}"></script>
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-    const region = "{{ region }}";
-    updateForecastChart(region);
-});
+    loadRegionForecast("{{ region }}", "{{ year }}");
 </script>
 {% endblock %}
