@@ -94,9 +94,9 @@ def predict():
       - years: 선택, 정수. 주어지면 horizon보다 우선.
 
     예:
-      GET /api/v1/predict?region=강남구                -> short(3년) 예측
-      GET /api/v1/predict?region=강남구&horizon=long  -> long(10년) 예측
-      GET /api/v1/predict?region=강남구&years=5       -> 5년 예측
+      GET /api/predict?region=강남구                -> short(3년) 예측
+      GET /api/predict?region=강남구&horizon=long  -> long(10년) 예측
+      GET /api/predict?region=강남구&years=5       -> 5년 예측
     """
     region = request.args.get("region")
     horizon = request.args.get("horizon", "short")
@@ -159,7 +159,7 @@ def health():
     """
     서비스 헬스 체크용 엔드포인트
 
-    - 브라우저나 모니터링 도구에서 /api/v1/health 를 호출해서
+    - 브라우저나 모니터링 도구에서 /api/health 를 호출해서
       서버가 살아있는지 확인하는 목적.
     """
     return jsonify({"status": "ok"})
@@ -227,39 +227,27 @@ def elderly_correlation():
     return jsonify({"status": "success", "data": data})
 
 
-@api_bp.get("/predictions/<region_name>/<int:year>")
-def get_prediction(region_name: str, year: int):
-    # 1) year 검증
-    ok, error_detail = _validate_year(year)
+@api_bp.get("/predictions/<region>/<int:year>")
+def get_prediction(region: str, year: int):
+    """
+    예: GET /api/predictions/강남구/2025
+    → 예측만 수행 (저장은 안 해도 됨)
+    """
+    ok, err = _validate_year(year)
     if not ok:
-        return api_error(
-            400,
-            "invalid_input",
-            "year is out of allowed range",
-            **error_detail,
-        )
+        return api_error(400, "invalid_input", "year is out of allowed range", **err)
 
-    region_name = region_name.strip()
-
-    services = current_app.config.get("services", {})
+    services = current_app.config["services"]
     prediction_service = services.get("prediction_service")
-
     if prediction_service is None:
-        return api_error(
-            500,
-            "service_not_configured",
-            "prediction_service is not configured in app.config['services']",
-        )
+        return api_error(500, "service_not_configured",
+                         "prediction_service is not configured")
 
-    result = prediction_service.predict(region_name, year)
+    result = prediction_service.predict(region, year)
     if result is None:
-        return api_error(
-            404,
-            "no_data",
-            "no prediction data available for given region and year",
-            region=region_name,
-            year=year,
-        )
+        return api_error(404, "no_data",
+                         "no prediction data available for given region and year",
+                         region=region, year=year)
 
     return jsonify(result)
 
@@ -372,17 +360,32 @@ def get_elderly_stats_series(region_code: str, start_year: int, end_year: int):
 
 @api_bp.post("/predictions/<region>/<int:year>")
 def create_prediction(region: str, year: int):
+    """
+    예: POST /api/predictions/강남구/2025
+    → 예측을 수행하고 PREDICTION_RESULT에 저장
+    """
     ok, err = _validate_year(year)
     if not ok:
         return api_error(400, "invalid_input", "year not valid", **err)
 
-    services = current_app.config["services"]
-    prediction_service = services["prediction_service"]
+    services = current_app.config.get("services", {})
+    prediction_service = services.get("prediction_service")
+    if prediction_service is None:
+        return api_error(
+            500,
+            "service_not_configured",
+            "prediction_service is not configured in app.config['services']",
+        )
 
     result = prediction_service.predict_and_store(region, year)
-
     if result is None:
-        return api_error(404, "no_data", "prediction unavailable", region=region, year=year)
+        return api_error(
+            404,
+            "no_data",
+            "prediction unavailable",
+            region=region,
+            year=year,
+        )
 
     return jsonify({"saved": True, "result": result})
 

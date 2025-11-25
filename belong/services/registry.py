@@ -21,9 +21,11 @@ def register_services(app):
         region_repo=region_repo,
     )
     prediction_repo = PredictionRepository()
+
     prediction_service = PredictionService(
-        feature_stats_service=feature_stats_service
+        feature_stats_service=feature_stats_service,
     )
+
     prediction_service.prediction_repo = prediction_repo
     correlation_service = CorrelationService()
     population_service = PopulationService()

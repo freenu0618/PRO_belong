@@ -1,5 +1,5 @@
 const USE_MOCK = true;
-const API_BASE = USE_MOCK ? "/mock" : "/api/v1";
+const API_BASE = USE_MOCK ? "/mock" : "/api";
 
 async function loadDashboard() {
   const tableContainer = document.getElementById("dashboard-table");
