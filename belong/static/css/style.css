@@ -134,3 +134,41 @@ body {
     right: 20px;
     top: 20px;
 }
+
+/* ================================
+   REGION DETAIL - PREDICT MODAL UI
+   (prefix: rdp-)
+================================ */
+
+.rdp-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.rdp-btn {
+    background-color: #198754;
+    color: #fff;
+}
+
+.rdp-modal-body {
+    border: none;
+    background-color: white;
+}
+
+.rdp-modal-content {
+    border: none;
+    background: transparent;
+}
+
+.rdp-close {
+    font-size: 28px;
+    font-weight: bold;
+    color: #000;
+}
+
+.rdp-form-control {
+    width: 80%;
+    height: 50px;
+    border-radius: 20px;
+}
