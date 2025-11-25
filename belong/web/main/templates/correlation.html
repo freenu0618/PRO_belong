@@ -1,9 +1,47 @@
 {% extends "base.html" %}
-{% block content %}
-<h2>상관관계 분석</h2>
-<div class="border p-4 text-center bg-light">
-    <canvas id="heatmap" width="600" height="400"></canvas>
-<script src="{{ url_for('static', filename='js/charts/heatmap_mock.js') }}"></script>
-</div>
+{% block title %}Belong - 상관관계 분석{% endblock %}
 
+{% block content %}
+<div class="container py-4">
+
+    <h2 class="fw-bold mb-4">상관관계 분석</h2>
+
+    <!-- Loading / Error -->
+    <div id="loading" class="alert alert-info" style="display:none;">⏳ 불러오는 중...</div>
+    <div id="error-message" class="alert alert-danger" style="display:none;"></div>
+
+    <!-- Heatmap -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="fw-bold mb-3">변수 간 상관계수 히트맵</h5>
+            <canvas id="heatmap-canvas" height="160"></canvas>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="fw-bold mb-3">상관계수 목록</h5>
+
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Feature</th>
+                            <th>설명</th>
+                            <th>Corr</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="corr-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='charts/heatmap_mock.js') }}"></script>
 {% endblock %}
