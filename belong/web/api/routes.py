@@ -11,6 +11,7 @@ population_service = PopulationService()
 repo = SqlAlchemyElderlyHistoryRepository()
 forecast_service = ForecastService(repo=repo)
 
+# 새 CorrelationService는 내부에서 db.session을 사용함
 correlation_service = CorrelationService()
 
 # 공통 API 에러 응답 헬퍼
@@ -83,7 +84,7 @@ def _validate_year_range(start_year: int, end_year: int):
     return True, None
 
 
-@api_bp.get("/predict")
+@api_bp.get("/prediction")
 def predict():
     """
     독거노인 인구 예측 API (v0.2)
@@ -192,7 +193,7 @@ def elderly_population():
     return jsonify({"status": "success", "data": data})
 
 
-@api_bp.get("/elderly/forecast/<region>")
+@api_bp.get("/elderly/forecast/<region>")  # 기존 경로 유지
 def elderly_forecast(region: str):
     """
     (보조용) 특정 구의 예측 데이터 조회 API
@@ -216,14 +217,25 @@ def elderly_forecast(region: str):
 @api_bp.get("/elderly/correlation")
 def elderly_correlation():
     """
-    상관관계 분석 결과 API
+    상관관계 분석 결과 API (DB 기반)
 
-    - CorrelationService.compute() 결과를 반환.
-    - /correlation 화면의 heatmap 데이터 소스로 사용 예정.
-    - 현재는 heatmap_mock.js로 placeholder를 띄우고 있지만,
-      나중에 이 API를 JS에서 호출해서 실제 상관계수 매트릭스를 그리면 된다.
+    - ELDERLY_STATS 테이블에서 데이터를 조회해서
+      CorrelationService.compute()로 상관계수를 계산.
+    - /correlation 화면의 heatmap/막대 그래프 데이터 소스로 사용.
+
+    선택 쿼리 파라미터:
+      - year_from: 시작 연도 (예: 2017)
+      - year_to:   종료 연도 (예: 2023)
+      (둘 다 없으면 전체 연도 대상으로 계산)
     """
-    data = correlation_service.compute()
+    year_from = request.args.get("year_from", type=int)
+    year_to = request.args.get("year_to", type=int)
+
+    data = correlation_service.compute(
+        year_from=year_from,
+        year_to=year_to,
+        region_ids=None,  # 필요하면 추후 region_code → region_id 매핑해서 넣을 수 있음
+    )
     return jsonify({"status": "success", "data": data})
 
 
@@ -251,74 +263,8 @@ def get_prediction(region: str, year: int):
 
     return jsonify(result)
 
-#나중에 사용할 코드
-#
-## 핵심 코드 return 부분이 jsonify로 되어있음 나중에 교체 예정
-# @api_bp.get("/predictions/<region_name>/<int:year>")
-# def get_prediction(region_name: str, year: int):
-#     # 1) year 검증
-#     ok, error_detail = _validate_year(year)
-#     if not ok:
-#         return jsonify(
-#             {
-#                 "error": "invalid_input",
-#                 "details": error_detail,
-#             }
-#         ), 400
-#
-#     # region_name 공백 제거 정도는 여기서 처리해도 좋음
-#     region_name = region_name.strip()
-#
-#     services = current_app.config.get("services", {})
-#     prediction_service = services.get("prediction_service")
-#
-#     if prediction_service is None:
-#         return jsonify({"error": "service_not_configured"}), 500
-#
-#     result = prediction_service.predict(region_name, year)
-#     if result is None:
-#         return jsonify(
-#             {"error": "no_data", "region": region_name, "year": year}
-#         ), 404
-#
-#     return jsonify(result)
-# @api_bp.get("/elderly-stats/<region_code>/<int:start_year>/<int:end_year>")
-# def get_elderly_stats_series(region_code: str, start_year: int, end_year: int):
-#     # 1) 입력값 검증
-#     ok, error_detail = _validate_year_range(start_year, end_year)
-#     if not ok:
-#         return jsonify(
-#             {
-#                 "error": "invalid_input",
-#                 "details": error_detail,
-#             }
-#         ), 400
-#
-#     services = current_app.config.get("services", {})
-#     feature_stats_service = services.get("feature_stats_service")
-#
-#     if feature_stats_service is None:
-#         return jsonify({"error": "service_not_configured"}), 500
-#
-#     series = feature_stats_service.get_time_series(
-#         region_code=region_code,
-#         start_year=start_year,
-#         end_year=end_year,
-#     )
-#
-#     if not series:
-#         return jsonify(
-#             {
-#                 "error": "no_data",
-#                 "region_code": region_code,
-#                 "start_year": start_year,
-#                 "end_year": end_year,
-#             }
-#         ), 404
-#
-#     return jsonify(series)
 
-@api_bp.get("/elderly-stats/<region_code>/<int:start_year>/<int:end_year>")
+@api_bp.get("/elderly-stats/<region>/<int:start>/<int:end>")
 def get_elderly_stats_series(region_code: str, start_year: int, end_year: int):
     # 1) 입력값 검증
     ok, error_detail = _validate_year_range(start_year, end_year)
@@ -357,6 +303,7 @@ def get_elderly_stats_series(region_code: str, start_year: int, end_year: int):
         )
 
     return jsonify(series)
+
 
 @api_bp.post("/predictions/<region>/<int:year>")
 def create_prediction(region: str, year: int):
