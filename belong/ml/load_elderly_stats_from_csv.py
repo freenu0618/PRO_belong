@@ -1,23 +1,27 @@
 # belong/ml/load_elderly_stats_from_csv.py
 
-import os
-import math
+from pathlib import Path
+
 import pandas as pd
 
 from belong.app import create_app
 from belong.extensions import db
-from belong.models import Region, ElderlyStats  # ElderlyHistory는 그대로 둠
+from belong.models.region import Region
+from belong.models.feature_stats import ElderlyStats  # 공식 모델만 사용!
 
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CSV_PATH = os.path.join(BASE_DIR, "ml", "dataset", "merged_dataset.csv")
+# ----------------------------------------------------------------------
+# 설정
+# ----------------------------------------------------------------------
+BASE_DIR = Path(__file__).resolve().parent
+DATASET_PATH = BASE_DIR / "dataset" / "merged_dataset.csv"
 
 
-def to_int(value):
-    """NaN 이면 None, 아니면 int로 변환."""
-    if value is None:
-        return None
-    if isinstance(value, float) and math.isnan(value):
+# ----------------------------------------------------------------------
+# 유틸: NaN → None, 숫자 변환
+# ----------------------------------------------------------------------
+def _to_int(value):
+    if pd.isna(value):
         return None
     try:
         return int(value)
@@ -25,11 +29,8 @@ def to_int(value):
         return None
 
 
-def to_float(value):
-    """NaN 이면 None, 아니면 float로 변환."""
-    if value is None:
-        return None
-    if isinstance(value, float) and math.isnan(value):
+def _to_float(value):
+    if pd.isna(value):
         return None
     try:
         return float(value)
@@ -37,114 +38,130 @@ def to_float(value):
         return None
 
 
-def load_regions(df: pd.DataFrame):
-    """CSV의 region 컬럼을 기준으로 REGION 테이블 채우기."""
+# ----------------------------------------------------------------------
+# REGION 로딩
+# ----------------------------------------------------------------------
+def load_regions(df: pd.DataFrame) -> dict:
+    """CSV의 region 컬럼에서 25개 구 이름을 추출해서 REGION 테이블에 적재."""
     region_names = sorted(df["region"].unique())
-    print(f"[REGION] CSV에서 발견한 구 개수: {len(region_names)}")
+    print(f"[REGION] CSV에서 발견된 구 개수: {len(region_names)}")
 
+    inserted = 0
     for name in region_names:
-        existed = Region.query.filter_by(name=name).first()
-        if existed:
-            print(f"  - 이미 존재: {name} (id={existed.id})")
+        existing = Region.query.filter_by(name=name).one_or_none()
+        if existing:
             continue
-
-        region = Region(name=name)  # code는 나중에 UPDATE로 채워도 됨
+        region = Region(name=name)
         db.session.add(region)
-        print(f"  + 새로 추가: {name}")
+        inserted += 1
 
-    db.session.commit()
-    print("[REGION] 커밋 완료.")
+    if inserted > 0:
+        db.session.commit()
+        print(f"[REGION] 새로 추가된 구 개수: {inserted}")
+    else:
+        print("[REGION] 새로 추가된 구 없음 (이미 모두 존재)")
 
-    regions = {r.name: r.id for r in Region.query.all()}
-    print(f"[REGION] 총 {len(regions)}개 구 로딩됨.")
-    return regions
+    regions = Region.query.filter(Region.name.in_(region_names)).all()
+    region_map = {r.name: r.id for r in regions}
+    print(f"[REGION] 총 {len(region_map)}개 구 로딩됨.")
+    return region_map
 
 
-def load_elderly_stats(df: pd.DataFrame, region_map: dict[str, int]):
-    """CSV 데이터를 ELDERLY_STATS 테이블에 적재."""
+# ----------------------------------------------------------------------
+# ELDERLY_STATS 로딩
+# ----------------------------------------------------------------------
+def load_elderly_stats(df: pd.DataFrame, region_map: dict) -> None:
+    """
+    merged_dataset.csv 한 행(row)마다 ELDERLY_STATS 한 행을 생성/갱신.
+    - (region, year) → REGION_ID / YEAR 로 매핑
+    - 이미 (REGION_ID, YEAR)가 있으면 UPDATE, 없으면 INSERT
+    """
     total_rows = len(df)
     print(f"[ELDERLY_STATS] 적재 대상 행 수: {total_rows}")
 
     inserted = 0
-    skipped = 0
+    updated = 0
 
-    for idx, row in df.iterrows():
+    for _, row in df.iterrows():
         region_name = row["region"]
         year = int(row["year"])
 
         region_id = region_map.get(region_name)
         if region_id is None:
-            print(f"  ! REGION 미정의: {region_name} (row={idx}) → 스킵")
-            skipped += 1
+            print(f"[ELDERLY_STATS] 경고: REGION '{region_name}' 을(를) 찾을 수 없음. 건너뜀.")
             continue
 
-        # 이미 (region_id, year) 데이터가 있다면 스킵 (중복 방지)
-        existed = ElderlyStats.query.filter_by(
-            region_id=region_id,
-            year=year,
-        ).first()
-        if existed:
-            skipped += 1
-            continue
+        existing = ElderlyStats.query.filter_by(region_id=region_id, year=year).one_or_none()
 
-        stats = ElderlyStats(
-            region_id=region_id,
-            year=year,
+        if existing:
+            stats = existing
+            updated += 1
+        else:
+            stats = ElderlyStats(region_id=region_id, year=year)
+            db.session.add(stats)
+            inserted += 1
 
-            # ===== merged_dataset.csv 컬럼 매핑 =====
-            single_house_total=to_int(row.get("single_house_total")),
-            apartment_total=to_int(row.get("apartment_total")),
-            row_house_total=to_int(row.get("row_house_total")),
-            multi_house_total=to_int(row.get("multi_house_total")),
-            non_residential_housing_total=to_int(row.get("non_residential_housing_total")),
+        # ---- CSV → 모델 필드 매핑 (컬럼명 그대로 사용) ----
+        stats.single_house_total = _to_int(row["single_house_total"])
+        stats.apartment_total = _to_int(row["apartment_total"])
+        stats.row_house_total = _to_int(row["row_house_total"])
+        stats.multi_house_total = _to_int(row["multi_house_total"])
+        stats.non_residential_housing_total = _to_int(row["non_residential_housing_total"])
 
-            target_value=to_int(row.get("target_value")),
-            aging_index=to_float(row.get("aging_index")),
-            population_total=to_int(row.get("population_total")),
-            population_male=to_int(row.get("population_male")),
-            population_female=to_int(row.get("population_female")),
-            population_change_count=to_int(row.get("population_change_count")),
-            population_growth_ratio=to_float(row.get("population_growth_ratio")),
-            single_household_ratio=to_float(row.get("single_household_ratio")),
+        stats.target_value = _to_int(row["target_value"])
 
-            under_20=to_int(row.get("under_20")),
-            age_65_over=to_int(row.get("age_65_over")),
-            age_0_14=to_int(row.get("age_0_14")),
-            cpi_index=to_float(row.get("cpi_index")),
+        stats.aging_index = _to_float(row["aging_index"])
 
-            low_income_elderly_65_79_ratio=to_float(row.get("low_income_elderly_65_79_ratio")),
-            low_income_elderly_80_over_ratio=to_float(row.get("low_income_elderly_80_over_ratio")),
-            basic_pension_recipient_count=to_int(row.get("basic_pension_recipient_count")),
-            basic_pension_recipient_ratio=to_float(row.get("basic_pension_recipient_ratio")),
+        stats.population_total = _to_int(row["population_total"])
+        stats.population_male = _to_int(row["population_male"])
+        stats.population_female = _to_int(row["population_female"])
+        stats.population_change_count = _to_int(row["population_change_count"])
+        stats.population_growth_ratio = _to_float(row["population_growth_ratio"])
 
-            alone_household_count=to_int(row.get("alone_household_count")),
-            elderly_population=to_int(row.get("elderly_population")),
+        stats.single_household_ratio = _to_float(row["single_household_ratio"])
+
+        stats.under_20 = _to_int(row["under_20"])
+        stats.age_65_over = _to_int(row["age_65_over"])
+        stats.age_0_14 = _to_int(row["age_0_14"])
+
+        stats.cpi_index = _to_float(row["cpi_index"])
+
+        stats.low_income_elderly_65_79_ratio = _to_float(
+            row["low_income_elderly_65_79_ratio"]
+        )
+        stats.low_income_elderly_80_over_ratio = _to_float(
+            row["low_income_elderly_80_over_ratio"]
         )
 
-        db.session.add(stats)
-        inserted += 1
+        stats.basic_pension_recipient_count = _to_int(
+            row["basic_pension_recipient_count"]
+        )
+        stats.basic_pension_recipient_ratio = _to_float(
+            row["basic_pension_recipient_ratio"]
+        )
 
-        if inserted % 50 == 0:
-            print(f"  - {inserted}행 처리 중...")
+        stats.alone_household_count = _to_int(row["alone_household_count"])
+        stats.elderly_population = _to_int(row["elderly_population"])
 
     db.session.commit()
-    print(f"[ELDERLY_STATS] 적재 완료: inserted={inserted}, skipped={skipped}")
+    print(f"[ELDERLY_STATS] 적재 완료: inserted={inserted}, updated={updated}")
 
 
+# ----------------------------------------------------------------------
+# 메인
+# ----------------------------------------------------------------------
 def main():
-    print(f"[ETL] CSV 경로: {CSV_PATH}")
-    if not os.path.exists(CSV_PATH):
-        raise FileNotFoundError(f"CSV 파일을 찾을 수 없습니다: {CSV_PATH}")
+    print(f"[LOADER] BASE_DIR: {BASE_DIR}")
+    print(f"[LOADER] DATASET_PATH: {DATASET_PATH}")
 
-    df = pd.read_csv(CSV_PATH)
-    print(f"[ETL] CSV 로드 완료: shape={df.shape}")
+    if not DATASET_PATH.exists():
+        raise FileNotFoundError(f"데이터셋 파일을 찾을 수 없습니다: {DATASET_PATH}")
+
+    df = pd.read_csv(DATASET_PATH)
 
     app = create_app()
     with app.app_context():
-        # 1) REGION 채우기
         region_map = load_regions(df)
-
-        # 2) ELDERLY_STATS 채우기
         load_elderly_stats(df, region_map)
 
 
