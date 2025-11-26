@@ -1,4 +1,4 @@
-// correlation_map.js
+// belong/static/js/correlation_map.js
 
 window.addEventListener("DOMContentLoaded", () => {
     const mapContainer = document.getElementById("map-container");
@@ -40,7 +40,6 @@ window.addEventListener("DOMContentLoaded", () => {
         const cx = box.x + box.width / 2;
         const cy = box.y + box.height / 2;
 
-        // 가장 가까운 텍스트(구 이름)를 찾는다
         let best = null;
         let bestDist = Infinity;
         labelInfos.forEach((lab) => {
@@ -54,7 +53,7 @@ window.addEventListener("DOMContentLoaded", () => {
         });
 
         if (best) {
-            p.dataset.gu = best.name;  // data-gu="강남구" 형식으로 세팅
+            p.dataset.gu = best.name; // data-gu="강남구"
         }
     });
 
@@ -101,12 +100,14 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
     // -----------------------------
-    // 3) 상관관계 API 호출
+    // 3) 상관관계 API 호출 (/api/elderly/correlation)
+    //    백엔드 협업자가 준 JSON 형식에 맞춤
     // -----------------------------
     async function fetchCorrelation(guName) {
-        // 미래 확장 대비: region, year_from, year_to 모두 쿼리 파라미터로 보낼 준비
         const params = new URLSearchParams();
-        params.set("region", guName);  // 백엔드가 나중에 region 사용하면 됨
+        // 현재 백엔드 compute()가 region은 안 쓰더라도,
+        // 나중 확장 대비해서 region 쿼리만 붙여서 보냄 (무시하면 그만)
+        params.set("region", guName);
 
         const res = await fetch(`/api/elderly/correlation?` + params.toString());
         if (!res.ok) {
@@ -117,34 +118,34 @@ window.addEventListener("DOMContentLoaded", () => {
             throw new Error("상관관계 데이터 형식 오류");
         }
 
-        let payload = json.data;
+        const data = json.data;
 
-        // 1) data = { corr_matrix, corr_cols } 형태
-        if (payload.corr_matrix && payload.corr_cols) {
-            return {
-                matrix: payload.corr_matrix,
-                cols: payload.corr_cols,
-            };
-        }
-
-        // 2) data = { housing: { corr_matrix, corr_cols }, ratio: ... } 형태
-        if (payload.housing && payload.housing.corr_matrix) {
-            return {
-                matrix: payload.housing.corr_matrix,
-                cols: payload.housing.corr_cols,
-            };
-        }
-
-        throw new Error("지원하지 않는 상관관계 데이터 포맷");
+        // 기대하는 구조:
+        // {
+        //   target: "elderly_population",
+        //   vif_threshold: 10.0,
+        //   features: [
+        //     { feature, label, corr, vif, coef_std, selected },
+        //     ...
+        //   ],
+        //   correlations: [...],
+        //   feature_desc: {...}
+        // }
+        return {
+            target: data.target,
+            vifThreshold: data.vif_threshold,
+            features: data.features || [],
+            featureDesc: data.feature_desc || {},
+        };
     }
 
     // -----------------------------
-    // 4) 히트맵 모달 렌더링
+    // 4) corr 값에 따른 색깔 (히트맵용 1열)
     // -----------------------------
     function getHeatColor(value) {
         const v = Math.max(-1, Math.min(1, value));
         if (v >= 0) {
-            const t = v; // 0~1
+            const t = v;
             const r = 255;
             const g = Math.round(255 * (1 - t * 0.6));
             const b = Math.round(255 * (1 - t));
@@ -158,21 +159,26 @@ window.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    function openHeatmapModal(guName, corrMatrix, cols) {
+    // -----------------------------
+    // 5) 모달에 테이블 렌더링
+    //    (타깃 vs 각 피처의 상관계수 + VIF + 선택 여부)
+    // -----------------------------
+    function openCorrelationModal(guName, payload) {
+        const { target, vifThreshold, features } = payload;
+
         const modalTitle = document.getElementById("corrModalLabel");
         const container = document.getElementById("heatmapContainer");
-        modalTitle.textContent = `${guName} 상관관계 히트맵`;
+
+        modalTitle.textContent = `${guName} 상관관계 (타겟: ${target})`;
 
         const table = document.createElement("table");
         table.className = "table heatmap-table";
 
         const thead = document.createElement("thead");
         const headRow = document.createElement("tr");
-        headRow.appendChild(document.createElement("th"));
-
-        cols.forEach((c) => {
+        ["변수명", "라벨", "상관계수", "VIF", "선택여부"].forEach((h) => {
             const th = document.createElement("th");
-            th.textContent = c;
+            th.textContent = h;
             headRow.appendChild(th);
         });
         thead.appendChild(headRow);
@@ -180,28 +186,51 @@ window.addEventListener("DOMContentLoaded", () => {
 
         const tbody = document.createElement("tbody");
 
-        cols.forEach((rowKey) => {
+        (features || []).forEach((f) => {
             const tr = document.createElement("tr");
-            const rowHeader = document.createElement("th");
-            rowHeader.textContent = rowKey;
-            tr.appendChild(rowHeader);
 
-            cols.forEach((colKey) => {
-                const td = document.createElement("td");
-                const v = corrMatrix[rowKey][colKey];
-                const num = typeof v === "number" ? v : parseFloat(v);
-                const display = isNaN(num) ? "" : num.toFixed(2);
-                td.textContent = display;
+            const nameTd = document.createElement("td");
+            nameTd.textContent = f.feature;
 
-                if (!isNaN(num)) {
-                    const color = getHeatColor(num);
-                    td.style.backgroundColor = color;
-                    td.style.color = Math.abs(num) > 0.6 ? "#fff" : "#000";
+            const labelTd = document.createElement("td");
+            labelTd.textContent = f.label || f.feature;
+
+            const corrTd = document.createElement("td");
+            const corrVal = f.corr;
+            const corrNum =
+                typeof corrVal === "number" ? corrVal : parseFloat(corrVal);
+            corrTd.textContent = isNaN(corrNum) ? "" : corrNum.toFixed(2);
+            if (!isNaN(corrNum)) {
+                const color = getHeatColor(corrNum);
+                corrTd.style.backgroundColor = color;
+                corrTd.style.color =
+                    Math.abs(corrNum) > 0.6 ? "#fff" : "#000";
+            }
+
+            const vifTd = document.createElement("td");
+            if (f.vif === null || f.vif === undefined) {
+                vifTd.textContent = "-";
+            } else {
+                const vifNum =
+                    typeof f.vif === "number" ? f.vif : parseFloat(f.vif);
+                vifTd.textContent = isNaN(vifNum)
+                    ? "-"
+                    : vifNum.toFixed(2);
+
+                if (!isNaN(vifNum) && vifThreshold) {
+                    if (vifNum > vifThreshold) {
+                        vifTd.style.color = "#b02a37"; // 빨강
+                        vifTd.style.fontWeight = "600";
+                    }
                 }
+            }
 
-                tr.appendChild(td);
-            });
+            const selTd = document.createElement("td");
+            selTd.textContent = f.selected ? "✔" : "";
 
+            [nameTd, labelTd, corrTd, vifTd, selTd].forEach((td) =>
+                tr.appendChild(td)
+            );
             tbody.appendChild(tr);
         });
 
@@ -215,7 +244,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     // -----------------------------
-    // 5) 각 구 path 이벤트 (hover / click)
+    // 6) 각 구 path 이벤트 (hover / click)
     // -----------------------------
     guPaths.forEach((area) => {
         const guName = area.dataset.gu || "알 수 없음";
@@ -239,11 +268,11 @@ window.addEventListener("DOMContentLoaded", () => {
             area.setAttribute("fill", orig);
         });
 
-        // click: 상관관계 히트맵 모달
+        // click: 상관관계 테이블 모달
         area.addEventListener("click", async () => {
             try {
-                const { matrix, cols } = await fetchCorrelation(guName);
-                openHeatmapModal(guName, matrix, cols);
+                const payload = await fetchCorrelation(guName);
+                openCorrelationModal(guName, payload);
             } catch (err) {
                 console.error(err);
                 alert("상관관계 데이터를 불러오지 못했습니다.");
