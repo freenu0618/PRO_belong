@@ -3,12 +3,12 @@ from . import api_bp
 from belong.services.population_service import PopulationService
 from belong.services.forecast_service import ForecastService
 from belong.services.correlation_service import CorrelationService
-from belong.repositories.elderly_repo import SqlAlchemyElderlyHistoryRepository
+from belong.repositories.elderly_repo import SqlAlchemyElderlyHistoryRepository, InMemoryElderlyHistoryRepository
 
 # Service 인스턴스들은 지금은 간단히 전역으로 올려도 괜찮음
 population_service = PopulationService()
 # Oracle 연결을 우선 시도하고, 실패하면 InMemory로 fallback
-repo = SqlAlchemyElderlyHistoryRepository()
+repo = InMemoryElderlyHistoryRepository()
 forecast_service = ForecastService(repo=repo)
 
 # 새 CorrelationService는 내부에서 db.session을 사용함
