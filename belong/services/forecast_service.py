@@ -7,6 +7,7 @@ from belong.extensions import logger
 from belong.repositories.elderly_repo import (
     ElderlyHistoryRepository,
     SqlAlchemyElderlyHistoryRepository,
+    InMemoryElderlyHistoryRepository,
 )
 
 
@@ -19,7 +20,7 @@ class ForecastService:
         """
         # 1) Repository DI
         self.repo: ElderlyHistoryRepository = (
-            repo if repo is not None else SqlAlchemyElderlyHistoryRepository()
+            repo if repo is not None else InMemoryElderlyHistoryRepository()
         )
 
         # 2) 모델 로딩 (환경변수 우선, 없으면 로컬 pkl 경로)

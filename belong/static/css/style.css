@@ -224,3 +224,20 @@ body {
     font-size: 13px;
     border: 1px solid #dee2e6;
 }
+
+/* ===========================================
+   🔵 Dashboard Line Chart 고정 높이
+   (무한 세로 확장 방지)
+   prefix: .db-chart-wrapper
+=========================================== */
+
+.db-chart-wrapper {
+    position: relative;
+    height: 800px;      /* 필요하면 260~400px 사이로 조절 */
+    max-height: 800px;
+}
+
+#dashboard-chart {
+    width: 100% !important;
+    height: 100% !important;
+}

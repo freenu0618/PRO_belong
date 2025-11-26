@@ -117,21 +117,39 @@ function renderChart(data) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    if (!data[0] || !Array.isArray(data[0].values)) {
-        console.warn("차트 데이터 형식이 올바르지 않습니다.");
+    const first = data[0];
+    if (!first) {
+        console.warn("차트용 데이터가 비어 있습니다.");
         return;
     }
 
-    // 모든 region이 같은 연도 세트를 가진다고 가정
-    const years = data[0].values.map(v => v.year);
+    // values / value / history 중 있는 키를 사용 : 셋중 어떤게 들어와도 활성화
+    const seriesForFirst =
+        (Array.isArray(first.values) && first.values) ||
+        (Array.isArray(first.value) && first.value) ||
+        (Array.isArray(first.history) && first.history);
 
-    const datasets = data.map(regionRow => ({
-        label: regionRow.region,
-        data: regionRow.values.map(v => v.value),
-        borderWidth: 2,
-        tension: 0.25
-        // 색상은 Chart.js에서 자동 할당
-    }));
+    if (!seriesForFirst) {
+        console.warn("차트 데이터 형식이 올바르지 않습니다. (values/value/history 없음)");
+        return;
+    }
+
+    const years = seriesForFirst.map(v => v.year);
+
+    const datasets = data.map(regionRow => {
+        const series =
+            (Array.isArray(regionRow.values) && regionRow.values) ||
+            (Array.isArray(regionRow.value) && regionRow.value) ||
+            (Array.isArray(regionRow.history) && regionRow.history) ||
+            [];
+
+        return {
+            label: regionRow.region,
+            data: series.map(v => v.value),
+            borderWidth: 2,
+            tension: 0.25
+        };
+    });
 
     if (dashboardChart) {
         dashboardChart.destroy();
@@ -145,7 +163,6 @@ function renderChart(data) {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false,
             interaction: {
                 mode: "nearest",
                 intersect: false
@@ -200,16 +217,33 @@ async function handleForecastClick() {
 
     try {
         const url = `/api/elderly/forecast/${encodeURIComponent(region)}`;
-        const json = await fetchJson(url);
+        const res = await fetch(url);
+        let json = null;
 
-        // 포맷 1) { status, data: { ... } }
-        //    또는 2) { region, history, forecast, message }
+        try {
+            json = await res.json();
+        } catch (e) {
+            console.error("Forecast 응답 JSON 파싱 실패:", e);
+        }
+
+        if (!res.ok || !json || json.status === "error") {
+            const msg =
+                (json && json.message) ||
+                "예측 데이터를 불러오지 못했습니다. (서버 오류)";
+            // 에러도 모달로 보여주자
+            openForecastModal(region, {
+                message: msg,
+                history: [],
+                forecast: []
+            });
+            return;
+        }
+
         const payload = json.data || json;
-
         openForecastModal(region, payload);
     } catch (err) {
         console.error("Forecast API 실패:", err);
-        alert("예측 데이터를 불러오지 못했습니다.");
+        alert("예측 데이터를 불러오지 못했습니다. 네트워크 상태를 확인해 주세요.");
     }
 }
 
@@ -259,7 +293,7 @@ function openForecastModal(region, data) {
         `;
     });
 
-    // Bootstrap 모달 표시
+    // Bootstrap 모달 표시 {{super() }}를 추가했기 때문에 팝업처럼 뜨게 해줌
     if (window.bootstrap && bootstrap.Modal) {
         const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
         modal.show();
