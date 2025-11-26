@@ -1,282 +1,277 @@
-// belong/static/js/correlation_map.js
+// belong/static/charts/correlation_map.js
 
-window.addEventListener("DOMContentLoaded", () => {
+let corrHeatmapChart = null;
+
+document.addEventListener("DOMContentLoaded", () => {
     const mapContainer = document.getElementById("map-container");
     const mapInner = document.getElementById("map-inner");
     if (!mapContainer || !mapInner) return;
 
     const svg = mapInner.querySelector("svg");
-    if (!svg) return;
+    if (!svg) {
+        console.warn("[corr] SVG를 찾을 수 없습니다.");
+        return;
+    }
 
-    // -----------------------------
-    // Tooltip 생성
-    // -----------------------------
-    const tooltip = document.createElement("div");
-    tooltip.id = "map-tooltip";
-    document.body.appendChild(tooltip);
+    // initPanZoom(mapContainer, svg);
+    setupRegionInteractions(svg);
+});
 
-    // -----------------------------
-    // 1) SVG path <-> 구 이름 자동 매핑
-    //    (텍스트 위치 기준으로 가장 가까운 path에 data-gu 부여)
-    // -----------------------------
-    const labelInfos = Array.from(svg.querySelectorAll("text")).map((t) => {
-        const box = t.getBBox();
-        return {
-            el: t,
-            name: t.textContent.trim(),
-            x: box.x + box.width / 2,
-            y: box.y + box.height / 2,
-        };
-    });
+/**
+ * 🧭 path id → 한글 구 이름 매핑
+ *  👉 여기 id 값은 DevTools에서 path 선택했을 때 보이는 그대로 써야 함
+ *     (예: id="Dobong-gu" 라고 되어있으면 키도 "Dobong-gu")
+ */
+const GU_BY_ID = {
+    "Dobong-gu": "도봉구",
+    "Dongdaemun-gu": "동대문구",
+    "Dongjak-gu": "동작구",
+    "Eunpyeong-gu": "은평구",
+    "Gangbuk-gu": "강북구",
+    "Gangdong-gu": "강동구",
+    "Gangseo-gu": "강서구",
+    "Geumcheon-gu": "금천구",
+    "Guro-gu": "구로구",
+    "Gwanak-gu": "관악구",
+    "Gwangjin-gu": "광진구",
+    "Gangnam-gu": "강남구",
+    "Jongno-gu": "종로구",
+    "Jung-gu": "중구",
+    "Jungnang-gu": "중랑구",
+    "Mapo-gu": "마포구",
+    "Nowon-gu": "노원구",
+    "Seocho-gu": "서초구",
+    "Seodaemun-gu": "서대문구",
+    "Seongbuk-gu": "성북구",
+    "Seongdong-gu": "성동구",
+    "Songpa-gu": "송파구",
+    "Yangcheon-gu": "양천구",
+    "Yeongdeungpo-gu_1_": "영등포구",  // id에 _1_ 붙어있을 가능성 큼
+    "Yongsan-gu": "용산구",
+    // 혹시 다른 id가 있으면 여기 계속 추가
+};
 
-    // fill="none" 인 바깥 윤곽 path는 제외 (클릭 불필요)
-    const guPaths = Array.from(svg.querySelectorAll("path")).filter((p) => {
-        const fill = p.getAttribute("fill");
-        return fill && fill.toLowerCase() !== "none";
-    });
-
-    guPaths.forEach((p) => {
-        const box = p.getBBox();
-        const cx = box.x + box.width / 2;
-        const cy = box.y + box.height / 2;
-
-        let best = null;
-        let bestDist = Infinity;
-        labelInfos.forEach((lab) => {
-            const dx = lab.x - cx;
-            const dy = lab.y - cy;
-            const d2 = dx * dx + dy * dy;
-            if (d2 < bestDist) {
-                bestDist = d2;
-                best = lab;
-            }
-        });
-
-        if (best) {
-            p.dataset.gu = best.name; // data-gu="강남구"
-        }
-    });
-
-    // -----------------------------
-    // 2) 줌(휠) / 팬(드래그)
-    // -----------------------------
-    let scale = 1.0;
-    let panX = 0;
-    let panY = 0;
+/**
+ * 🔍 드래그(이동) + 휠 줌
+ */
+function initPanZoom(container, svg) {
+    let scale = 0.9;
+    let translateX = 0;
+    let translateY = 0;
     let isPanning = false;
     let startX = 0;
     let startY = 0;
 
+    svg.style.transformOrigin = "50% 50%";
+    applyTransform();
+
     function applyTransform() {
-        svg.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+        svg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
     }
 
-    mapInner.addEventListener("wheel", (e) => {
+    container.addEventListener("wheel", (e) => {
         e.preventDefault();
-        const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        const newScale = Math.min(3.0, Math.max(0.8, scale + delta));
-        if (newScale === scale) return;
+        const delta = e.deltaY < 0 ? 1.1 : 0.9;
+        const newScale = Math.min(2.5, Math.max(0.5, scale * delta));
         scale = newScale;
         applyTransform();
     });
 
-    mapInner.addEventListener("mousedown", (e) => {
+    container.addEventListener("mousedown", (e) => {
+        e.preventDefault();
         isPanning = true;
-        mapInner.classList.add("grabbing");
-        startX = e.clientX - panX;
-        startY = e.clientY - panY;
+        startX = e.clientX - translateX;
+        startY = e.clientY - translateY;
     });
 
     window.addEventListener("mousemove", (e) => {
         if (!isPanning) return;
-        panX = e.clientX - startX;
-        panY = e.clientY - startY;
+        translateX = e.clientX - startX;
+        translateY = e.clientY - startY;
         applyTransform();
     });
 
     window.addEventListener("mouseup", () => {
         isPanning = false;
-        mapInner.classList.remove("grabbing");
+    });
+}
+
+/**
+ * 🖱 각 구 path에 hover / click 이벤트 연결
+ *  - hover: 색 변경
+ *  - click: 모달 열고 히트맵 렌더링
+ */
+function setupRegionInteractions(svg) {
+    const paths = svg.querySelectorAll("path[id]");
+    if (!paths.length) {
+        console.warn("[corr] id 가진 path가 없습니다.");
+        return;
+    }
+
+    const modalEl = document.getElementById("corrModal");
+    const modalTitle = document.getElementById("corrModalLabel");
+    const modal = modalEl ? new bootstrap.Modal(modalEl) : null;
+    if (modalEl && modal) {
+        const closeBtn = document.getElementById("corrModalClose");
+        if (closeBtn) {
+            closeBtn.addEventListener("click", () => {
+                modal.hide();
+            });
+        }
+    }
+    paths.forEach((region) => {
+        const id = region.id;
+        const gu = GU_BY_ID[id];
+        if (!gu) {
+            // 외곽선 등은 id는 있지만 구가 아니면 스킵
+            return;
+        }
+
+        region.style.cursor = "pointer";
+        region.style.transition = "fill 0.15s";
+
+        region.addEventListener("mouseenter", () => {
+            region.dataset.originalFill = region.getAttribute("fill") || "#e5e5e5";
+            region.setAttribute("fill", "#c9defa");
+        });
+
+        region.addEventListener("mouseleave", () => {
+            const original = region.dataset.originalFill || "#e5e5e5";
+            region.setAttribute("fill", original);
+        });
+
+        region.addEventListener("click", async () => {
+            console.log("[corr] click:", id, gu);
+            if (!modal) return;
+
+            if (modalTitle) {
+                modalTitle.textContent = `${gu} 상관관계 히트맵`;
+            }
+
+            await fetchAndRenderHeatmap(gu);
+            modal.show();
+        });
     });
 
-    // -----------------------------
-    // 3) 상관관계 API 호출 (/api/elderly/correlation)
-    //    백엔드 협업자가 준 JSON 형식에 맞춤
-    // -----------------------------
-    async function fetchCorrelation(guName) {
-        const params = new URLSearchParams();
-        // 현재 백엔드 compute()가 region은 안 쓰더라도,
-        // 나중 확장 대비해서 region 쿼리만 붙여서 보냄 (무시하면 그만)
-        params.set("region", guName);
+    console.log("[corr] usable regions:", Object.keys(GU_BY_ID).length);
+}
 
-        const res = await fetch(`/api/elderly/correlation?` + params.toString());
-        if (!res.ok) {
-            throw new Error("상관관계 API 호출 실패");
-        }
+/**
+ * 📊 /api/elderly/correlation 결과로 히트맵(가로 막대) 렌더링
+ *  백엔드 JSON 예시(협력자가 준 구조):
+ *  {
+ *    "data": {
+ *      "correlations": [{ "feature":"age_65_over", "corr":0.9989 }, ...],
+ *      "feature_desc": {
+ *         "age_65_over": "65세 이상 노인 수",
+ *         ...
+ *      },
+ *      "features": [
+ *        { "feature":"age_65_over", "label":"65세 이상 노인 수",
+ *          "corr":0.9989, "vif":6.8995, "coef_std":1.0038, "selected":true
+ *        },
+ *        ...
+ *      ]
+ *    }
+ *  }
+ */
+async function fetchAndRenderHeatmap(guName) {
+    const canvas = document.getElementById("corrHeatmapCanvas");
+    if (!canvas) {
+        console.warn("[corr] corrHeatmapCanvas 캔버스 없음");
+        return;
+    }
+
+    try {
+        const res = await fetch("/api/elderly/correlation");
+        if (!res.ok) throw new Error("API 응답 오류");
+
         const json = await res.json();
-        if (!json || json.status !== "success") {
-            throw new Error("상관관계 데이터 형식 오류");
+        const data = json.data || {};
+
+        let features = [];
+
+        // 1) features 배열이 있으면 그걸 우선 사용
+        if (Array.isArray(data.features) && data.features.length) {
+            features = data.features;
+        }
+        // 2) 아니면 correlations + feature_desc 조합해서 사용
+        else if (Array.isArray(data.correlations) && data.correlations.length) {
+            const desc = data.feature_desc || {};
+            features = data.correlations.map((c) => ({
+                feature: c.feature,
+                corr: c.corr,
+                label: desc[c.feature] || c.feature,
+            }));
         }
 
-        const data = json.data;
-
-        // 기대하는 구조:
-        // {
-        //   target: "elderly_population",
-        //   vif_threshold: 10.0,
-        //   features: [
-        //     { feature, label, corr, vif, coef_std, selected },
-        //     ...
-        //   ],
-        //   correlations: [...],
-        //   feature_desc: {...}
-        // }
-        return {
-            target: data.target,
-            vifThreshold: data.vif_threshold,
-            features: data.features || [],
-            featureDesc: data.feature_desc || {},
-        };
-    }
-
-    // -----------------------------
-    // 4) corr 값에 따른 색깔 (히트맵용 1열)
-    // -----------------------------
-    function getHeatColor(value) {
-        const v = Math.max(-1, Math.min(1, value));
-        if (v >= 0) {
-            const t = v;
-            const r = 255;
-            const g = Math.round(255 * (1 - t * 0.6));
-            const b = Math.round(255 * (1 - t));
-            return `rgb(${r},${g},${b})`;
-        } else {
-            const t = -v;
-            const r = Math.round(255 * (1 - t));
-            const g = Math.round(255 * (1 - t * 0.6));
-            const b = 255;
-            return `rgb(${r},${g},${b})`;
+        if (!features.length) {
+            console.warn("[corr] 상관관계 데이터가 비어있음");
+            return;
         }
+
+        const labels = features.map(
+            (f) =>
+                f.label ||
+                (data.feature_desc && data.feature_desc[f.feature]) ||
+                f.feature
+        );
+        const values = features.map((f) => f.corr ?? 0);
+
+        const ctx = canvas.getContext("2d");
+
+        if (corrHeatmapChart) {
+            corrHeatmapChart.destroy();
+        }
+
+        // corr 값에 따라 색 농도 다르게 (양수: 파랑, 음수: 빨강)
+        const colors = values.map((v) => {
+            const t = Math.max(-1, Math.min(1, v));
+            const abs = Math.abs(t);
+            const alpha = 0.2 + 0.6 * abs; // 0.2 ~ 0.8
+            if (t >= 0) return `rgba(54, 162, 235, ${alpha})`;
+            return `rgba(255, 99, 132, ${alpha})`;
+        });
+
+        corrHeatmapChart = new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: "상관계수",
+                        data: values,
+                        backgroundColor: colors,
+                    },
+                ],
+            },
+            options: {
+                indexAxis: "y",
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        min: -1,
+                        max: 1,
+                        ticks: { stepSize: 0.2 },
+                    },
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) =>
+                                `상관계수: ${ctx.parsed.x.toFixed(3)}`,
+                        },
+                    },
+                    title: {
+                        display: true,
+                        text: `${guName} 주요 지표 상관관계`,
+                    },
+                },
+            },
+        });
+    } catch (err) {
+        console.error("[corr] 히트맵 렌더링 실패:", err);
     }
-
-    // -----------------------------
-    // 5) 모달에 테이블 렌더링
-    //    (타깃 vs 각 피처의 상관계수 + VIF + 선택 여부)
-    // -----------------------------
-    function openCorrelationModal(guName, payload) {
-        const { target, vifThreshold, features } = payload;
-
-        const modalTitle = document.getElementById("corrModalLabel");
-        const container = document.getElementById("heatmapContainer");
-
-        modalTitle.textContent = `${guName} 상관관계 (타겟: ${target})`;
-
-        const table = document.createElement("table");
-        table.className = "table heatmap-table";
-
-        const thead = document.createElement("thead");
-        const headRow = document.createElement("tr");
-        ["변수명", "라벨", "상관계수", "VIF", "선택여부"].forEach((h) => {
-            const th = document.createElement("th");
-            th.textContent = h;
-            headRow.appendChild(th);
-        });
-        thead.appendChild(headRow);
-        table.appendChild(thead);
-
-        const tbody = document.createElement("tbody");
-
-        (features || []).forEach((f) => {
-            const tr = document.createElement("tr");
-
-            const nameTd = document.createElement("td");
-            nameTd.textContent = f.feature;
-
-            const labelTd = document.createElement("td");
-            labelTd.textContent = f.label || f.feature;
-
-            const corrTd = document.createElement("td");
-            const corrVal = f.corr;
-            const corrNum =
-                typeof corrVal === "number" ? corrVal : parseFloat(corrVal);
-            corrTd.textContent = isNaN(corrNum) ? "" : corrNum.toFixed(2);
-            if (!isNaN(corrNum)) {
-                const color = getHeatColor(corrNum);
-                corrTd.style.backgroundColor = color;
-                corrTd.style.color =
-                    Math.abs(corrNum) > 0.6 ? "#fff" : "#000";
-            }
-
-            const vifTd = document.createElement("td");
-            if (f.vif === null || f.vif === undefined) {
-                vifTd.textContent = "-";
-            } else {
-                const vifNum =
-                    typeof f.vif === "number" ? f.vif : parseFloat(f.vif);
-                vifTd.textContent = isNaN(vifNum)
-                    ? "-"
-                    : vifNum.toFixed(2);
-
-                if (!isNaN(vifNum) && vifThreshold) {
-                    if (vifNum > vifThreshold) {
-                        vifTd.style.color = "#b02a37"; // 빨강
-                        vifTd.style.fontWeight = "600";
-                    }
-                }
-            }
-
-            const selTd = document.createElement("td");
-            selTd.textContent = f.selected ? "✔" : "";
-
-            [nameTd, labelTd, corrTd, vifTd, selTd].forEach((td) =>
-                tr.appendChild(td)
-            );
-            tbody.appendChild(tr);
-        });
-
-        table.appendChild(tbody);
-        container.innerHTML = "";
-        container.appendChild(table);
-
-        const modalEl = document.getElementById("corrModal");
-        const modal = new bootstrap.Modal(modalEl);
-        modal.show();
-    }
-
-    // -----------------------------
-    // 6) 각 구 path 이벤트 (hover / click)
-    // -----------------------------
-    guPaths.forEach((area) => {
-        const guName = area.dataset.gu || "알 수 없음";
-
-        // hover: 툴팁 + 색 강조
-        area.addEventListener("mousemove", (e) => {
-            tooltip.textContent = guName;
-            tooltip.style.left = e.pageX + 12 + "px";
-            tooltip.style.top = e.pageY + 12 + "px";
-            tooltip.style.display = "block";
-
-            if (!area.dataset._origFill) {
-                area.dataset._origFill = area.getAttribute("fill") || "#e5e5e5";
-            }
-            area.setAttribute("fill", "#cfe2ff");
-        });
-
-        area.addEventListener("mouseleave", () => {
-            tooltip.style.display = "none";
-            const orig = area.dataset._origFill || "#e5e5e5";
-            area.setAttribute("fill", orig);
-        });
-
-        // click: 상관관계 테이블 모달
-        area.addEventListener("click", async () => {
-            try {
-                const payload = await fetchCorrelation(guName);
-                openCorrelationModal(guName, payload);
-            } catch (err) {
-                console.error(err);
-                alert("상관관계 데이터를 불러오지 못했습니다.");
-            }
-        });
-    });
-});
+}

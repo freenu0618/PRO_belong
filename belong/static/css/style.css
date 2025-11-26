@@ -174,55 +174,48 @@ body {
     border-radius: 20px;
 }
 
-/* === Correlation Map Layout === */
+/* 지도 프레임(하얀 박스) - 가운데 정렬 */
+.map-frame {
+    width: 800px;                 /* 전체 박스 가로 (원하는 값으로) */
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background-color: #ffffff;
+    padding: 20px;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.03);
+    margin: 0 auto;
+}
+
+/* 지도 컨테이너: 왼쪽 정렬 + 세로 가운데 */
 #map-container {
-    height: calc(100vh - 140px);  /* navbar 아래로 화면 거의 꽉 채우기 */
-    min-height: 550px;
     width: 100%;
+    height: 500px;                 /* 컨테이너 세로 */
+    display: flex;
+    justify-content: center;   /* ✅ 왼쪽에 붙이기 */
+    align-items: center;           /* 세로 가운데 */
     overflow: hidden;
-    position: relative;
-    background-color: #f8f9fa;
+    padding-left: 0px;            /* 왼쪽 여백 (조절 가능) */
 }
 
-#map-inner {
-    width: 100%;
-    height: 100%;
-    cursor: grab;
-    position: relative;
+/* ✅ 여기서 실제 지도 크기를 고정 */
+#map-container svg {
+    width: 560px;                  /* ← 최소 줌일 때 느낌 나는 값으로 맞추기 */
+    height: auto;
+    display: block;
+    margin-left: -10px;
+    transform: none !important;    /* 혹시 남아있던 transform 강제로 제거 */
+    transform-origin: 50% 50% !important;
 }
 
-#map-inner.grabbing {
-    cursor: grabbing;
-}
 
-#map-inner svg {
-    width: 100%;
-    height: 100%;
-    transform-origin: center center;
-}
+/* 반응형 - 화면 좁을 때는 조금 더 줄이기 */
+@media (max-width: 992px) {
+    .map-frame {
+        width: 100%;
+    }
 
-/* 구 이름 툴팁 */
-#map-tooltip {
-    position: fixed;
-    padding: 4px 8px;
-    background: rgba(0, 0, 0, 0.8);
-    color: #fff;
-    font-size: 13px;
-    border-radius: 4px;
-    pointer-events: none;
-    z-index: 9999;
-    display: none;
-}
-
-/* 히트맵 테이블 스타일 */
-.heatmap-table th,
-.heatmap-table td {
-    text-align: center;
-    vertical-align: middle;
-    min-width: 70px;
-    height: 42px;
-    font-size: 13px;
-    border: 1px solid #dee2e6;
+    .map-container {
+        height: 380px;
+    }
 }
 
 /* ===========================================
