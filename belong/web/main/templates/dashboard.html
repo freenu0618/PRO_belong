@@ -77,21 +77,22 @@
             <p class="text-muted mb-2">
                 각 구의 연도별 노인 인구 변화를 선 그래프로 표시합니다.
             </p>
-            <canvas id="dashboard-chart" height="140"></canvas>
+            <div class="db-chart-wrapper">
+                <canvas id="dashboard-chart"></canvas>
         </div>
     </div>
 
         <!-- 🔹 Table -->
     <div class="card shadow-sm">
         <div class="card-body">
-            <h5 class="fw-bold mb-3">구별 최신 데이터</h5>
+            <h5 class="fw-bold mb-3">구별 독거노인 상위 TOP5</h5>
 
             <div class="table-responsive">
                 <table class="table align-middle">
                     <thead class="table-dark">
                         <tr>
                             <th>구</th>
-                            <th>최신 노인 인구</th>
+                            <th>독거노인 인구</th>
                             <th>증가율(%)</th>
                             <th>상세보기</th>
                         </tr>
@@ -168,10 +169,15 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Font Awesome (아이콘용, 한 번만 전역에서 쓰면 됨) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/js/all.min.js"
-        integrity="sha256-MAgcygDRz31QK+owsXv7LQ3FKzP0iGY6HYaacJfLZU="
-        crossorigin="anonymous"></script>
+    {{ super() }}
+    <!-- (필요하면 Font Awesome은 base.html에 이미 있을 수도 있지만, 놔둬도 됨) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/js/all.min.js"
+            integrity="sha256-MAgcygDRz31QK+owsXv7LQ3FKzP0iGY6HYaacJfLZU="
+            crossorigin="anonymous"></script>
 
-<script src="{{ url_for('static', filename='charts/dashboard.js') }}"></script>
+    <!-- Chart.js (대시보드 전용) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- 우리 대시보드 로직 -->
+    <script src="{{ url_for('static', filename='charts/dashboard.js') }}"></script>
 {% endblock %}
