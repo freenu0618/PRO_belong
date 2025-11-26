@@ -7,55 +7,48 @@
     let vifChart = null;
 
     function initCorrelationUI() {
-        const startSel = document.getElementById("corrStartYear");
-        const endSel   = document.getElementById("corrEndYear");
-        const applyBtn = document.getElementById("corrApplyBtn");
+        const guInput = document.getElementById("corrGuInput");
+        const startInput = document.getElementById("corrStartYear");
+        const endInput   = document.getElementById("corrEndYear");
+        const applyBtn   = document.getElementById("corrApplyBtn");
 
         // 이 페이지가 아닐 수 있으니 방어
-        if (!startSel || !endSel || !applyBtn) return;
-
-        // 연도 셀렉트 채우기 (필요하면 숫자 범위만 바꿔서 쓰면 됨)
-        const YEAR_MIN = 2015;
-        const YEAR_MAX = 2023;
-        for (let y = YEAR_MIN; y <= YEAR_MAX; y++) {
-            const opt1 = new Option(String(y), String(y));
-            const opt2 = new Option(String(y), String(y));
-            startSel.appendChild(opt1);
-            endSel.appendChild(opt2);
-        }
-        startSel.value = String(2017);
-        endSel.value   = String(2023);
+        if (!startInput || !endInput || !applyBtn) return;
 
         // 적용 버튼 클릭 시
         applyBtn.addEventListener("click", () => {
             fetchCorrelationByUI();
         });
 
-        // 첫 진입 시 한 번 호출 (원하면 주석 처리 가능)
+        // 첫 진입 시 한 번 호출 (원하면 주석 처리)
         fetchCorrelationByUI();
     }
 
     // UI에서 값 읽어서 호출하는 공용 함수
     async function fetchCorrelationByUI() {
-        const guSelect = document.getElementById("corrGuSelect");
-        const startSel = document.getElementById("corrStartYear");
-        const endSel   = document.getElementById("corrEndYear");
+        const guInput    = document.getElementById("corrGuInput");
+        const startInput = document.getElementById("corrStartYear");
+        const endInput   = document.getElementById("corrEndYear");
 
-        if (!startSel || !endSel) return;
+        if (!startInput || !endInput) return;
 
-        let startYear = parseInt(startSel.value, 10);
-        let endYear   = parseInt(endSel.value, 10);
+        let startYear = parseInt(startInput.value, 10);
+        let endYear   = parseInt(endInput.value, 10);
 
-        if (isNaN(startYear) || isNaN(endYear)) return;
-
-        // 시작/종료가 뒤바뀌어 있으면 교환
-        if (startYear > endYear) {
-            [startYear, endYear] = [endYear, startYear];
-            startSel.value = String(startYear);
-            endSel.value   = String(endYear);
+        // 기본 검증
+        if (isNaN(startYear) || isNaN(endYear)) {
+            alert("시작 연도와 종료 연도를 모두 입력해 주세요.");
+            return;
         }
 
-        const region = guSelect ? guSelect.value : "";
+        // 시작 연도 < 종료 연도 검수
+        if (startYear >= endYear) {
+            alert("시작 연도는 종료 연도보다 작은 값이어야 합니다.");
+            startInput.focus();
+            return;
+        }
+
+        const region = guInput ? guInput.value.trim() : "";
 
         await fetchCorrelation(region, startYear, endYear);
     }
@@ -80,10 +73,10 @@
             const json = await res.json();
 
             // 백엔드 응답 형태: { status:"success", data:{...} } 또는 바로 {...}
-            const payload = json.data || json;
-            const features    = payload.features    || [];
+            const payload      = json.data || json;
+            const features     = payload.features     || [];
             const correlations = payload.correlations || [];
-            const featureDesc = payload.feature_desc || {};
+            const featureDesc  = payload.feature_desc || {};
 
             updateCharts(features);
             updateTable(features);
@@ -133,7 +126,6 @@
                     maintainAspectRatio: false,
                     scales: {
                         x: {
-                            zeroLineColor: "#000",
                             title: { display: true, text: "β (표준화 계수)" }
                         }
                     }
@@ -217,9 +209,9 @@
 
         const sentences = selected.map(f => {
             const label = f.label || f.feature;
-            const corr = typeof f.corr === "number" ? f.corr : 0;
-            const beta = f.coef_std;
-            const vif  = f.vif;
+            const corr  = typeof f.corr === "number" ? f.corr : 0;
+            const beta  = f.coef_std;
+            const vif   = f.vif;
 
             const strength = (() => {
                 const a = Math.abs(corr);
@@ -250,7 +242,7 @@
 
         el.textContent =
             `${rangeText} 기준으로 ${regionText}노인 인구와의 상관관계를 보면, ` +
-            sentences.join(" ") ;
+            sentences.join(" ");
     }
 
 })();

@@ -5,7 +5,7 @@
 
     <!-- ===== 1페이지: 지도 섹션 ===== -->
     <section class="corr-hero">
-        <div class="container my-4">
+        <div class="container mt-2 my-4">
             <h3 class="mb-3">서울시 구별 상관관계 분석</h3>
 
             <div class="d-flex justify-content-center">
@@ -29,55 +29,76 @@
             <h5 class="mb-3">연도 범위 및 구 선택</h5>
 
             <form id="corrFilterForm" class="row g-2 align-items-center mb-3">
-                <!-- 구 선택 -->
+                <!-- 구 선택 (텍스트 + 자동완성) -->
                 <div class="col-auto">
-                    <label for="corrGuSelect" class="col-form-label small">자치구</label>
+                    <label for="corrGuInput" class="col-form-label small">자치구</label>
                 </div>
                 <div class="col-auto">
-                    <select id="corrGuSelect" class="form-select form-select-sm">
-                        <option value="">전체</option>
-                        <option value="강남구">강남구</option>
-                        <option value="강동구">강동구</option>
-                        <option value="강북구">강북구</option>
-                        <option value="강서구">강서구</option>
-                        <option value="관악구">관악구</option>
-                        <option value="광진구">광진구</option>
-                        <option value="구로구">구로구</option>
-                        <option value="금천구">금천구</option>
-                        <option value="노원구">노원구</option>
-                        <option value="도봉구">도봉구</option>
-                        <option value="동대문구">동대문구</option>
-                        <option value="동작구">동작구</option>
-                        <option value="마포구">마포구</option>
-                        <option value="서대문구">서대문구</option>
-                        <option value="서초구">서초구</option>
-                        <option value="성동구">성동구</option>
-                        <option value="성북구">성북구</option>
-                        <option value="송파구">송파구</option>
-                        <option value="양천구">양천구</option>
-                        <option value="영등포구">영등포구</option>
-                        <option value="용산구">용산구</option>
-                        <option value="은평구">은평구</option>
-                        <option value="종로구">종로구</option>
-                        <option value="중구">중구</option>
-                        <option value="중랑구">중랑구</option>
-                    </select>
+                    <input
+                        id="corrGuInput"
+                        class="form-control form-control-sm"
+                        list="corrGuOptions"
+                        placeholder="예: 도봉구 (비우면 전체)"
+                    >
+                    <datalist id="corrGuOptions">
+                        <option value="강남구">
+                        <option value="강동구">
+                        <option value="강북구">
+                        <option value="강서구">
+                        <option value="관악구">
+                        <option value="광진구">
+                        <option value="구로구">
+                        <option value="금천구">
+                        <option value="노원구">
+                        <option value="도봉구">
+                        <option value="동대문구">
+                        <option value="동작구">
+                        <option value="마포구">
+                        <option value="서대문구">
+                        <option value="서초구">
+                        <option value="성동구">
+                        <option value="성북구">
+                        <option value="송파구">
+                        <option value="양천구">
+                        <option value="영등포구">
+                        <option value="용산구">
+                        <option value="은평구">
+                        <option value="종로구">
+                        <option value="중구">
+                        <option value="중랑구">
+                    </datalist>
                 </div>
 
-                <!-- 시작 연도 -->
+                <!-- 시작 연도 (number input) -->
                 <div class="col-auto">
                     <label for="corrStartYear" class="col-form-label small">시작 연도</label>
                 </div>
                 <div class="col-auto">
-                    <select id="corrStartYear" class="form-select form-select-sm"></select>
+                    <input
+                        type="number"
+                        id="corrStartYear"
+                        class="form-control form-control-sm"
+                        min="2000"
+                        max="2100"
+                        value="2017"
+                        placeholder="예: 2017"
+                    >
                 </div>
 
-                <!-- 종료 연도 -->
+                <!-- 종료 연도 (number input) -->
                 <div class="col-auto">
                     <label for="corrEndYear" class="col-form-label small">종료 연도</label>
                 </div>
                 <div class="col-auto">
-                    <select id="corrEndYear" class="form-select form-select-sm"></select>
+                    <input
+                        type="number"
+                        id="corrEndYear"
+                        class="form-control form-control-sm"
+                        min="2000"
+                        max="2100"
+                        value="2023"
+                        placeholder="예: 2023"
+                    >
                 </div>
 
                 <!-- 적용 버튼 -->
@@ -133,11 +154,13 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="corrModalLabel">상관관계 히트맵</h5>
-                    <button type="button"
-                            class="btn-close"
-                            id="corrModalClose"
-                            data-bs-dismiss="modal"
-                            aria-label="닫기"></button>
+                    <button
+                        type="button"
+                        class="btn-close"
+                        id="corrModalClose"
+                        data-bs-dismiss="modal"
+                        aria-label="닫기">
+                    </button>
                 </div>
                 <div class="modal-body" style="height: 400px;">
                     <canvas id="corrHeatmapCanvas"></canvas>
