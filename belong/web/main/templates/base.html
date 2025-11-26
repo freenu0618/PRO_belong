@@ -26,18 +26,19 @@
         <small>Belong Project © 2025</small>
     </footer>
 
-    <!-- JS -->
-        <!-- JS (의존성 먼저, 우리 코드 나중) -->
+    <!-- JS (의존성 먼저, 우리 코드 나중) -->
     <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+
+    <!-- 🔁 여기만 수정: bootstrap.min.js → bootstrap.bundle.min.js -->
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+
     <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
 
-    <!-- 🔥 우리 상관관계 지도 스크립트 -->
+    <!-- 상관관계 지도 스크립트 -->
     <script src="{{ url_for('static', filename='charts/correlation_map.js') }}"></script>
 
-    <!-- 이건 경로도 이상한데, 진짜 쓰는 파일이면 js 폴더로 옮겨야 함 -->
     {# <script src="{{ url_for('static', filename='css/main.js') }}"></script> #}
 
     {% block scripts %}{% endblock %}
-  </body>
+</body>
 </html>
