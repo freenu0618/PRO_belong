@@ -8,7 +8,7 @@
     <div class="row g-3 mb-4">
         <!-- 총 독거노인 수 -->
         <div class="col-md-4">
-            <div class="card l-bg-blue-dark text-white">
+            <div class="card l-bg-blue-dark text-black">
                 <div class="card-statistic-3 p-4">
                     <div class="card-icon card-icon-large">
                         <i class="fas fa-user-friends"></i>
@@ -29,7 +29,7 @@
 
         <!-- 증가 TOP 구 -->
         <div class="col-md-4">
-            <div class="card l-bg-green-dark text-white">
+            <div class="card l-bg-green-dark text-black">
                 <div class="card-statistic-3 p-4">
                     <div class="card-icon card-icon-large">
                         <i class="fas fa-arrow-up"></i>
@@ -50,7 +50,7 @@
 
         <!-- 감소 TOP 구 -->
         <div class="col-md-4">
-            <div class="card l-bg-orange-dark text-white">
+            <div class="card l-bg-orange-dark text-black">
                 <div class="card-statistic-3 p-4">
                     <div class="card-icon card-icon-large">
                         <i class="fas fa-arrow-down"></i>
@@ -81,7 +81,7 @@
         </div>
     </div>
 
-    <!-- 🔹 Table -->
+        <!-- 🔹 Table -->
     <div class="card shadow-sm">
         <div class="card-body">
             <h5 class="fw-bold mb-3">구별 최신 데이터</h5>
@@ -98,14 +98,73 @@
                     </thead>
 
                     <tbody id="population-table-body">
-                        <!-- dashboard.js 에서 렌더링 -->
+                        <!-- dashboard.js 에서 Top5 또는 전체 렌더링 -->
                     </tbody>
                 </table>
+            </div>
+
+            <!-- 🔹 더보기 / 접기 버튼 -->
+            <div class="d-flex justify-content-end mt-2">
+                <button id="btn-toggle-table" class="btn btn-outline-secondary btn-sm">
+                    더보기
+                </button>
             </div>
         </div>
     </div>
 
+
 </div>
+    <!-- 🔹 Forecast Section -->
+    <div class="card shadow-sm mt-4">
+        <div class="card-body">
+            <h5 class="fw-bold mb-3">구별 예측 (노인 인구)</h5>
+            <div class="row g-3">
+                <div class="col-md-6 col-lg-4">
+                    <label for="forecast-region-input" class="form-label">구 입력</label>
+                    <input id="forecast-region-input"
+                           type="text"
+                           class="form-control"
+                           placeholder="예: 강남구">
+                    <small class="text-muted">
+                        예측할 구 이름을 정확히 입력한 뒤, 아래 버튼을 눌러주세요.
+                    </small>
+                    <button id="btn-load-forecast" class="btn btn-primary mt-2">
+                        예측 불러오기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔹 Forecast Modal -->
+    <div class="modal fade" id="forecastModal" tabindex="-1" aria-labelledby="forecastModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="forecastModalLabel">예측 결과</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="forecast-modal-message" class="text-muted"></p>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>구분</th>
+                                    <th>연도</th>
+                                    <th>노인 인구 수</th>
+                                </tr>
+                            </thead>
+                            <tbody id="forecast-modal-body">
+                                <!-- JS에서 렌더링 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 {% endblock %}
 
 {% block scripts %}
