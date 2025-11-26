@@ -1,38 +1,39 @@
 {% extends "base.html" %}
+
 {% block content %}
+<div class="container my-4">
+    <h3 class="mb-3">서울시 구별 상관관계 분석</h3>
 
-<div class="container-fluid mt-3">
-
-    <h2 class="mb-3 fw-bold">서울시 구별 상관관계 분석</h2>
-
-    <!-- 지도 컨테이너 (navbar 아래 화면 거의 꽉 채움) -->
-    <div id="map-container" class="border rounded shadow-sm">
-        <div id="map-inner">
-            {# seoul_map.svg 는 templates/web/main/seoul_map.svg 로 저장해 둔 상태 #}
-            {% include "web/main/seoul_map.svg" %}
+    <div class="d-flex justify-content-center">
+        <!-- 지도 프레임 -->
+        <div class="map-frame">
+            <!-- 이 id 두 개가 JS랑 반드시 같아야 함 -->
+            <div id="map-container">
+                <div id="map-inner">
+                    {% include "partials/seoul_map.svg" %}
+                </div>
+            </div>
         </div>
     </div>
 
-</div>
-
-<!-- 상관관계 히트맵 팝업 (Bootstrap Modal) -->
-<div class="modal fade" id="corrModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="corrModalLabel"></h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
-      </div>
-      <div class="modal-body">
-        <div id="heatmapContainer" class="table-responsive"></div>
-      </div>
+    <!-- 상관관계 히트맵 모달 -->
+    <div class="modal fade" id="corrModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="corrModalLabel">상관관계 히트맵</h5>
+                      <!-- ✅ 닫기 버튼: Bootstrap 5 + 우리가 직접 JS로도 hide 호출 -->
+                    <button type="button"
+                            class="btn-close"
+                            id="corrModalClose"
+                            data-bs-dismiss="modal"
+                            aria-label="닫기"></button>
+                </div>
+                <div class="modal-body" style="height: 400px;">
+                    <canvas id="corrHeatmapCanvas"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
-
-{# base.html에서 이미 불러주면 중복 없어도 됨, 아니라면 여기서 로드 #}
-<script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
-<script src="{{ url_for('static', filename='charts/correlation_map.js') }}"></script>
-
 {% endblock %}
