@@ -1,12 +1,15 @@
+import numpy as np
 import pandas as pd
 from typing import List, Dict, Any, Optional
 
 from sqlalchemy.orm import Session
 
 from belong.extensions import db
-# ⚠️ 실제 ElderlyStats 모델 경로에 맞게 수정 필요
-# 예: from belong.models.elderly_stats import ElderlyStats
-from belong.models.feature_stats import ElderlyStats
+from belong.models.feature_stats import ElderlyStats  # :contentReference[oaicite:3]{index=3}
+
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
 
 
 # ---- 분석에 사용할 컬럼 정의 (ORM 속성명 기준) ----
@@ -32,18 +35,18 @@ FEATURE_DESC: Dict[str, str] = {
 
 class CorrelationService:
     """
-    ELDERLY_STATS 테이블 기반 상관관계 분석 서비스.
+    ELDERLY_STATS 테이블 기반 상관관계 + VIF + 선형회귀 분석 서비스.
 
-    - 기존: ml/dataset/merged_dataset.csv 파일을 직접 읽어서 상관계수 계산
-    - 변경: Oracle DB의 ELDERLY_STATS 테이블에서 데이터를 읽어와 계산
+    - 기존: 피어슨 상관계수만 계산
+    - 변경: 피어슨 상관계수 + VIF 기반 컬럼 선택 + 표준화 선형회귀 계수까지 제공
 
     기본 타깃은 elderly_population(노인 인구 수)이고,
-    FEATURE_COLUMNS에 정의된 5개 피처와의 피어슨 상관계수를 계산함.
+    FEATURE_COLUMNS에 정의된 피처를 대상으로 분석한다.
     """
 
     def __init__(self, session: Optional[Session] = None):
         # 세션 주입 가능하게 만들어두면 나중에 테스트/DI에 유리함
-        self.session: Session = session or db.session
+        self.session: Session = session or db.session # 외부에서 session을 넘겨주면 사용 or db.session사용
 
     # ------------------------------------------------------------------
     # 내부: DB → pandas.DataFrame 로딩
@@ -60,7 +63,7 @@ class CorrelationService:
         year_from/year_to, region_ids 로 간단한 필터링을 할 수 있게 해놨지만,
         지금 API에서는 파라미터 없이 전체 기간을 대상으로 사용해도 됨.
         """
-        query = self.session.query(ElderlyStats)
+        query = self.session.query(ElderlyStats)  # :ElderlyStats 테이블 전체를 대상으로 하는 기본 쿼리 시작
 
         if year_from is not None:
             query = query.filter(ElderlyStats.year >= year_from)
@@ -89,25 +92,176 @@ class CorrelationService:
         return df
 
     # ------------------------------------------------------------------
-    # 외부: 상관계수 계산 메인 메서드
+    # 내부: 숫자 컬럼 정리
+    # ------------------------------------------------------------------
+    @staticmethod # 정적 메서드 : 인스턴스 상태 안쓰니까 사용
+    def _prepare_numeric_df(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        타깃 + 피처 컬럼을 float로 변환하고 NaN 포함 행 제거.
+        """
+        numeric_columns: List[str] = [TARGET_COLUMN] + FEATURE_COLUMNS
+        df = df.copy()
+
+        for col in numeric_columns:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+
+        df = df.dropna(subset=[c for c in numeric_columns if c in df.columns])
+        return df
+
+    # ------------------------------------------------------------------
+    # 내부: VIF 계산 관련
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _compute_vif(df: pd.DataFrame, feature_cols: List[str]) -> Dict[str, float]:
+        """
+        주어진 DataFrame과 feature 컬럼 리스트에 대해 VIF 계산.
+        반환: {컬럼명: VIF 값}
+        """
+        if not feature_cols:
+            return {}
+
+        X = df[feature_cols].astype(float).values
+        vifs: Dict[str, float] = {}
+
+        for i, col in enumerate(feature_cols):
+            try:
+                v = variance_inflation_factor(X, i)
+                vifs[col] = float(round(v, 4))
+            except Exception as e:
+                # 완전히 상수인 컬럼 등에서 에러 나는 경우 방어
+                print(f"[CorrelationService] VIF computation failed for {col}: {e}")
+                vifs[col] = float("nan")
+
+        return vifs
+
+    @classmethod
+    def _select_features_by_vif(
+        cls,
+        df: pd.DataFrame,
+        candidate_features: List[str],
+        threshold: float = 10.0,
+    ) -> (List[str], Dict[str, float]):
+        """
+        VIF가 threshold보다 큰 컬럼을 하나씩 제거하면서
+        다중공선성이 줄어든 feature 리스트를 반환.
+        """
+        remaining = [c for c in candidate_features if c in df.columns]
+        if len(remaining) <= 1:
+            # 1개 이하면 선택 과정 의미 없음
+            final_vifs = cls._compute_vif(df, remaining) if remaining else {}
+            return remaining, final_vifs
+
+        while True:
+            vifs = cls._compute_vif(df, remaining)
+            # NaN 제거
+            valid_vifs = {k: v for k, v in vifs.items() if not np.isnan(v)}
+
+            if not valid_vifs or len(valid_vifs) <= 1:
+                # 더 이상 판단할 수 없으면 종료
+                final_vifs = vifs
+                break
+
+            # 가장 VIF가 큰 컬럼 찾기
+            worst_feature = max(valid_vifs, key=valid_vifs.get)
+            worst_vif = valid_vifs[worst_feature]
+
+            if worst_vif <= threshold or len(remaining) <= 1:
+                # 기준 이하면 여기서 종료
+                final_vifs = vifs
+                break
+
+            # 아니면 가장 큰 애를 제거
+            print(f"[CorrelationService] drop {worst_feature} (VIF={worst_vif:.2f})")
+            remaining.remove(worst_feature)
+
+        # 마지막 보정
+        if not remaining:
+            remaining = [c for c in candidate_features if c in df.columns]
+            final_vifs = cls._compute_vif(df, remaining)
+        else:
+            # 위 while에서 vifs를 계산했지만, 남은 컬럼 기준으로 다시 한 번 계산
+            final_vifs = cls._compute_vif(df, remaining)
+
+        return remaining, final_vifs
+
+    # ------------------------------------------------------------------
+    # 내부: 표준화 선형회귀 계수 계산
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _fit_standardized_regression(
+        df: pd.DataFrame,
+        feature_cols: List[str],
+        target_col: str,
+    ) -> Dict[str, float]:
+        """
+        feature_cols에 대해:
+          1) X, y 표준화
+          2) LinearRegression 학습
+          3) 표준화된 회귀 계수 반환 ({컬럼명: coef_std})
+        """
+        if not feature_cols or target_col not in df.columns:
+            return {}
+
+        X = df[feature_cols].astype(float).values
+        y = df[target_col].astype(float).values.reshape(-1, 1)
+
+        if X.shape[0] <= 1:
+            return {}
+
+        x_scaler = StandardScaler()
+        y_scaler = StandardScaler()
+
+        X_scaled = x_scaler.fit_transform(X)
+        y_scaled = y_scaler.fit_transform(y).ravel()
+
+        model = LinearRegression()
+        model.fit(X_scaled, y_scaled)
+
+        coef_std = model.coef_  # 각 feature에 대응되는 표준화 계수
+
+        return {
+            col: float(round(c, 4))
+            for col, c in zip(feature_cols, coef_std)
+        }
+
+    # ------------------------------------------------------------------
+    # 외부: 상관계수 + VIF + 회귀계수 계산 메인 메서드
     # ------------------------------------------------------------------
     def compute(
         self,
         year_from: Optional[int] = None,
         year_to: Optional[int] = None,
         region_ids: Optional[List[int]] = None,
+        vif_threshold: float = 10.0,
     ) -> Dict[str, Any]:
         """
-        상관계수 계산 로직 (DB 기반):
+        상관 + VIF + 선형회귀 계수를 모두 계산한 결과를 반환.
 
         1. ELDERLY_STATS에서 필요한 행들을 조회해서 DataFrame으로 로드
         2. 타깃 컬럼 + 피처 컬럼들을 숫자형(float)으로 강제 변환
         3. NaN 포함된 행 제거
         4. 피어슨 상관계수 계산
-        5. JSON 형태로 반환
+        5. VIF 기준으로 컬럼 선택 (threshold 기본 10.0)
+        6. 선택된 컬럼들로 표준화 선형회귀 계수 계산
+        7. JSON 형태로 반환
 
-        반환 구조:
+        반환 구조 예시:
+
         {
+          "target": "elderly_population",
+          "vif_threshold": 10.0,
+          "features": [
+            {
+              "feature": "single_household_ratio",
+              "label": "1인가구 비율",
+              "corr": 0.82,
+              "vif": 2.31,
+              "coef_std": 0.55,
+              "selected": true
+            },
+            ...
+          ],
           "correlations": [
             {"feature": "single_household_ratio", "corr": 0.82},
             ...
@@ -115,72 +269,103 @@ class CorrelationService:
           "feature_desc": { ... }
         }
         """
-        df = self._load_dataframe(
+        # 1) 데이터 로드
+        raw_df = self._load_dataframe(
             year_from=year_from,
             year_to=year_to,
             region_ids=region_ids,
         )
 
-        if df is None:
+        if raw_df is None:
             return {
+                "target": TARGET_COLUMN,
+                "vif_threshold": vif_threshold,
+                "features": [],
                 "correlations": [],
                 "feature_desc": FEATURE_DESC,
             }
 
-        # 원본 훼손 방지
-        df = df.copy()
+        # 2) 숫자 컬럼 정리
+        df = self._prepare_numeric_df(raw_df)
 
-        numeric_columns: List[str] = [TARGET_COLUMN] + FEATURE_COLUMNS
-
-        # ---- 숫자 변환 단계 ----
-        for col in numeric_columns:
-            if col not in df.columns:
-                # 모델/DB 정의가 바뀌었는데 코드가 안 맞는 경우 대비
-                continue
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-
-        # ---- 결측치 제거 ----
-        before_count: int = len(df)
-        df = df.dropna(subset=[c for c in numeric_columns if c in df.columns])
-        after_count: int = len(df)
-
-        dropped_rows: int = before_count - after_count
-        if dropped_rows > 0:
-            # 로그로 남겨두면 데이터 품질 체크에 도움됨
-            print(f"[CorrelationService] {dropped_rows} rows dropped due to NaN.")
-
-        # 타깃 컬럼 없으면 빈 결과
-        if TARGET_COLUMN not in df.columns:
+        if df.empty or TARGET_COLUMN not in df.columns:
             return {
+                "target": TARGET_COLUMN,
+                "vif_threshold": vif_threshold,
+                "features": [],
                 "correlations": [],
                 "feature_desc": FEATURE_DESC,
             }
 
-        target_series = df[TARGET_COLUMN]
+        # 실제로 존재하는 피처만 사용
+        candidate_features = [c for c in FEATURE_COLUMNS if c in df.columns]
+        if not candidate_features:
+            return {
+                "target": TARGET_COLUMN,
+                "vif_threshold": vif_threshold,
+                "features": [],
+                "correlations": [],
+                "feature_desc": FEATURE_DESC,
+            }
 
-        # ---- 상관계수 계산 ----
-        results: Dict[str, float] = {}
-        for col in FEATURE_COLUMNS:
-            if col not in df.columns:
-                continue
+        # 3) 피어슨 상관계수 계산
+        numeric_cols = [TARGET_COLUMN] + candidate_features
+        corr_matrix = df[numeric_cols].corr(numeric_only=True)
+        target_corr_series = corr_matrix[TARGET_COLUMN].dropna()
 
-            # 피어슨 상관계수
-            corr_value = df[col].corr(target_series)
-            if pd.isna(corr_value):
-                continue
+        corr_map: Dict[str, float] = {}
+        for col in candidate_features:
+            val = target_corr_series.get(col, np.nan)
+            if not np.isnan(val):
+                corr_map[col] = float(round(val, 4))
 
-            results[col] = round(float(corr_value), 4)
+        # 4) VIF 기반 컬럼 선택
+        selected_features, vif_values = self._select_features_by_vif(
+            df,
+            candidate_features=candidate_features,
+            threshold=vif_threshold,
+        )
 
-        # ---- 결과 JSON 변환 ----
-        correlations: List[Dict[str, Any]] = [
-            {"feature": feature, "corr": value}
-            for feature, value in results.items()
+        # 5) 선택된 컬럼들로 표준화 선형회귀 계수 계산
+        coef_std_map = self._fit_standardized_regression(
+            df,
+            feature_cols=selected_features,
+            target_col=TARGET_COLUMN,
+        )
+
+        # 6) feature별 상세 정보 구성
+        feature_items: List[Dict[str, Any]] = []
+        for col in candidate_features:
+            feature_items.append({
+                "feature": col,
+                "label": FEATURE_DESC.get(col, col),
+                "corr": corr_map.get(col),
+                "vif": vif_values.get(col) if vif_values else None,
+                "coef_std": coef_std_map.get(col),
+                "selected": col in selected_features,
+            })
+
+        # selected + 계수 기준으로 정렬 (selected 먼저, 그 안에서는 |coef_std| 큰 순)
+        feature_items.sort(
+            key=lambda x: (
+                not x["selected"],
+                0 if x["coef_std"] is None else -abs(x["coef_std"]),
+            )
+        )
+
+        # 7) 기존 구조와 호환되는 correlations 리스트 (corr만 모아서 제공)
+        correlations_list: List[Dict[str, Any]] = [
+            {"feature": f["feature"], "corr": f["corr"]}
+            for f in sorted(
+                feature_items,
+                key=lambda x: 0 if x["corr"] is None else -abs(x["corr"] or 0.0),
+            )
         ]
 
-        # 절댓값 기준으로 내림차순 정렬하면 더 보기 좋음
-        correlations.sort(key=lambda x: abs(x["corr"]), reverse=True)
-
         return {
-            "correlations": correlations,
+            "target": TARGET_COLUMN,
+            "vif_threshold": vif_threshold,
+            "features": feature_items,
+            "correlations": correlations_list,
             "feature_desc": FEATURE_DESC,
         }
