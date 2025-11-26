@@ -6,33 +6,31 @@
 
     <title>{% block title %}Belong{% endblock %}</title>
 
-    <!-- Bootstrap -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css') }}">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
 
-    <!-- Project CSS -->
+    <!-- Global style -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-
-    <!-- FontAwesome (팝업 카드 아이콘 지원용) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css">
-
-    {% block head_extra %}{% endblock %}
 </head>
 
 <body>
 
-    {% include "navbar.html" %}
+    {% include 'navbar.html' %}
 
-    <main class="container-fluid px-0" style="min-height: 100vh;">
+    <!-- fixed navbar 공간 확보 -->
+    <main style="margin-top: 70px;">
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="text-center text-muted py-3">
-        <small>Belong © 2025</small>
+    <footer class="text-center text-muted py-4">
+        <small>Belong Project © 2025</small>
     </footer>
 
+    <!-- JS -->
     <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 
     {% block scripts %}{% endblock %}
 </body>

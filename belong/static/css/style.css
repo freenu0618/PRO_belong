@@ -2,6 +2,7 @@
 body {
     padding-top: 0 !important;
     margin-top: 0 !important;
+    background-color: #f7f0e4;
 }
 
 /* ===== Uracle 스타일: Fullscreen Carousel ===== */
@@ -171,4 +172,55 @@ body {
     width: 80%;
     height: 50px;
     border-radius: 20px;
+}
+
+/* === Correlation Map Layout === */
+#map-container {
+    height: calc(100vh - 140px);  /* navbar 아래로 화면 거의 꽉 채우기 */
+    min-height: 550px;
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    background-color: #f8f9fa;
+}
+
+#map-inner {
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+    position: relative;
+}
+
+#map-inner.grabbing {
+    cursor: grabbing;
+}
+
+#map-inner svg {
+    width: 100%;
+    height: 100%;
+    transform-origin: center center;
+}
+
+/* 구 이름 툴팁 */
+#map-tooltip {
+    position: fixed;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    font-size: 13px;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 9999;
+    display: none;
+}
+
+/* 히트맵 테이블 스타일 */
+.heatmap-table th,
+.heatmap-table td {
+    text-align: center;
+    vertical-align: middle;
+    min-width: 70px;
+    height: 42px;
+    font-size: 13px;
+    border: 1px solid #dee2e6;
 }
