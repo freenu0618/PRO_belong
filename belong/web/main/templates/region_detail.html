@@ -1,96 +1,85 @@
 {% extends "base.html" %}
-{% block title %}Belong - 지역별 예측{% endblock %}
+{% block title %}{{ region }} 예측 결과{% endblock %}
 
 {% block content %}
 
-<div class="container py-4">
+<div class="container mt-4">
 
     <!-- 제목 -->
-    <h2 class="fw-bold mb-4">{{ region }} 상세 분석</h2>
+    <h2 class="fw-bold">{{ region }} 예측 결과</h2>
+    <p class="text-muted">예측 연도: {{ year }}</p>
 
-    <!-- 지역 선택 -->
-    <div class="d-flex align-items-center gap-3 mb-3">
-        <select id="regionSelect" class="form-select" style="width:200px;">
-            <option value="강남구">강남구</option>
-            <option value="종로구">종로구</option>
-            <option value="동작구">동작구</option>
-            <!-- 필요하면 region 리스트 동적으로 백엔드에서 넘겨도 가능 -->
-        </select>
+    <!-- 로딩 -->
+    <div id="loading" class="text-center my-5" style="display:none;">
+        <div class="spinner-border text-primary"></div>
+        <p class="mt-2 fw-bold">데이터 불러오는 중...</p>
+    </div>
 
-        <button id="predict-btn" class="btn btn-primary">
-            예측 실행
+    <!-- 오류 메시지 -->
+    <div id="error-message" class="alert alert-danger" style="display:none;"></div>
+
+    <!-- 예측 요약 카드 -->
+    <div id="summary-section" style="display:none;">
+        <div class="row g-3">
+
+            <div class="col-md-4">
+                <div class="card shadow-sm p-3">
+                    <small class="text-muted">최신 노인 인구</small>
+                    <h3 id="latest-pop" class="fw-bold mb-0">-</h3>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow-sm p-3">
+                    <small class="text-muted">예측값 ({{ year }})</small>
+                    <h3 id="predicted-pop" class="fw-bold mb-0">-</h3>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow-sm p-3">
+                    <small class="text-muted">증가율</small>
+                    <h3 id="growth-rate" class="fw-bold mb-0">-</h3>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 차트 표시 버튼 -->
+    <div class="text-center mt-5" id="chart-btn-section" style="display:none;">
+        <button class="btn btn-info btn-lg" data-bs-toggle="modal" data-bs-target="#forecastModal">
+            예측 차트 보기
         </button>
     </div>
 
-    <!-- 로딩 -->
-    <div id="loading" class="alert alert-info" style="display:none;">
-        ⏳ 예측 분석 중입니다. 잠시만 기다려주세요...
+</div>
+
+
+<!-- 예측 차트 팝업 Modal -->
+<div class="modal fade" id="forecastModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">{{ region }} 예측 차트</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+          <canvas id="forecast-chart" height="150"></canvas>
+      </div>
+
     </div>
-
-    <!-- 에러 메시지 -->
-    <div id="error-message" class="alert alert-danger" style="display:none;"></div>
-
-    <!-- 차트 영역 -->
-    <div class="card shadow-sm mt-3">
-        <div class="card-body">
-            <h5 class="fw-bold mb-3">연도별 변화 및 예측 결과</h5>
-            <canvas id="forecast-chart-canvas" height="140"></canvas>
-        </div>
-    </div>
-
-    <!-- 인사이트 카드 (예측/최근값 등) -->
-    <div class="row g-3 mt-3" id="summary-card">
-        <div class="col-md-4">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <div class="text-muted">최근 값</div>
-                    <h4 id="latest-value" class="fw-bold mb-0">-</h4>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <div class="text-muted">최근 증가율</div>
-                    <h4 id="latest-growth" class="fw-bold mb-0">-</h4>
-                </div>
-            </div>
-        </div>
-    </div>
-
+  </div>
 </div>
 
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='charts/region_predict.js') }}"></script>
 <script>
-    // Flask에서 region 전달받았다면 그대로 사용
-    const REGION_NAME = "{{ region }}";
-</script>
-
-<!-- 페이지 전용 JS -->
-<script src="{{ url_for('static', filename='charts/forecast_chart.js') }}"></script>
-
-<!-- 초기 자동 호출 -->
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-
-    // 기본 region select를 Flask 변수와 동기화
-    const select = document.getElementById("regionSelect");
-    if (REGION_NAME) {
-        select.value = REGION_NAME;
-    }
-
-    // 버튼 클릭 시 예측 실행
-    document.getElementById("predict-btn").addEventListener("click", () => {
-        hideError();
-        updateForecastChart(select.value);
-    });
-
-    // 페이지 로딩 시 자동 초기 실행
-    hideError();
-    updateForecastChart(select.value);
-});
+    loadRegionForecast("{{ region }}", "{{ year }}");
 </script>
 {% endblock %}

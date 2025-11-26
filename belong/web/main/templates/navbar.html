@@ -1,75 +1,72 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm">
-  <div class="container-fluid">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
 
-    <a class="navbar-brand fw-bold" href="{{ url_for('web.index') }}">
-      Belong
-    </a>
+        <!-- 로고 -->
+        <a class="navbar-brand fw-bold" href="{{ url_for('web.index') }}">
+            <img src="{{ url_for('static', filename='image/login.png') }}"
+                 style="height:34px; border-radius:5px; margin-right:8px;">
+            Belong
+        </a>
 
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-            data-bs-target="#mainNavbar">
-      <span class="navbar-toggler-icon"></span>
-    </button>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
 
-    <div class="collapse navbar-collapse" id="mainNavbar">
-      <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+        <div class="collapse navbar-collapse" id="navbarNav">
 
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('web.index') }}">홈</a>
-        </li>
+            <ul class="navbar-nav me-auto">
 
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('web.dashboard') }}">대시보드</a>
-        </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('web.index') }}">홈</a>
+                </li>
 
-        <li class="nav-item">
-          <a class="nav-link"
-             href="{{ url_for('web.region_detail', region='강남구') }}">지역별 예측</a>
-        </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('web.dashboard') }}">대시보드</a>
+                </li>
 
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('web.correlation') }}">상관관계 분석</a>
-        </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('web.region') }}">지역별 예측</a>
+                </li>
 
-        <!-- 여기가 로그인/유저영역 -->
-        <li class="nav-item ms-3" id="auth-area">
-          <!-- JS에서 자동 렌더링 -->
-        </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('web.correlation') }}">상관관계 분석</a>
+                </li>
 
-      </ul>
+            </ul>
+
+            <!-- 오른쪽: 로그인 여부 표시 -->
+            <ul class="navbar-nav">
+                <li class="nav-item" id="nav-username" style="display:none;">
+                    <span class="nav-link text-info fw-bold"></span>
+                </li>
+
+                <li class="nav-item">
+                    <button id="logoutBtn" class="btn btn-outline-light btn-sm ms-2"
+                            style="display:none;">
+                        로그아웃
+                    </button>
+                </li>
+            </ul>
+        </div>
     </div>
-
-  </div>
 </nav>
 
 <script>
-// 로그인 상태 확인 (localStorage)
 document.addEventListener("DOMContentLoaded", () => {
-    const authArea = document.getElementById("auth-area");
-    const username = localStorage.getItem("belong_user");
+    const user = localStorage.getItem("belong_user");
+    const navUser = document.getElementById("nav-username");
+    const logoutBtn = document.getElementById("logoutBtn");
 
-    if (username) {
-        // 로그인 상태
-        authArea.innerHTML = `
-            <span class="navbar-text text-white me-3">
-                ${username}님 환영합니다
-            </span>
-            <a class="btn btn-outline-light btn-sm" href="{{ url_for('web.logout') }}"
-               id="logout-btn">로그아웃</a>
-        `;
-    } else {
-        // 비로그인 상태
-        authArea.innerHTML = `
-            <a class="btn btn-outline-light btn-sm" href="{{ url_for('web.login') }}">
-                로그인
-            </a>
-        `;
+    if (user) {
+        navUser.style.display = "block";
+        navUser.querySelector("span").innerText = `${user}님 환영합니다`;
+        logoutBtn.style.display = "inline-block";
     }
-});
 
-// 로그아웃 버튼 처리
-document.addEventListener("click", (e) => {
-    if (e.target.id === "logout-btn") {
+    logoutBtn?.addEventListener("click", () => {
         localStorage.removeItem("belong_user");
-    }
+        window.location.reload();
+    });
 });
 </script>

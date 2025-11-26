@@ -362,6 +362,9 @@ class CorrelationService:
             )
         ]
 
+        # 절댓값 기준으로 내림차순 정렬하면 더 보기 좋음
+        correlations.sort(key=lambda x: abs(x["corr"]), reverse=True)
+
         return {
             "target": TARGET_COLUMN,
             "vif_threshold": vif_threshold,
