@@ -197,14 +197,9 @@
 {% endblock %}
 
 {% block scripts %}
-    {{ super() }}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/js/all.min.js"
-            integrity="sha256-MAgcygDRz31QK+owsXv7LQ3FKzP0iGY6HYaacJfLZU="
-            crossorigin="anonymous"></script>
-
-    <!-- Chart.js (대시보드 전용) -->
+ {{ super() }}
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <!-- 우리 대시보드 로직 -->
     <script src="{{ url_for('static', filename='charts/dashboard.js') }}"></script>
 {% endblock %}

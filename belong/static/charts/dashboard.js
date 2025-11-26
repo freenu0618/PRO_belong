@@ -1,9 +1,12 @@
-// =========================
-// 0. 공통 헬퍼
-// =========================
+// =======================================
+// 대시보드 스크립트 (요약 + 차트 + TOP5 + 예측 모달)
+// =======================================
+
+// 전역 차트 핸들
 let dashboardChart = null;
 let forecastChart = null;
 
+// 공통 fetch 헬퍼 (단순 참고용)
 async function fetchJson(url) {
     const res = await fetch(url);
     if (!res.ok) {
@@ -18,7 +21,7 @@ async function fetchJson(url) {
 async function fetchDashboard() {
     const json = await fetchJson("/api/elderly/population");
 
-    // 백엔드 포맷 1) { status, data: [...] } 혹은 2) [ ... ]
+    // 백엔드 포맷: 1) {status, data: [...]}  또는  2) [...]
     const data = Array.isArray(json) ? json : json.data;
     if (!data || !Array.isArray(data)) {
         throw new Error("대시보드 데이터 형식 오류");
@@ -101,9 +104,9 @@ function renderTopTables(data) {
 }
 
 // =========================
-// 4) Chart.js 라인 차트 렌더링
+// 4) 메인 라인 차트 렌더링
 // =========================
-function renderChart(data) {
+function renderDashboardChart(data) {
     const canvas = document.getElementById("dashboard-chart");
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -111,18 +114,17 @@ function renderChart(data) {
 
     const first = data[0];
     if (!first) {
-        console.warn("차트용 데이터가 비어 있습니다.");
+        console.warn("차트용 데이터 없음");
         return;
     }
 
-    // values / value / history 중 하나를 사용
     const seriesForFirst =
         (Array.isArray(first.values) && first.values) ||
         (Array.isArray(first.value) && first.value) ||
         (Array.isArray(first.history) && first.history);
 
     if (!seriesForFirst) {
-        console.warn("차트 데이터 형식이 올바르지 않습니다. (values/value/history 없음)");
+        console.warn("차트 데이터 형식 오류 (values/value/history 없음)");
         return;
     }
 
@@ -175,16 +177,10 @@ function renderChart(data) {
             },
             scales: {
                 x: {
-                    title: {
-                        display: true,
-                        text: "연도"
-                    }
+                    title: { display: true, text: "연도" }
                 },
                 y: {
-                    title: {
-                        display: true,
-                        text: "노인 인구 수"
-                    },
+                    title: { display: true, text: "노인 인구 수" },
                     beginAtZero: true
                 }
             }
@@ -193,9 +189,8 @@ function renderChart(data) {
 }
 
 // =========================
-// 5) Forecast(예측) 섹션
+// 5) 예측 버튼 클릭 핸들러
 // =========================
-// 🔹 예측 버튼 클릭 핸들러
 async function handleForecastClick() {
     const input = document.getElementById("forecast-region-input");
     if (!input) {
@@ -213,7 +208,7 @@ async function handleForecastClick() {
     const url = `/api/elderly/forecast/${encodeURIComponent(region)}`;
     console.log("[Forecast] 요청 URL:", url);
 
-    // 1) 네트워크 / JSON 파싱만 try-catch로 감싸기
+    // 1) 네트워크 / JSON 파싱
     let res;
     try {
         res = await fetch(url);
@@ -223,7 +218,7 @@ async function handleForecastClick() {
         return;
     }
 
-    let json = null;
+    let json;
     try {
         json = await res.json();
     } catch (err) {
@@ -248,8 +243,7 @@ async function handleForecastClick() {
     }
 
     if (json.status && json.status.toLowerCase() === "error") {
-        const msg =
-            json.message || "예측 데이터를 찾을 수 없습니다.";
+        const msg = json.message || "예측 데이터를 찾을 수 없습니다.";
         openForecastModal(region, {
             message: msg,
             history: [],
@@ -258,25 +252,27 @@ async function handleForecastClick() {
         return;
     }
 
-    // 3) 정상 데이터 → 모달 + 차트 렌더링
+    // 3) 정상 데이터 렌더링
     const payload = json.data || json;
     try {
         openForecastModal(region, payload);
     } catch (err) {
-        // 여기에서 나는 에러는 네트워크 문제가 아니라 프론트쪽 버그
         console.error("[Forecast] 모달 렌더링 실패:", err);
         alert("예측 결과를 화면에 표시하는 중 오류가 발생했습니다. 콘솔 로그를 확인해 주세요.");
     }
 }
 
+// =========================
+// 6) 예측 모달 & 차트
+// =========================
 function openForecastModal(region, data) {
     const modalEl = document.getElementById("forecastModal");
     const titleEl = document.getElementById("forecastModalLabel");
     const msgEl = document.getElementById("forecast-modal-message");
     const tbody = document.getElementById("forecast-modal-body");
 
-    // 모달 구조가 없는 경우: 간단 alert로 대체
     if (!modalEl || !titleEl || !tbody) {
+        // 모달 구조가 없으면 alert로 대체
         const history = (data.history || []).map(d => `${d.year}: ${d.value}`).join("\n");
         const forecast = (data.forecast || []).map(d => `${d.year}: ${d.value}`).join("\n");
         alert(
@@ -315,7 +311,7 @@ function openForecastModal(region, data) {
         `;
     });
 
-    // 🔹 차트 렌더링 (여기서 에러가 나면 catch에서 잡히도록 try 내부에서 호출 X)
+    // 차트 렌더링 (실측 + 예측)
     try {
         renderForecastChart(data);
     } catch (err) {
@@ -329,8 +325,6 @@ function openForecastModal(region, data) {
         modalEl.style.display = "block";
     }
 }
-
-let forecastChart = null;
 
 function renderForecastChart(data) {
     const canvas = document.getElementById("forecast-chart");
@@ -419,16 +413,15 @@ function renderForecastChart(data) {
     });
 }
 
-
 // =========================
-// 6) 초기화
+// 7) 초기화
 // =========================
 document.addEventListener("DOMContentLoaded", async () => {
     try {
         const data = await fetchDashboard();
         renderSummary(data);
         renderTopTables(data);
-        renderChart(data);
+        renderDashboardChart(data);
     } catch (err) {
         console.error("대시보드 초기화 실패:", err);
     }
