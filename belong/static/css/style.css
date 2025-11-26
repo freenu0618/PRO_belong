@@ -234,3 +234,25 @@ body {
     width: 100% !important;
     height: 100% !important;
 }
+
+/* === 상관관계 페이지 전체를 스냅 스크롤 컨테이너로 === */
+.corr-page {
+    height: calc(100vh - 70px);   /* 70px = 네가 main에 준 margin-top 정도 */
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;   /* 세로 방향 스냅 */
+}
+
+/* 각 섹션을 '페이지' 처럼 취급 */
+.corr-hero,
+.corr-detail-section {
+    scroll-snap-align: start;
+    min-height: calc(100vh - 70px);  /* 화면 한 페이지 정도 높이 */
+    display: flex;
+    align-items: center;             /* 내용 세로 가운데 (원하면 유지) */
+}
+
+/* 필요하면 2페이지는 위아래 여백만 */
+.corr-detail-section {
+    padding: 60px 0 80px 0;
+    align-items: flex-start;         /* 분석 섹션은 위쪽 정렬이 더 좋으면 이렇게 */
+}
