@@ -46,7 +46,7 @@ class CorrelationService:
 
     def __init__(self, session: Optional[Session] = None):
         # 세션 주입 가능하게 만들어두면 나중에 테스트/DI에 유리함
-        self.session: Session = session or db.session # 외부에서 session을 넘겨주면 사용 or db.session사용
+        self.session: Session = session or db.session
 
     # ------------------------------------------------------------------
     # 내부: DB → pandas.DataFrame 로딩
@@ -63,7 +63,7 @@ class CorrelationService:
         year_from/year_to, region_ids 로 간단한 필터링을 할 수 있게 해놨지만,
         지금 API에서는 파라미터 없이 전체 기간을 대상으로 사용해도 됨.
         """
-        query = self.session.query(ElderlyStats)  # :ElderlyStats 테이블 전체를 대상으로 하는 기본 쿼리 시작
+        query = self.session.query(ElderlyStats)  # :contentReference[oaicite:4]{index=4}
 
         if year_from is not None:
             query = query.filter(ElderlyStats.year >= year_from)
@@ -94,7 +94,7 @@ class CorrelationService:
     # ------------------------------------------------------------------
     # 내부: 숫자 컬럼 정리
     # ------------------------------------------------------------------
-    @staticmethod # 정적 메서드 : 인스턴스 상태 안쓰니까 사용
+    @staticmethod
     def _prepare_numeric_df(df: pd.DataFrame) -> pd.DataFrame:
         """
         타깃 + 피처 컬럼을 float로 변환하고 NaN 포함 행 제거.
@@ -361,9 +361,6 @@ class CorrelationService:
                 key=lambda x: 0 if x["corr"] is None else -abs(x["corr"] or 0.0),
             )
         ]
-
-        # 절댓값 기준으로 내림차순 정렬하면 더 보기 좋음
-        correlations.sort(key=lambda x: abs(x["corr"]), reverse=True)
 
         return {
             "target": TARGET_COLUMN,
