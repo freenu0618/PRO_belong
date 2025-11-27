@@ -24,7 +24,7 @@
 
             <div class="col-md-4">
                 <div class="card shadow-sm p-3">
-                    <small class="text-muted">2023년 노인 인구</small>
+                    <small class="text-muted">최신 노인 인구</small>
                     <h3 id="latest-pop" class="fw-bold mb-0">-</h3>
                 </div>
             </div>
@@ -46,11 +46,47 @@
         </div>
     </div>
 
+    <!-- 예측 재실행 폼 -->
+    <div class="card mt-4 p-3">
+        <form id="predict-form" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label for="predict-year" class="form-label mb-1">예측 연도 재선택</label>
+                <input type="number"
+                       class="form-control"
+                       id="predict-year"
+                       min="2018"
+                       max="2050"
+                       value="{{ year }}">
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary">
+                    예측 실행
+                </button>
+            </div>
+            <div class="col">
+                <small class="text-muted">
+                    예측을 다시 실행하면 카드와 차트가 선택한 연도로 갱신됩니다.
+                </small>
+            </div>
+        </form>
+    </div>
+
     <!-- 차트 표시 버튼 -->
-    <div class="text-center mt-5" id="chart-btn-section" style="display:none;">
+    <div class="text-center mt-4" id="chart-btn-section" style="display:none;">
         <button class="btn btn-info btn-lg" data-bs-toggle="modal" data-bs-target="#forecastModal">
             예측 차트 보기
         </button>
+    </div>
+
+    <!-- 예측 이력 차트 섹션 -->
+    <div id="history-section" class="card mt-4 p-3" style="display:none;">
+        <h5 class="fw-bold mb-2">{{ region }} 예측 이력</h5>
+        <small class="text-muted mb-3">
+            저장된 예측 결과를 연도별로 확인할 수 있습니다.
+        </small>
+        <div style="height:220px;">
+            <canvas id="prediction-history-chart"></canvas>
+        </div>
     </div>
 
 </div>
@@ -66,8 +102,8 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
-      <div class="modal-body">
-          <canvas id="forecast-chart" height="150"></canvas>
+      <div class="modal-body" style="height:260px;">
+          <canvas id="forecast-chart"></canvas>
       </div>
 
     </div>
@@ -80,6 +116,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ url_for('static', filename='charts/region_predict.js') }}"></script>
 <script>
-    loadRegionForecast("{{ region }}", "{{ year }}");
+    // 페이지 초기화: JS에서 폼 이벤트 + 예측/이력 로딩까지 처리
+    initRegionDetail("{{ region }}", "{{ year }}");
 </script>
 {% endblock %}

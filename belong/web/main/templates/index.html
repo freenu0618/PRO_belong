@@ -10,7 +10,7 @@
     <!-- 1번 슬라이드: c1 -->
     <div class="carousel-item active">
       <div class="main-slide"
-           style="background-image: url('{{ url_for('static', filename='image/c1.jpg') }}');">
+           style="background-image: url({{ url_for('static', filename='image/c1.jpg') }});">
         <div class="overlay"></div>
         <div class="carousel-content">
           <h1>서울 25개 구 독거노인 리스크 예측</h1>
@@ -22,7 +22,7 @@
     <!-- 2번 슬라이드: c2 -->
     <div class="carousel-item">
       <div class="main-slide"
-           style="background-image: url('{{ url_for('static', filename='image/c2.jpg') }}');">
+           style="background-image: url({{ url_for('static', filename='image/c2.jpg') }});">
         <div class="overlay"></div>
         <div class="carousel-content">
           <h1>구별 상세 분석</h1>
@@ -34,7 +34,7 @@
     <!-- 3번 슬라이드: c3 -->
     <div class="carousel-item">
       <div class="main-slide"
-           style="background-image: url('{{ url_for('static', filename='image/c3.jpg') }}');">
+           style="background-image: url({{ url_for('static', filename='image/c3.jpg') }});">
         <div class="overlay"></div>
         <div class="carousel-content">
           <h1>상관관계 분석</h1>
@@ -60,63 +60,61 @@
 
     <div class="row mb-5 text-center">
       <h2 class="fw-bold">Belong 기능 안내</h2>
-      <p class="text-muted">서울 25개 구 데이터 기반 예측/분석 서비스</p>
+      <p class="text-muted">서울 25개 구 데이터 기반 분석/예측 서비스</p>
     </div>
 
     <div class="row">
 
       <!-- Dashboard -->
       <div class="col-md-4 mb-4">
-          <div class="main-card main-card-has-bg"
-               style="background-image:url('{{ url_for('static', filename='image/s1.png') }}');">
-            <div class="main-card-img-overlay d-flex flex-column justify-content-end">
-              <div class="main-card-body bg-white bg-opacity-75 p-3 rounded">
-                <h4 class="fw-bold">
-                  <a href="{{ url_for('web.dashboard') }}" class="text-dark text-decoration-none">
-                    구별 현황 대시보드
-                  </a>
-                </h4>
-                <p class="text-muted">서울 25개 구 독거노인 현황 종합 분석</p>
-              </div>
+        <div class="main-card main-card-has-bg"
+             style="background-image: url({{ url_for('static', filename='image/s1.png') }});">
+          <div class="main-card-img-overlay d-flex flex-column justify-content-end">
+            <div class="main-card-body bg-white bg-opacity-75 p-3 rounded">
+              <h4 class="fw-bold">
+                <a href="{{ url_for('web.dashboard') }}" class="text-dark text-decoration-none">
+                  구별 현황 대시보드
+                </a>
+              </h4>
+              <p class="text-muted">서울 25개 구 독거노인 현황 종합 분석</p>
             </div>
           </div>
         </div>
-
+      </div>
 
       <!-- Region -->
       <div class="col-md-4 mb-4">
-          <div class="main-card main-card-has-bg"
-               style="background-image:url('{{ url_for('static', filename='image/s2.png') }}');">
-            <div class="main-card-img-overlay d-flex flex-column justify-content-end">
-              <div class="main-card-body bg-white bg-opacity-75 p-3 rounded">
-                <h4 class="fw-bold">
-                  <a href="{{ url_for('web.region_detail', region='강남구') }}" class="text-dark text-decoration-none">
-                    지역별 예측
-                  </a>
-                </h4>
-                <p class="text-muted">구별 데이터 기반 단기/중기 예측</p>
-              </div>
+        <div class="main-card main-card-has-bg"
+             style="background-image: url({{ url_for('static', filename='image/s2.png') }});">
+          <div class="main-card-img-overlay d-flex flex-column justify-content-end">
+            <div class="main-card-body bg-white bg-opacity-75 p-3 rounded">
+              <h4 class="fw-bold">
+                <a href="{{ url_for('web.region_detail', region='강남구') }}" class="text-dark text-decoration-none">
+                  지역별 독거노인 수 예측
+                </a>
+              </h4>
+              <p class="text-muted">구별 데이터 기반 단기/중기 예측</p>
             </div>
           </div>
         </div>
+      </div>
 
       <!-- Correlation -->
       <div class="col-md-4 mb-4">
-          <div class="main-card main-card-has-bg"
-               style="background-image:url('{{ url_for('static', filename='image/s3.png') }}');">
-            <div class="main-card-img-overlay d-flex flex-column justify-content-end">
-              <div class="main-card-body bg-white bg-opacity-75 p-3 rounded">
-                <h4 class="fw-bold">
-                  <a href="{{ url_for('web.correlation') }}" class="text-dark text-decoration-none">
-                    상관관계 분석
-                  </a>
-                </h4>
-                <p class="text-muted">변수 ↔ 독거노인 증가율 관계 분석</p>
-              </div>
+        <div class="main-card main-card-has-bg"
+             style="background-image: url({{ url_for('static', filename='image/s3.png') }});">
+          <div class="main-card-img-overlay d-flex flex-column justify-content-end">
+            <div class="main-card-body bg-white bg-opacity-75 p-3 rounded">
+              <h4 class="fw-bold">
+                <a href="{{ url_for('web.correlation') }}" class="text-dark text-decoration-none">
+                  독거노인 상관관계 분석
+                </a>
+              </h4>
+              <p class="text-muted">변수 ↔ 독거노인 증가율 관계 분석</p>
             </div>
           </div>
         </div>
-
+      </div>
 
     </div>
 
