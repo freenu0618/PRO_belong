@@ -1,17 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Belong - Dashboard{% endblock %}
 
-{# 🔹 대시보드 전용 헤더 (사진 배경 영역) #}
-{% block header %}
-<div class="hero-header hero-header-dashboard">
-    <div class="hero-overlay"></div>
-    <div class="hero-content">
-        <h1>대시보드</h1>
-        <p>서울 25개 구 노인 인구와 고독사 리스크를 한 눈에</p>
-    </div>
-</div>
-{% endblock %}
-
 {% block content %}
 <div class="container py-4">
 
@@ -117,67 +106,67 @@
 
 
     <!-- 🔹 구별 TOP5 섹션 -->
-    <div class="row g-3 mt-3">
-        <!-- 독거노인 증가율 TOP5 -->
-        <div class="col-md-6">
-            ...
-            <tbody id="population-growth-body"></tbody>
-            ...
-        </div>
+<div class="row g-3 mt-3">
+    <!-- 독거노인 증가율 TOP5 -->
+    <div class="col-md-6">
+        ...
+        <tbody id="population-growth-body"></tbody>
+        ...
+    </div>
 
-        <!-- 독거노인 인구 TOP5 -->
-        <div class="col-md-6">
-            ...
-            <tbody id="population-count-body"></tbody>
-            ...
-        </div>
+    <!-- 독거노인 인구 TOP5 -->
+    <div class="col-md-6">
+        ...
+        <tbody id="population-count-body"></tbody>
+        ...
+    </div>
 
-        <!-- 고독사 증가율 TOP5 -->
-        <div class="col-md-6">
-            <div class="card shadow-sm mt-3">
-                <div class="card-body">
-                    <h5 class="fw-bold mb-3">고독사 증가율 TOP 5</h5>
-                    <div class="table-responsive">
-                        <table class="table align-middle">
-                            <thead class="table-dark">
+    <!-- 고독사 증가율 TOP5 -->
+    <div class="col-md-6">
+        <div class="card shadow-sm mt-3">
+            <div class="card-body">
+                <h5 class="fw-bold mb-3">고독사 증가율 TOP 5</h5>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead class="table-dark">
                             <tr>
                                 <th>구</th>
                                 <th>고독사 수</th>
                                 <th>증가율(%)</th>
                             </tr>
-                            </thead>
-                            <tbody id="lonely-growth-body">
+                        </thead>
+                        <tbody id="lonely-growth-body">
                             <!-- JS에서 렌더링 -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 고독사 수 TOP5 -->
-        <div class="col-md-6">
-            <div class="card shadow-sm mt-3">
-                <div class="card-body">
-                    <h5 class="fw-bold mb-3">고독사 수 TOP 5</h5>
-                    <div class="table-responsive">
-                        <table class="table align-middle">
-                            <thead class="table-dark">
-                            <tr>
-                                <th>구</th>
-                                <th>고독사 수</th>
-                                <th>증가율(%)</th>
-                            </tr>
-                            </thead>
-                            <tbody id="lonely-count-body">
-                            <!-- JS에서 렌더링 -->
-                            </tbody>
-                        </table>
-                    </div>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- 고독사 수 TOP5 -->
+    <div class="col-md-6">
+        <div class="card shadow-sm mt-3">
+            <div class="card-body">
+                <h5 class="fw-bold mb-3">고독사 수 TOP 5</h5>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>구</th>
+                                <th>고독사 수</th>
+                                <th>증가율(%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lonely-count-body">
+                            <!-- JS에서 렌더링 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 
     <!-- 🔹 Forecast Section -->
@@ -217,14 +206,14 @@
                 <div class="table-responsive">
                     <table class="table table-sm">
                         <thead>
-                        <tr>
-                            <th>구분</th>
-                            <th>연도</th>
-                            <th>노인 인구 수</th>
-                        </tr>
+                            <tr>
+                                <th>구분</th>
+                                <th>연도</th>
+                                <th>노인 인구 수</th>
+                            </tr>
                         </thead>
                         <tbody id="forecast-modal-body">
-                        <!-- JS에서 렌더링 -->
+                            <!-- JS에서 렌더링 -->
                         </tbody>
                     </table>
                 </div>
@@ -241,7 +230,7 @@
 {% endblock %}
 
 {% block scripts %}
-    {{ super() }}
+ {{ super() }}
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- 우리 대시보드 로직 -->

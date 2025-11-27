@@ -593,3 +593,73 @@ body {
 .hero-header-corr {
     background-image: url("{{ url_for('static', filename='image/corr.png') }}");
 }
+
+/* =====================================================
+   🔹 공통 헤더 & 페이지별 사진 배경
+   - 기본: 어두운 바(bar)
+   - dashboard / region / corr 에서는 사진 + 높이 증가
+===================================================== */
+
+/* 공통 헤더 래퍼 */
+.site-header {
+    background-color: #212529;          /* 기존 bg-dark 색 */
+}
+
+/* navbar 자체는 투명으로 만들어서 헤더 배경이 비치게 */
+.site-header .navbar {
+    background-color: transparent !important;
+    box-shadow: none;
+}
+
+/* 기본 navbar 높이 */
+.site-header .navbar {
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+}
+
+/* 🔸 사진 헤더 공통 옵션 */
+.header-dashboard,
+.header-region,
+.header-corr {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    /* navbar 밑에 사진이 더 보이도록 아래 padding */
+    padding-bottom: 120px;
+}
+
+/* 대시보드 헤더 배경 */
+.header-dashboard {
+    background-image: url("/static/image/dashboard.jpg");
+    background-size: cover;      /* 이거 */
+    background-position: center; /* 이거 */
+    background-repeat: no-repeat;
+    height: 750px;               /* ← 이 값만 바꾸면 세로 폭 조절 */
+}
+
+/* 지역별 예측 헤더 배경 */
+.header-region {
+    background-image: url("/static/image/region.jpg");
+    background-size: cover;      /* 이거 */
+    background-position: center; /* 이거 */
+    background-repeat: no-repeat;
+    height: 750px;               
+}
+
+/* 상관관계 분석 헤더 배경 */
+.header-corr {
+    background-image: url("/static/image/corr.png");
+    background-size: cover;      /* 이거 */
+    background-position: center; /* 이거 */
+    background-repeat: no-repeat;
+    height: 750px;      
+}
+
+/* 사진 헤더에서는 navbar 조금 더 두껍게 */
+.header-dashboard .navbar,
+.header-region .navbar,
+.header-corr .navbar {
+    padding-top: 1.1rem;
+    padding-bottom: 1.1rem;
+}
