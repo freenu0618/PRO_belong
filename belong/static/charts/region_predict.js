@@ -5,12 +5,21 @@ async function fetchHistory(region) {
     const start = 2017;
     const end = 2023;   // 백엔드 기준
 
-    const url = `/api/elderly-stats/${region}/${start}/${end}`;
+    const url = `/api/elderly-stats/${encodeURIComponent(region)}/${start}/${end}`;
 
     const res = await fetch(url);
-    if (!res.ok) throw new Error("히스토리 조회 실패");
+    if (!res.ok) {
+        throw new Error("히스토리 조회 실패 (HTTP " + res.status + ")");
+    }
 
-    return await res.json();
+    // 이 엔드포인트는 리스트 자체를 반환함: [ {year, elderly_population}, ... ]
+    const json = await res.json();
+
+    if (!Array.isArray(json) || json.length === 0) {
+        throw new Error("히스토리 데이터 형식 오류 또는 비어 있음");
+    }
+
+    return json;
 }
 
 
@@ -18,13 +27,21 @@ async function fetchHistory(region) {
 // 2) 예측 API
 // =====================
 async function fetchPrediction(region, year) {
-    const url = `/api/predictions/${region}/${year}`;
+    const url = `/api/predictions/${encodeURIComponent(region)}/${year}`;
 
     const res = await fetch(url, { method: "POST" });
-    if (!res.ok) throw new Error("예측 요청 실패");
+    if (!res.ok) {
+        throw new Error("예측 요청 실패 (HTTP " + res.status + ")");
+    }
 
+    // POST /predictions 는 { saved: true, result: {...} } 형태
     const json = await res.json();
-    return json.result;
+
+    if (!json || !json.result) {
+        throw new Error("예측 데이터 형식 오류");
+    }
+
+    return json.result;  // { year, prediction, ... }
 }
 
 
@@ -37,6 +54,10 @@ async function loadRegionForecast(region, year) {
     try {
         const history = await fetchHistory(region);
         const prediction = await fetchPrediction(region, year);
+
+        if (!Array.isArray(history) || history.length === 0) {
+            throw new Error("히스토리 데이터 없음");
+        }
 
         hideLoading();
         renderSummary(history, prediction, year);
@@ -82,35 +103,56 @@ let chartInstance = null;
 function renderChart(history, prediction) {
     const ctx = document.getElementById("forecast-chart");
 
+    // 연도 라벨: 과거(2017~2023) + 예측연도(예: 2029)
     const labels = history.map(d => d.year).concat(prediction.year);
+
+    // 과거 데이터 (파란선)
     const historyData = history.map(d => d.elderly_population);
-    const forecastData = [ ...Array(history.length).fill(null), prediction.prediction ];
+
+    // 예측선 데이터
+    // 앞부분은 null, 2023 위치에는 마지막 값, 2029에는 예측값
+    const lastIndex = history.length - 1;
+    const forecastData = history.map((d, i) =>
+        i === lastIndex ? d.elderly_population : null
+    ).concat(prediction.prediction);
 
     if (chartInstance) chartInstance.destroy();
 
     chartInstance = new Chart(ctx, {
-        type: "line",
-        data: {
-            labels,
-            datasets: [
-                {
-                    label: "과거 데이터",
-                    data: historyData,
-                    borderColor: "#007bff",
-                    borderWidth: 2
-                },
-                {
-                    label: `예측 (${prediction.year})`,
-                    data: forecastData,
-                    borderColor: "#ff5733",
-                    borderDash: [5,5],
-                    borderWidth: 2
-                }
-            ]
+    type: "line",
+    data: {
+        labels,
+        datasets: [
+            {
+                label: "과거 데이터",
+                data: historyData,
+                borderColor: "#007bff",
+                borderWidth: 2,
+                pointRadius: 4,
+                fill: false
+            },
+            {
+                label: `예측 (${prediction.year})`,
+                data: forecastData,
+                borderColor: "#ff5733",
+                borderDash: [5, 5],
+                borderWidth: 2,
+                pointRadius: 5,
+                fill: false
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,      // 모달 안에서 가득 차게
+        scales: {
+            x: {
+                offset: false            // ✅ 양끝 여백 없애기 (요게 핵심)
+            }
         }
-    });
+    }
+});
 }
-
 
 // =====================
 // 6) UI Helpers
