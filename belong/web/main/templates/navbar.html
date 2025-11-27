@@ -1,0 +1,110 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+
+        <!-- 로고 -->
+        <a class="navbar-brand fw-bold" href="{{ url_for('web.index') }}">
+            <img src="{{ url_for('static', filename='image/logo.png') }}"
+                 alt="Belong Logo"
+                 style="height:34px; border-radius:5px; margin-right:8px;">
+            Belong
+        </a>
+
+        <!-- 햄버거 버튼 -->
+        <button class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarNav"
+                aria-controls="navbarNav"
+                aria-expanded="false"
+                aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- 메뉴 본체 -->
+        <div class="collapse navbar-collapse" id="navbarNav">
+
+            <!-- 왼쪽 메뉴 -->
+            <ul class="navbar-nav mx-auto">
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('web.index') }}">홈</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('web.dashboard') }}">대시보드</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('web.region') }}">지역별 예측</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('web.correlation') }}">상관관계 분석</a>
+                </li>
+
+            </ul>
+
+            <!-- 오른쪽: 인증 관련 메뉴 -->
+            <ul class="navbar-nav">
+
+                <!-- 비로그인 시: 로그인 / 회원가입 -->
+                <li class="nav-item" id="nav-login-link">
+                    <a class="nav-link" href="{{ url_for('web.login') }}">로그인</a>
+                </li>
+                <li class="nav-item" id="nav-signup-link">
+                    <a class="nav-link" href="{{ url_for('web.signup') }}">회원가입</a>
+                </li>
+
+                <!-- 로그인 시: 사용자명 + 로그아웃 버튼 -->
+                <li class="nav-item d-none" id="nav-username">
+                    <span class="nav-link text-info fw-bold"></span>
+                </li>
+                <li class="nav-item">
+                    <button id="logoutBtn"
+                            class="btn btn-outline-light btn-sm ms-2 d-none">
+                        로그아웃
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const user = localStorage.getItem("belong_user");
+
+    const navLogin   = document.getElementById("nav-login-link");
+    const navSignup  = document.getElementById("nav-signup-link");
+    const navUser    = document.getElementById("nav-username");
+    const logoutBtn  = document.getElementById("logoutBtn");
+
+    if (user) {
+        // 로그인 상태
+        navLogin?.classList.add("d-none");
+        navSignup?.classList.add("d-none");
+
+        if (navUser) {
+            navUser.classList.remove("d-none");
+            const span = navUser.querySelector("span");
+            if (span) span.innerText = `${user}님 환영합니다`;
+        }
+
+        if (logoutBtn) {
+            logoutBtn.classList.remove("d-none");
+        }
+
+        logoutBtn?.addEventListener("click", () => {
+            localStorage.removeItem("belong_user");
+            window.location.reload();
+        });
+
+    } else {
+        // 비로그인 상태
+        navLogin?.classList.remove("d-none");
+        navSignup?.classList.remove("d-none");
+        navUser?.classList.add("d-none");
+        logoutBtn?.classList.add("d-none");
+    }
+});
+</script>

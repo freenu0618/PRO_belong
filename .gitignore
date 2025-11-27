@@ -22,9 +22,11 @@ Thumbs.db
 *.h5
 *.onnx
 *.joblib
-models/
+
 checkpoints/
 data/
 *.csv
 *.xlsx
 *.json
+/migrations/
+probelong.cmd

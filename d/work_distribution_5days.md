@@ -9,7 +9,53 @@
 | 3일차 | API 3종 개발 | 상세/히트맵 화면 구현 |
 | 4일차 | 프론트 실제 API 연동 | 백엔드 에러 처리 + 리팩토링 |
 | 5일차 | 백엔드 안정화·배포 준비 | 프론트 최종 마감·테스트 |
+3. 협업/시연을 기준으로 “표준 워크플로우”를 만들어보자
 
+이제 앞으로를 생각해서, 우리 프로젝트 표준 흐름을 정해보자.
+
+✅ 1) 너(메인 개발자) 쪽
+
+모델/스키마 변경 → 코드 수정 (SQLAlchemy 모델)
+
+flask db migrate -m "..." → 새로운 migration 파일 생성
+
+flask db upgrade → 너의 개발 DB에 반영
+
+코드 + migrations 폴더 같이 git commit & push
+
+✅ 2) 팀원 쪽 (새로 시작하는 사람)
+
+repo clone / git pull
+
+.env 에 본인 Oracle 정보 설정
+
+set FLASK_APP=app:create_app
+
+flask db upgrade만 실행
+
+init이나 migrate는 하지 않음 (그건 “새 프로젝트 시작하는 사람”이 하는 거)
+
+그러면:
+
+Alembic이 ALEMBIC_VERSION 테이블을 만들고
+
+migrations 폴더 안의 revision들을 순서대로 적용해서
+
+DB 구조를 너와 동일한 상태로 맞춰 줌
+
+✅ 3) 시연용 환경(서버/공용 DB)
+
+시연용 서버(또는 공용 Oracle 스키마)를 하나 잡고
+
+그 DB에도 똑같이
+
+코드를 배포하고
+
+flask db upgrade 실행
+
+그러면 그 DB도 같은 revision 상태가 되고,
+
+팀원/너는 그냥 그 DSN으로 접속해서 시연하면 됨.
 ---
 
 # 📆 상세 업무 설명
