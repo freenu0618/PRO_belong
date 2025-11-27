@@ -1,117 +1,189 @@
-import joblib
-from pathlib import Path
-from typing import Dict, Any, Optional
+# belong/services/forecast_service.py
+from sqlalchemy import func
+from typing import Dict, Any, Optional, List, Tuple
 
-from config import Config
-from belong.extensions import logger
-from belong.repositories.elderly_repo import (
-    ElderlyHistoryRepository,
-    SqlAlchemyElderlyHistoryRepository,
-    InMemoryElderlyHistoryRepository,
-)
+from belong.extensions import logger, db
+from belong.models.elderly_history import ElderlyHistory
+from belong.models.region import Region
+from belong.models.feature_stats import ElderlyStats
+from belong.models.prediction_result import PredictionResult
 
-
-class ForecastService:
-    def __init__(self, repo: Optional[ElderlyHistoryRepository] = None) -> None:
-        """
-        repo: 독거노인/고령인구 히스토리를 제공하는 Repository
-              - 기본값: SqlAlchemyElderlyHistoryRepository
-              - 나중에 Oracle/SQLAlchemy 기반 Repo로 교체 예정
-        """
-        # 1) Repository DI
-        self.repo: ElderlyHistoryRepository = (
-            repo if repo is not None else InMemoryElderlyHistoryRepository()
-        )
-
-        # 2) 모델 로딩 (환경변수 우선, 없으면 로컬 pkl 경로)
-        model_path = Config.MODEL_PATH or (
-            Path(__file__).resolve().parent.parent / "ml" / "forecast_model.pkl"
-        )
-
-        try:
-            self.model = joblib.load(model_path)
-            logger.info(f"Model loaded successfully from {model_path}")
-        except Exception as e:
-            self.model = None
-            logger.warning(f"Failed to load model from {model_path}. Reason: {e}")
-
-    # --- 내부 헬퍼: history 조회 ---
-
-    def _get_history(self, region: str):
-        """
-        v0.2: SqlAlchemyElderlyHistoryRepository에서 조회.
-        v0.3~: Oracle/SQLAlchemy 기반 Repo로 교체 가능.
-        """
-        return self.repo.get_history(region)
-
-    # --- 메인 비즈니스 로직: 단기/장기 예측 ---
-
-    def forecast_region(
-        self,
-        region: str,
-        n_years: int = 2,
-        horizon: str = "short",
-    ) -> Dict[str, Any]:
-        """
-        단기/장기 horizon을 고려한 예측 서비스 메소드.
-
-        - 지금은 모델이 없어도 dummy 규칙으로 forecast를 항상 채운다.
-        - 나중에 Oracle/실제 모델을 붙여도 이 함수 시그니처는 그대로 유지.
-        """
-        logger.info(
-            f"[REQUEST] Forecast service called "
-            f"for region={region}, years={n_years}, horizon={horizon}"
-        )
-
-        history = self._get_history(region)
-
-        if history is None:
-            logger.warning(f"No history data found for region: {region}")
-            return {
-                "region": region,
-                "history": None,
-                "forecast": None,
-                "message": "No history data available for this region.",
-            }
-
-        last_year = history[-1]["year"]
-        last_value = history[-1]["value"]
-
-        # 1) 실제 모델이 있는 경우 → 나중에 여기서 model.predict(...) 사용
-        if self.model is not None:
-            logger.info(
-                "Model is loaded. (Currently using dummy values) "
-                f"horizon={horizon}, n_years={n_years}"
+# 2023년까지는 실측, 이후는 예측으로 간주
+ACTUAL_LAST_YEAR = 2023
+LONELY_SOURCE = "rule_based"
+class LonelyForecastService:
+    def forecast_region(self, region: str) -> Dict[str, Any]:
+        # 1) 실측 (ELDERLY_STATS)
+        actual_rows = (
+            db.session.query(
+                ElderlyStats.year.label("year"),
+                func.sum(ElderlyStats.target_value).label("value"),
             )
-            # TODO: 진짜 예측으로 교체할 자리
-            forecast_values = [int(last_value * 1.05)] * n_years  # placeholder
-        else:
-            # 2) 모델이 없는 경우 → horizon별 증가율로 dummy 예측
-            if horizon == "short":
-                growth_rate = 0.03  # 단기: 3% 증가
-            elif horizon == "long":
-                growth_rate = 0.02  # 장기: 2% 완만 증가
-            else:
-                growth_rate = 0.025  # fallback
+            .join(Region, ElderlyStats.region_id == Region.id)
+            .filter(
+                Region.name == region,
+                ElderlyStats.year <= ACTUAL_LAST_YEAR,
+            )
+            .group_by(ElderlyStats.year)
+            .order_by(ElderlyStats.year)
+            .all()
+        )
 
-            forecast_values = []
-            value = last_value
-            for _ in range(n_years):
-                value = int(value * (1 + growth_rate))
-                forecast_values.append(value)
+        history = [
+            {"year": int(r.year), "value": int(r.value or 0)} for r in actual_rows
+        ]
+
+        # 2) 예측 (PREDICTION_RESULT)
+        forecast_rows = (
+            db.session.query(
+                PredictionResult.year.label("year"),
+                func.sum(PredictionResult.prediction_value).label("value"),
+            )
+            .filter(
+                PredictionResult.region_name == region,
+                PredictionResult.source == LONELY_SOURCE,
+                PredictionResult.year > ACTUAL_LAST_YEAR,
+            )
+            .group_by(PredictionResult.year)
+            .order_by(PredictionResult.year)
+            .all()
+        )
 
         forecast = [
-            {"year": last_year + i + 1, "value": forecast_values[i]}
-            for i in range(n_years)
+            {"year": int(r.year), "value": int(r.value or 0)}
+            for r in forecast_rows
         ]
+
+        if not history and not forecast:
+            return {
+                "region": region,
+                "history": [],
+                "forecast": [],
+                "message": "해당 구의 고독사 실측/예측 데이터를 찾을 수 없습니다.",
+            }
 
         return {
             "region": region,
             "history": history,
             "forecast": forecast,
-            "message": (
-                "Dummy forecast (model not loaded)"
-                if self.model is None
-                else "Model forecast (dummy values)"
-            ),
+            "message": "ELDERLY_STATS + PREDICTION_RESULT 기반 고독사 실측/예측 데이터입니다.",
+        }
+
+class ForecastService:
+    """
+    ELDERLY_HISTORY 기반 구별 노인 인구 실측/예측 조회 서비스.
+
+    - history  : is_forecast != 'Y' 이고, year <= ACTUAL_LAST_YEAR
+    - forecast : is_forecast == 'Y' 이거나, year > ACTUAL_LAST_YEAR
+    """
+
+    def __init__(self, repo: Optional[object] = None) -> None:
+        """
+        repo 파라미터는 과거 DI 구조 호환용으로만 남겨둔다.
+        현재 구현에서는 직접 ORM 쿼리를 사용한다.
+        """
+        self.repo = repo
+
+    # ------------------------------------------------------------------
+    # 내부 헬퍼: 특정 구의 전체 시계열 로드 & 실측/예측 분리
+    # ------------------------------------------------------------------
+    def _load_region_series(self, region: str) -> Tuple[List[Dict], List[Dict]]:
+        """
+        ELDERLY_HISTORY + REGION 조인해서
+        해당 구의 (year, elderly_population, is_forecast) 전부 가져온 뒤
+        history / forecast 리스트로 나눈다.
+
+        반환 형식:
+            history  = [{"year": 2017, "value": 8502}, ...]
+            forecast = [{"year": 2024, "value": 12345}, ...]
+        """
+        rows = (
+            db.session.query(
+                ElderlyHistory.year.label("year"),
+                ElderlyHistory.elderly_population.label("value"),
+                ElderlyHistory.is_forecast.label("is_forecast"),
+            )
+            .join(Region, ElderlyHistory.region_id == Region.id)
+            .filter(Region.name == region)
+            .order_by(ElderlyHistory.year)
+            .all()
+        )
+
+        if not rows:
+            return [], []
+
+        history: List[Dict[str, int]] = []
+        forecast: List[Dict[str, int]] = []
+
+        for r in rows:
+            year = int(r.year)
+            value = int(r.value or 0)
+
+            item = {
+                "year": year,
+                "value": value,
+            }
+
+            # 1) is_forecast 플래그 우선
+            is_flag_forecast = (r.is_forecast or "N").upper() == "Y"
+            # 2) 플래그가 비어 있어도 연도 기준으로 예측 구간 처리
+            is_future_year = year > ACTUAL_LAST_YEAR
+
+            if is_flag_forecast or is_future_year:
+                forecast.append(item)
+            else:
+                history.append(item)
+
+        # 반드시 history, forecast 둘 다 반환
+        return history, forecast
+
+    # ------------------------------------------------------------------
+    # 메인 비즈니스 로직: 모달용 데이터 응답
+    # ------------------------------------------------------------------
+    def forecast_region(
+        self,
+        region: str,
+        n_years: int = 0,      # 인터페이스 호환용(현재는 사용 안 함)
+        horizon: str = "db",   # 인터페이스 호환용(현재는 사용 안 함)
+    ) -> Dict[str, Any]:
+        """
+        주어진 region에 대해 ELDERLY_HISTORY 테이블에서
+        실측/예측 데이터를 그대로 읽어서 반환한다.
+
+        반환 형식:
+        {
+            "region": "강남구",
+            "history": [
+                {"year": 2017, "value": 8502},
+                {"year": 2018, "value": 8819},
+                ...
+            ],
+            "forecast": [
+                {"year": 2024, "value": 12345},
+                {"year": 2025, "value": 12500},
+                ...
+            ],
+            "message": "ELDERLY_HISTORY 기반 실측/예측 데이터입니다.",
+        }
+        """
+        logger.info(f"[REQUEST] Forecast (DB-based) region={region}")
+
+        history, forecast = self._load_region_series(region)
+
+        if not history and not forecast:
+            logger.warning(
+                f"[Forecast] ELDERLY_HISTORY에 데이터 없음: region={region}"
+            )
+            return {
+                "region": region,
+                "history": [],
+                "forecast": [],
+                "message": "ELDERLY_HISTORY에서 해당 구의 데이터를 찾을 수 없습니다.",
+            }
+
+        return {
+            "region": region,
+            "history": history,
+            "forecast": forecast,
+            "message": "ELDERLY_HISTORY 기반 실측/예측 데이터입니다.",
         }

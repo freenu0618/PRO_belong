@@ -5,6 +5,7 @@
 // 전역 차트 핸들
 let dashboardChart = null;
 let forecastChart = null;
+let lonelyForecastChart = null;
 
 // 기본 색상
 const TOTAL_COLOR = "#4e73df";
@@ -370,223 +371,203 @@ async function renderElderlyTrendChart() {
 // =========================
 // 5) 예측 버튼 클릭 핸들러 (/api/elderly/forecast/<region>)
 //    기존 코드 그대로 유지 (이미 동작 중이면 손댈 필요 X)
-// =========================
+// 예측 버튼 클릭 핸들러
 async function handleForecastClick() {
-    const input = document.getElementById("forecast-region-input");
-    if (!input) {
-        console.error("forecast-region-input 요소를 찾을 수 없습니다.");
-        return;
-    }
+  const input = document.getElementById("forecast-region-input");
+  if (!input) {
+    console.error("forecast-region-input 요소를 찾을 수 없습니다.");
+    return;
+  }
 
-    const region = input.value.trim();
-    if (!region) {
-        alert("구 이름을 입력해 주세요. (예: 강남구)");
-        input.focus();
-        return;
-    }
+  const region = input.value.trim();
+  if (!region) {
+    alert("구 이름을 입력해 주세요. (예: 강남구)");
+    input.focus();
+    return;
+  }
 
-    const url = `/api/elderly/forecast/${encodeURIComponent(region)}`;
-    console.log("[Forecast] 요청 URL:", url);
+  const url = `/api/elderly/forecast/${encodeURIComponent(region)}`;
+  console.log("[Forecast] 요청 URL:", url);
 
-    let res;
-    try {
-        res = await fetch(url);
-    } catch (err) {
-        console.error("[Forecast] fetch 실패:", err);
-        alert("예측 데이터를 불러오지 못했습니다. 네트워크 상태를 확인해 주세요.");
-        return;
-    }
+  let res;
+  try {
+    res = await fetch(url);
+  } catch (err) {
+    console.error("[Forecast] fetch 실패:", err);
+    alert("예측 데이터를 불러오지 못했습니다. 네트워크 상태를 확인해 주세요.");
+    return;
+  }
 
-    let json;
-    try {
-        json = await res.json();
-    } catch (err) {
-        console.error("[Forecast] JSON 파싱 실패:", err);
-        alert("예측 데이터를 불러오지 못했습니다. 서버 응답 형식을 확인해 주세요.");
-        return;
-    }
+  let json;
+  try {
+    json = await res.json();
+  } catch (err) {
+    console.error("[Forecast] JSON 파싱 실패:", err);
+    alert("예측 데이터를 불러오지 못했습니다. 서버 응답 형식을 확인해 주세요.");
+    return;
+  }
 
-    console.log("[Forecast] 응답:", res.status, json);
+  console.log("[Forecast] 응답:", res.status, json);
 
-    if (!res.ok) {
-        const msg =
-            (json && json.message) ||
-            `예측 API 호출 실패 (HTTP ${res.status})`;
-        openForecastModal(region, {
-            message: msg,
-            history: [],
-            forecast: [],
-        });
-        return;
-    }
+  // HTTP 에러 (404 등)
+  if (!res.ok) {
+    const msg =
+      (json && json.message) ||
+      `예측 API 호출 실패 (HTTP ${res.status})`;
+    openForecastModal(region, {
+      message: msg,
+      history: [],
+      forecast: [],
+    });
+    return;
+  }
 
-    if (json.status && json.status.toLowerCase() === "error") {
-        const msg = json.message || "예측 데이터를 찾을 수 없습니다.";
-        openForecastModal(region, {
-            message: msg,
-            history: [],
-            forecast: [],
-        });
-        return;
-    }
+  // 논리적 에러(status = error)
+  if (json.status && json.status.toLowerCase() === "error") {
+    const msg = json.message || "예측 데이터를 찾을 수 없습니다.";
+    openForecastModal(region, {
+      message: msg,
+      history: [],
+      forecast: [],
+    });
+    return;
+  }
 
-    const payload = json.data || json;
-    try {
-        openForecastModal(region, payload);
-    } catch (err) {
-        console.error("[Forecast] 모달 렌더링 실패:", err);
-        alert("예측 결과를 화면에 표시하는 중 오류가 발생했습니다. 콘솔 로그를 확인해 주세요.");
-    }
+  // 정상 성공 케이스
+  const payload = json.data || json;
+  openForecastModal(region, payload);
 }
 
 // =========================
 // 6) 예측 모달 & 차트
 // =========================
 function openForecastModal(region, data) {
-    const modalEl = document.getElementById("forecastModal");
-    const titleEl = document.getElementById("forecastModalLabel");
-    const msgEl = document.getElementById("forecast-modal-message");
-    const tbody = document.getElementById("forecast-modal-body");
+  const modalTitle = document.getElementById("forecast-modal-title");
+  const msgEl = document.getElementById("forecast-modal-message");
+  const tbody = document.getElementById("forecast-modal-body");
 
-    if (!modalEl || !titleEl || !tbody) {
-        const history = (data.history || []).map(d => `${d.year}: ${d.value}`).join("\n");
-        const forecast = (data.forecast || []).map(d => `${d.year}: ${d.value}`).join("\n");
-        alert(
-            `[${region}] 예측 결과\n\n` +
-            (data.message ? data.message + "\n\n" : "") +
-            (history ? "실측\n" + history + "\n\n" : "") +
-            (forecast ? "예측\n" + forecast : "")
-        );
-        return;
-    }
+  if (!modalTitle || !msgEl || !tbody) {
+    console.error("Forecast modal 요소를 찾을 수 없습니다.");
+    return;
+  }
 
-    titleEl.innerText = `[${region}] 예측 결과`;
-    if (msgEl) {
-        msgEl.innerText = data.message || "";
-    }
+  const history = data.history || [];
+  const forecast = data.forecast || [];
+  const message = data.message || "ELDERLY_HISTORY 기반 실측/예측 데이터입니다.";
 
-    tbody.innerHTML = "";
+  modalTitle.textContent = `[${region}] 예측 결과`;
+  msgEl.textContent = message;
 
-    (data.history || []).forEach(item => {
-        tbody.innerHTML += `
-            <tr>
-                <td>실측</td>
-                <td>${item.year}</td>
-                <td>${(item.value ?? 0).toLocaleString("ko-KR")}</td>
-            </tr>
-        `;
-    });
+  tbody.innerHTML = "";
 
-    (data.forecast || []).forEach(item => {
-        tbody.innerHTML += `
-            <tr class="table-warning">
-                <td>예측</td>
-                <td>${item.year}</td>
-                <td>${(item.value ?? 0).toLocaleString("ko-KR")}</td>
-            </tr>
-        `;
-    });
+  // 실측
+  history.forEach(item => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>실측</td>
+      <td>${item.year}</td>
+      <td>${item.value.toLocaleString("ko-KR")}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 
-    try {
-        renderForecastChart(data);
-    } catch (err) {
-        console.error("[Forecast] 차트 렌더링 실패:", err);
-    }
+  // 예측 (노란색 배경)
+  forecast.forEach(item => {
+    const tr = document.createElement("tr");
+    tr.classList.add("table-warning");
+    tr.innerHTML = `
+      <td>예측</td>
+      <td>${item.year}</td>
+      <td>${item.value.toLocaleString("ko-KR")}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 
-    if (window.bootstrap && bootstrap.Modal) {
-        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-        modal.show();
-    } else {
-        modalEl.style.display = "block";
-    }
+  renderForecastChart({ history, forecast });
+
+  const modal = new bootstrap.Modal(document.getElementById("forecastModal"));
+  modal.show();
 }
+
 
 function renderForecastChart(data) {
-    const canvas = document.getElementById("forecast-chart");
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+  const canvas = document.getElementById("forecast-chart");
+  if (!canvas) return;
 
-    const history = data.history || [];
-    const forecast = data.forecast || [];
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
 
-    if (!history.length && !forecast.length) {
-        if (forecastChart) {
-            forecastChart.destroy();
-            forecastChart = null;
-        }
-        return;
-    }
+  const history = data.history || [];
+  const forecast = data.forecast || [];
 
-    const yearsSet = new Set();
-    history.forEach(d => yearsSet.add(d.year));
-    forecast.forEach(d => yearsSet.add(d.year));
-    const years = Array.from(yearsSet).sort((a, b) => a - b);
+  const allYears = [...history, ...forecast].map(d => d.year);
+  const years = Array.from(new Set(allYears)).sort((a, b) => a - b);
 
-    const historyMap = new Map(history.map(d => [d.year, d.value]));
-    const forecastMap = new Map(forecast.map(d => [d.year, d.value]));
+  const historyMap = new Map(history.map(d => [d.year, d.value]));
+  const forecastMap = new Map(forecast.map(d => [d.year, d.value]));
 
-    const historySeries = years.map(y => historyMap.has(y) ? historyMap.get(y) : null);
-    const forecastSeries = years.map(y => forecastMap.has(y) ? forecastMap.get(y) : null);
+  const historySeries = years.map(y => historyMap.get(y) ?? null);
+  const forecastSeries = years.map(y => forecastMap.get(y) ?? null);
 
-    if (forecastChart) {
-        forecastChart.destroy();
-    }
+  if (forecastChart) {
+    forecastChart.destroy();
+  }
 
-    forecastChart = new Chart(ctx, {
-        type: "line",
-        data: {
-            labels: years,
-            datasets: [
-                {
-                    label: "실측",
-                    data: historySeries,
-                    borderWidth: 2,
-                    tension: 0.2,
-                },
-                {
-                    label: "예측",
-                    data: forecastSeries,
-                    borderWidth: 2,
-                    borderDash: [5, 5],
-                    tension: 0.2,
-                },
-            ],
+  forecastChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: years,
+      datasets: [
+        {
+          label: "실측",
+          data: historySeries,
+          borderWidth: 2,
+          tension: 0.2,
         },
-        options: {
-            responsive: true,
-            interaction: {
-                mode: "nearest",
-                intersect: false,
-            },
-            plugins: {
-                legend: {
-                    display: true,
-                    position: "bottom",
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function (context) {
-                            const label = context.dataset.label || "";
-                            const value = context.parsed.y;
-                            if (value == null) return "";
-                            return `${label}: ${value.toLocaleString("ko-KR")}`;
-                        },
-                    },
-                },
-            },
-            scales: {
-                x: {
-                    title: { display: true, text: "연도" },
-                },
-                y: {
-                    title: { display: true, text: "노인 인구 수" },
-                    beginAtZero: true,
-                },
-            },
+        {
+          label: "예측",
+          data: forecastSeries,
+          borderWidth: 2,
+          borderDash: [5, 5],
+          tension: 0.2,
         },
-    });
+      ],
+    },
+    options: {
+      responsive: true,
+      interaction: {
+        mode: "nearest",
+        intersect: false,
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: "bottom",
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const label = context.dataset.label || "";
+              const value = context.parsed.y;
+              if (value == null) return "";
+              return `${label}: ${value.toLocaleString("ko-KR")}`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          title: { display: true, text: "연도" },
+        },
+        y: {
+          title: { display: true, text: "노인 인구 수" },
+          beginAtZero: true,
+        },
+      },
+    },
+  });
 }
+
 // 고독사 추세용
 async function fetchLonelyTrend(startYear = 2017, endYear = 2050) {
   const data = await fetchJson(`/api/lonely/trend?start_year=${startYear}&end_year=${endYear}`);
@@ -703,6 +684,129 @@ function renderLonelyTopTables(ratioItems, absoluteItems) {
     `;
   });
 }
+// 🟩 고독사 예측 모달
+async function openLonelyForecastModal(regionName) {
+  const modalEl = document.getElementById("lonelyForecastModal");
+  const titleEl = document.getElementById("lonelyForecastLabel");
+  const msgEl = document.getElementById("lonely-forecast-message");
+  const tbody = document.getElementById("lonely-forecast-body");
+
+  if (!modalEl || !titleEl || !tbody) {
+    alert("고독사 예측 모달 요소를 찾을 수 없습니다.");
+    return;
+  }
+
+  // 제목 초기화
+  titleEl.textContent = `[${regionName}] 고독사 예측 결과`;
+  msgEl.textContent = "";
+  tbody.innerHTML = "";
+
+  const url = `/api/lonely/forecast?region=${encodeURIComponent(regionName)}`;
+  let res;
+  let json;
+
+  try {
+    res = await fetch(url);
+    json = await res.json();
+  } catch (err) {
+    console.error("[LonelyForecast] fetch 실패:", err);
+    alert("고독사 예측 데이터를 불러오지 못했습니다.");
+    return;
+  }
+
+  // HTTP 에러 또는 status=error 처리
+  if (!res.ok || (json.status && json.status.toLowerCase() === "error")) {
+    const msg =
+      (json && json.message) ||
+      `고독사 예측 API 호출 실패 (HTTP ${res.status})`;
+    msgEl.textContent = msg;
+    tbody.innerHTML = "";
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+    return;
+  }
+
+  // 정상 응답
+  const payload = json.data || json;
+  const history = payload.history || [];
+  const forecast = payload.forecast || [];
+  msgEl.textContent =
+    payload.message ||
+    "ELDERLY_STATS + PREDICTION_RESULT 기반 고독사 실측/예측 데이터입니다.";
+
+  // ----- 테이블 렌더링 -----
+  history.forEach((item) => {
+    tbody.innerHTML += `
+      <tr>
+        <td>실측</td>
+        <td>${item.year}</td>
+        <td>${(item.value ?? 0).toLocaleString("ko-KR")}</td>
+      </tr>
+    `;
+  });
+
+  forecast.forEach((item) => {
+    tbody.innerHTML += `
+      <tr class="table-warning">
+        <td>예측</td>
+        <td>${item.year}</td>
+        <td>${(item.value ?? 0).toLocaleString("ko-KR")}</td>
+      </tr>
+    `;
+  });
+
+  // ----- 차트 렌더링 -----
+  const canvas = document.getElementById("lonelyForecastChart");
+  if (canvas) {
+    const ctx = canvas.getContext("2d");
+
+    // 🔹 이전 차트 있으면 제거
+    if (lonelyForecastChart) {
+      lonelyForecastChart.destroy();
+    }
+
+    lonelyForecastChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: all.map(d => d.year),
+        datasets: [
+          {
+            label: `${regionName} 고독사 수`,
+            data: all.map(d => d.value),
+            borderColor: "#ff4d4d",
+            backgroundColor: "rgba(255, 77, 77, 0.2)",
+            borderWidth: 2,
+            tension: 0.3,
+            pointRadius: 3,
+            fill: true,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "bottom" },
+          title: {
+            display: true,
+            text: `${regionName} 고독사 실측·예측 추세`,
+          },
+        },
+        scales: {
+          y: { beginAtZero: true, title: { display: true, text: "명" } },
+          x: { title: { display: true, text: "연도" } },
+        },
+      },
+    });
+  }
+
+  const modal = new bootstrap.Modal(modalEl);
+  modal.show();
+}
+
+  // ----- 모달 표시 -----
+  const modal = new bootstrap.Modal(modalEl);
+  modal.show();
+}
 
 // =========================
 // 7) 초기화
@@ -732,11 +836,30 @@ document.addEventListener("DOMContentLoaded", () => {
   // 구 체크박스 생성
   initRegionCheckboxes();
 
-  // 기존 대시보드 초기화 로직
+  // 대시보드 기본 초기화 (추세 + TOP5 + 요약)
   initDashboard();
 
+  // [노인 인구] 예측 버튼
   const forecastBtn = document.getElementById("btn-load-forecast");
   if (forecastBtn) {
     forecastBtn.addEventListener("click", handleForecastClick);
+  }
+
+  // [고독사] 예측 버튼
+  const lonelyBtn = document.getElementById("btn-load-lonely-forecast");
+  if (lonelyBtn) {
+    lonelyBtn.addEventListener("click", () => {
+      const input = document.getElementById("lonely-forecast-region-input");
+      if (!input) return;
+
+      const region = input.value.trim();
+      if (!region) {
+        alert("구 이름을 입력해 주세요. (예: 강남구)");
+        input.focus();
+        return;
+      }
+
+      openLonelyForecastModal(region);
+    });
   }
 });
