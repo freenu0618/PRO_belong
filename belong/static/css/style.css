@@ -237,7 +237,7 @@ body {
 #lonelyForecastChart {
     width: 100% !important;
     max-height: 260px; /* 필요하면 220~300 사이에서 조절 */
-
+}
 /* === 상관관계 페이지 전체를 스냅 스크롤 컨테이너로 === */
 .corr-page {
     height: calc(100vh - 70px);   /* 70px = 네가 main에 준 margin-top 정도 */
@@ -465,4 +465,131 @@ body {
     background-color: #ef4444;
     border-color: #ef4444;
     color: #ffffff;
+}
+
+/* ============================================================
+   🌟 글로벌 NAVBAR (기업형 디자인)
+   기존 스타일과 충돌 없도록 전역 prefix 없이 구성
+============================================================ */
+
+/* Navbar 전체 크기 + 색감 */
+.navbar {
+    height: 90px !important;
+    padding: 0 40px !important;
+    display: flex;
+    align-items: center;
+    background-color: #1f252b !important;   /* 고급 다크톤 */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    z-index: 9999;
+}
+
+/* 로고 이미지 */
+.navbar-brand img {
+    height: 55px;
+    width: auto;
+    margin-right: 10px;
+}
+
+/* 로고 텍스트 */
+.navbar-brand {
+    font-size: 26px;
+    font-weight: 700;
+    color: #ffffff !important;
+    display: flex;
+    align-items: center;
+}
+
+/* 중앙 메뉴 */
+.navbar-nav .nav-link {
+    font-size: 19px;
+    font-weight: 500;
+    margin: 0 15px;
+    color: #d8d8d8 !important;
+    transition: all 0.25s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #ffffff !important;
+    transform: translateY(-2px);
+}
+
+/* 오른쪽 로그인/회원가입 */
+.navbar .ms-auto .nav-link {
+    font-size: 17px;
+    color: #e3e3e3 !important;
+}
+
+.navbar .ms-auto .nav-link:hover {
+    color: #ffffff !important;
+}
+
+/* 반응형: 좁은 화면에서 패딩 ↓ */
+@media (max-width: 992px) {
+    .navbar {
+        height: 75px !important;
+        padding: 0 20px !important;
+    }
+}
+
+/* ================================
+   공통 헤더 (기본 네비바)
+   - 홈 페이지에서 쓰는 어두운 바
+================================ */
+
+.belong-header-default {
+    width: 100%;
+    background-color: #212529;  /* 기존 bg-dark 색 */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    padding: 0;                 /* 네비 자체에서 패딩 있음 */
+}
+
+/* ================================
+   사진 배경 헤더 (서브 페이지용)
+   - 위에 네비 + 아래로 사진이 쫙 깔리는 형태
+   - .hero-header-XXX 로 페이지별 배경만 교체
+================================ */
+
+.hero-header {
+    width: 100%;
+    min-height: 260px;          /* 사진 영역 높이 */
+    color: #fff;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 안쪽 콘텐츠 폭 제한 */
+.hero-header-inner {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px 32px 40px 32px;   /* 위쪽 네비 공간 + 아래 여백 */
+}
+
+/* 네비바를 사진 위에 올릴 때 배경 투명 처리 */
+.hero-header nav {
+    background-color: transparent !important;
+    box-shadow: none;
+}
+
+/* 헤더 아래 가로선 */
+.hero-header-line {
+    width: 100%;
+    border-bottom: 1px solid rgba(255,255,255,0.6);
+    margin-top: 20px;
+}
+
+/* 페이지별 배경사진 (원하는 사진으로 교체해서 사용) */
+.hero-header-dashboard {
+    background-image: url("{{ url_for('static', filename='image/dashboard.jpg') }}");
+}
+
+.hero-header-region {
+    background-image: url("{{ url_for('static', filename='image/region.jpg') }}");
+}
+
+.hero-header-corr {
+    background-image: url("{{ url_for('static', filename='image/corr.png') }}");
 }
