@@ -1,12 +1,12 @@
-// =========================
-// 공통 상태 / 헬퍼
-// =========================
-let dashboardData = [];
-let sortedByGrowth = [];
-let dashboardChart = null;
-let tableExpanded = false;
+// =======================================
+// 대시보드 스크립트 (요약 + 차트 + TOP5 + 예측 모달)
+// =======================================
 
-// 공통 JSON fetch 헬퍼
+// 전역 차트 핸들
+let dashboardChart = null;
+let forecastChart = null;
+
+// 공통 fetch 헬퍼 (단순 참고용)
 async function fetchJson(url) {
     const res = await fetch(url);
     if (!res.ok) {
@@ -16,121 +16,115 @@ async function fetchJson(url) {
 }
 
 // =========================
-// 1) 대시보드 API 호출
+// 1) /api/elderly/population 불러오기
 // =========================
 async function fetchDashboard() {
-    try {
-        const json = await fetchJson("/api/elderly/population");
+    const json = await fetchJson("/api/elderly/population");
 
-        // 백엔드 포맷 1) { status, data: [...] }
-        //          2) [ ... ] 그대로 오는 경우 둘 다 대응
-        const data = Array.isArray(json) ? json : json.data;
-
-        if (!data || !Array.isArray(data)) {
-            throw new Error("대시보드 데이터 형식 오류");
-        }
-
-        return data;
-    } catch (err) {
-        console.error("Dashboard API 실패:", err);
-        return []; // 안전 fallback
+    // 백엔드 포맷: 1) {status, data: [...]}  또는  2) [...]
+    const data = Array.isArray(json) ? json : json.data;
+    if (!data || !Array.isArray(data)) {
+        throw new Error("대시보드 데이터 형식 오류");
     }
+    return data;
 }
 
 // =========================
-// 2) Summary 렌더링
+// 2) Summary 카드 렌더링
 // =========================
-function renderSummary(sortedData) {
-    if (!sortedData || sortedData.length === 0) return;
-
-    const total = sortedData.reduce((sum, r) => sum + (r.latest_value || 0), 0);
-    const top = sortedData[0];
-    const bottom = sortedData[sortedData.length - 1];
+function renderSummary(data) {
+    if (!data.length) return;
 
     const totalEl = document.getElementById("summary-total");
     const topEl = document.getElementById("summary-growth-top");
     const bottomEl = document.getElementById("summary-growth-bottom");
 
-    if (totalEl) {
-        totalEl.innerText = total.toLocaleString("ko-KR");
-    }
-    if (topEl && top) {
-        topEl.innerText = top.region;
-    }
-    if (bottomEl && bottom) {
-        bottomEl.innerText = bottom.region;
-    }
+    const total = data.reduce(
+        (sum, r) => sum + (r.latest_value || 0),
+        0
+    );
+
+    const sortedByGrowth = [...data].sort(
+        (a, b) => (b.growth_rate || 0) - (a.growth_rate || 0)
+    );
+    const top = sortedByGrowth[0];
+    const bottom = sortedByGrowth[sortedByGrowth.length - 1];
+
+    if (totalEl) totalEl.textContent = total.toLocaleString("ko-KR");
+    if (topEl && top) topEl.textContent = top.region;
+    if (bottomEl && bottom) bottomEl.textContent = bottom.region;
 }
 
 // =========================
-// 3) Table 렌더링 (Top N + 더보기)
+// 3) TOP5 테이블 렌더링
+//      - 왼쪽: 증가율 TOP5
+//      - 오른쪽: 인구수 TOP5
 // =========================
-function renderTable(limit) {
-    const tbody = document.getElementById("population-table-body");
-    if (!tbody) return;
+function renderTopTables(data) {
+    const growthBody = document.getElementById("population-growth-body");
+    const countBody = document.getElementById("population-count-body");
+    if (!growthBody || !countBody) return;
 
-    tbody.innerHTML = "";
+    growthBody.innerHTML = "";
+    countBody.innerHTML = "";
 
-    const targetList = limit
-        ? sortedByGrowth.slice(0, Math.min(limit, sortedByGrowth.length))
-        : sortedByGrowth;
+    const sortedByGrowth = [...data].sort(
+        (a, b) => (b.growth_rate || 0) - (a.growth_rate || 0)
+    );
+    const sortedByCount = [...data].sort(
+        (a, b) => (b.latest_value || 0) - (a.latest_value || 0)
+    );
 
-    targetList.forEach(row => {
-        const latest = row.latest_value ?? 0;
-        const growth = row.growth_rate ?? 0;
-        tbody.innerHTML += `
+    const topGrowth = sortedByGrowth.slice(0, 5);
+    const topCount = sortedByCount.slice(0, 5);
+
+    topGrowth.forEach(row => {
+        const latest = row.latest_value || 0;
+        const rate = (row.growth_rate || 0) * 100;
+        growthBody.innerHTML += `
             <tr>
                 <td>${row.region}</td>
                 <td>${latest.toLocaleString("ko-KR")}</td>
-                <td>${(growth * 100).toFixed(2)}%</td>
-                <td>
-                    <a href="/region/${encodeURIComponent(row.region)}" class="btn btn-sm btn-outline-primary">
-                        상세보기
-                    </a>
-                </td>
+                <td>${rate.toFixed(2)}%</td>
             </tr>
         `;
     });
 
-    const btn = document.getElementById("btn-toggle-table");
-    if (btn) {
-        btn.innerText = tableExpanded ? "접기" : "더보기";
-    }
-}
-
-function toggleTable() {
-    tableExpanded = !tableExpanded;
-    if (tableExpanded) {
-        renderTable(); // 전체
-    } else {
-        renderTable(5); // Top5
-    }
+    topCount.forEach(row => {
+        const latest = row.latest_value || 0;
+        const rate = (row.growth_rate || 0) * 100;
+        countBody.innerHTML += `
+            <tr>
+                <td>${row.region}</td>
+                <td>${latest.toLocaleString("ko-KR")}</td>
+                <td>${rate.toFixed(2)}%</td>
+            </tr>
+        `;
+    });
 }
 
 // =========================
-// 4) Chart.js 렌더링
+// 4) 메인 라인 차트 렌더링
 // =========================
-function renderChart(data) {
+function renderDashboardChart(data) {
     const canvas = document.getElementById("dashboard-chart");
     if (!canvas) return;
-
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const first = data[0];
     if (!first) {
-        console.warn("차트용 데이터가 비어 있습니다.");
+        console.warn("차트용 데이터 없음");
         return;
     }
 
-    // values / value / history 중 있는 키를 사용 : 셋중 어떤게 들어와도 활성화
     const seriesForFirst =
         (Array.isArray(first.values) && first.values) ||
         (Array.isArray(first.value) && first.value) ||
         (Array.isArray(first.history) && first.history);
 
     if (!seriesForFirst) {
-        console.warn("차트 데이터 형식이 올바르지 않습니다. (values/value/history 없음)");
+        console.warn("차트 데이터 형식 오류 (values/value/history 없음)");
         return;
     }
 
@@ -142,7 +136,6 @@ function renderChart(data) {
             (Array.isArray(regionRow.value) && regionRow.value) ||
             (Array.isArray(regionRow.history) && regionRow.history) ||
             [];
-
         return {
             label: regionRow.region,
             data: series.map(v => v.value),
@@ -159,7 +152,7 @@ function renderChart(data) {
         type: "line",
         data: {
             labels: years,
-            datasets: datasets
+            datasets
         },
         options: {
             responsive: true,
@@ -184,16 +177,10 @@ function renderChart(data) {
             },
             scales: {
                 x: {
-                    title: {
-                        display: true,
-                        text: "연도"
-                    }
+                    title: { display: true, text: "연도" }
                 },
                 y: {
-                    title: {
-                        display: true,
-                        text: "노인 인구 수"
-                    },
+                    title: { display: true, text: "노인 인구 수" },
                     beginAtZero: true
                 }
             }
@@ -202,11 +189,14 @@ function renderChart(data) {
 }
 
 // =========================
-// 5) Forecast(예측) 섹션
+// 5) 예측 버튼 클릭 핸들러
 // =========================
 async function handleForecastClick() {
     const input = document.getElementById("forecast-region-input");
-    if (!input) return;
+    if (!input) {
+        console.error("forecast-region-input 요소를 찾을 수 없습니다.");
+        return;
+    }
 
     const region = input.value.trim();
     if (!region) {
@@ -215,46 +205,74 @@ async function handleForecastClick() {
         return;
     }
 
+    const url = `/api/elderly/forecast/${encodeURIComponent(region)}`;
+    console.log("[Forecast] 요청 URL:", url);
+
+    // 1) 네트워크 / JSON 파싱
+    let res;
     try {
-        const url = `/api/elderly/forecast/${encodeURIComponent(region)}`;
-        const res = await fetch(url);
-        let json = null;
+        res = await fetch(url);
+    } catch (err) {
+        console.error("[Forecast] fetch 실패:", err);
+        alert("예측 데이터를 불러오지 못했습니다. 네트워크 상태를 확인해 주세요.");
+        return;
+    }
 
-        try {
-            json = await res.json();
-        } catch (e) {
-            console.error("Forecast 응답 JSON 파싱 실패:", e);
-        }
+    let json;
+    try {
+        json = await res.json();
+    } catch (err) {
+        console.error("[Forecast] JSON 파싱 실패:", err);
+        alert("예측 데이터를 불러오지 못했습니다. 서버 응답 형식을 확인해 주세요.");
+        return;
+    }
 
-        if (!res.ok || !json || json.status === "error") {
-            const msg =
-                (json && json.message) ||
-                "예측 데이터를 불러오지 못했습니다. (서버 오류)";
-            // 에러도 모달로 보여주자
-            openForecastModal(region, {
-                message: msg,
-                history: [],
-                forecast: []
-            });
-            return;
-        }
+    console.log("[Forecast] 응답:", res.status, json);
 
-        const payload = json.data || json;
+    // 2) 백엔드 에러 처리
+    if (!res.ok) {
+        const msg =
+            (json && json.message) ||
+            `예측 API 호출 실패 (HTTP ${res.status})`;
+        openForecastModal(region, {
+            message: msg,
+            history: [],
+            forecast: []
+        });
+        return;
+    }
+
+    if (json.status && json.status.toLowerCase() === "error") {
+        const msg = json.message || "예측 데이터를 찾을 수 없습니다.";
+        openForecastModal(region, {
+            message: msg,
+            history: [],
+            forecast: []
+        });
+        return;
+    }
+
+    // 3) 정상 데이터 렌더링
+    const payload = json.data || json;
+    try {
         openForecastModal(region, payload);
     } catch (err) {
-        console.error("Forecast API 실패:", err);
-        alert("예측 데이터를 불러오지 못했습니다. 네트워크 상태를 확인해 주세요.");
+        console.error("[Forecast] 모달 렌더링 실패:", err);
+        alert("예측 결과를 화면에 표시하는 중 오류가 발생했습니다. 콘솔 로그를 확인해 주세요.");
     }
 }
 
+// =========================
+// 6) 예측 모달 & 차트
+// =========================
 function openForecastModal(region, data) {
     const modalEl = document.getElementById("forecastModal");
     const titleEl = document.getElementById("forecastModalLabel");
     const msgEl = document.getElementById("forecast-modal-message");
     const tbody = document.getElementById("forecast-modal-body");
 
-    // 모달 구조가 없는 경우: 간단 alert로 대체
     if (!modalEl || !titleEl || !tbody) {
+        // 모달 구조가 없으면 alert로 대체
         const history = (data.history || []).map(d => `${d.year}: ${d.value}`).join("\n");
         const forecast = (data.forecast || []).map(d => `${d.year}: ${d.value}`).join("\n");
         alert(
@@ -293,45 +311,121 @@ function openForecastModal(region, data) {
         `;
     });
 
-    // Bootstrap 모달 표시 {{super() }}를 추가했기 때문에 팝업처럼 뜨게 해줌
+    // 차트 렌더링 (실측 + 예측)
+    try {
+        renderForecastChart(data);
+    } catch (err) {
+        console.error("[Forecast] 차트 렌더링 실패:", err);
+    }
+
     if (window.bootstrap && bootstrap.Modal) {
         const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
         modal.show();
     } else {
-        // Bootstrap이 없다면 임시로 그냥 보이게만 처리
         modalEl.style.display = "block";
     }
 }
 
-// =========================
-// 6) 초기화
-// =========================
-document.addEventListener("DOMContentLoaded", async () => {
-    // 1) 데이터 로드
-    const data = await fetchDashboard();
+function renderForecastChart(data) {
+    const canvas = document.getElementById("forecast-chart");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    if (!data || data.length === 0) {
-        console.warn("대시보드 데이터 없음");
+    const history = data.history || [];
+    const forecast = data.forecast || [];
+
+    if (!history.length && !forecast.length) {
+        if (forecastChart) {
+            forecastChart.destroy();
+            forecastChart = null;
+        }
         return;
     }
 
-    dashboardData = data;
-    sortedByGrowth = [...dashboardData].sort(
-        (a, b) => (b.growth_rate || 0) - (a.growth_rate || 0)
-    );
+    const yearsSet = new Set();
+    history.forEach(d => yearsSet.add(d.year));
+    forecast.forEach(d => yearsSet.add(d.year));
+    const years = Array.from(yearsSet).sort((a, b) => a - b);
 
-    // 2) Summary, Table(Top5), Chart 렌더링
-    renderSummary(sortedByGrowth);
-    renderTable(5);          // 기본: Top5만
-    renderChart(dashboardData);
+    const historyMap = new Map(history.map(d => [d.year, d.value]));
+    const forecastMap = new Map(forecast.map(d => [d.year, d.value]));
 
-    // 3) 더보기 버튼
-    const toggleBtn = document.getElementById("btn-toggle-table");
-    if (toggleBtn) {
-        toggleBtn.addEventListener("click", toggleTable);
+    const historySeries = years.map(y => historyMap.has(y) ? historyMap.get(y) : null);
+    const forecastSeries = years.map(y => forecastMap.has(y) ? forecastMap.get(y) : null);
+
+    if (forecastChart) {
+        forecastChart.destroy();
     }
 
-    // 4) Forecast 버튼
+    forecastChart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: years,
+            datasets: [
+                {
+                    label: "실측",
+                    data: historySeries,
+                    borderWidth: 2,
+                    tension: 0.2
+                },
+                {
+                    label: "예측",
+                    data: forecastSeries,
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    tension: 0.2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            interaction: {
+                mode: "nearest",
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: "bottom"
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const label = context.dataset.label || "";
+                            const value = context.parsed.y;
+                            if (value == null) return "";
+                            return `${label}: ${value.toLocaleString("ko-KR")}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: "연도" }
+                },
+                y: {
+                    title: { display: true, text: "노인 인구 수" },
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+// =========================
+// 7) 초기화
+// =========================
+document.addEventListener("DOMContentLoaded", async () => {
+    try {
+        const data = await fetchDashboard();
+        renderSummary(data);
+        renderTopTables(data);
+        renderDashboardChart(data);
+    } catch (err) {
+        console.error("대시보드 초기화 실패:", err);
+    }
+
     const forecastBtn = document.getElementById("btn-load-forecast");
     if (forecastBtn) {
         forecastBtn.addEventListener("click", handleForecastClick);
