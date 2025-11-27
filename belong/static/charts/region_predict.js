@@ -88,17 +88,18 @@ async function loadRegionForecast(region, year) {
     hideError();
 
     try {
-        const [history, prediction, historyList] = await Promise.all([
-            fetchHistory(region),
-            fetchPrediction(region, year),
-            fetchPredictionHistory(region),
-        ]);
+        // 1) 과거 히스토리 먼저 가져오기
+        const history = await fetchHistory(region);
 
-        if (!Array.isArray(history) || history.length === 0) {
-            throw new Error("히스토리 데이터 없음");
-        }
+        // 2) 예측 실행 (저장까지 완료 기다림)
+        const prediction = await fetchPrediction(region, year);
+
+        // 3) 예측 저장이 DB에 반영된 후 → 예측 이력 다시 조회
+        const historyList = await fetchPredictionHistory(region);
 
         hideLoading();
+
+        // 4) 화면 갱신
         renderSummary(history, prediction, year);
         renderMainChart(history, prediction);
         renderHistoryChart(historyList);
@@ -116,7 +117,6 @@ async function loadRegionForecast(region, year) {
         showError("데이터를 불러오지 못했습니다. 입력값을 확인해주세요.");
     }
 }
-
 
 // =====================
 // 5) Summary 카드 채우기
