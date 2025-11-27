@@ -1,70 +1,228 @@
 // =======================================
-// 대시보드 스크립트 (요약 + 차트 + TOP5 + 예측 모달)
+// Belong 대시보드 스크립트
+// - 노인 인구 / 고독사 추세
+// - TOP5 테이블 4종
+// - 구별 예측 모달
+// - 메인 차트에서 구별 라인 on/off
 // =======================================
 
-// 전역 차트 핸들
-let dashboardChart = null;
-let forecastChart = null;
-let lonelyForecastChart = null;
+// ------------------------------
+// 전역 상태
+// ------------------------------
+let dashboardChart = null;        // 메인 노인 인구 추세
+let lonelyChart = null;           // 메인 고독사 추세
+let forecastChart = null;         // [노인 인구] 모달 차트
+let lonelyForecastChart = null;   // [고독사] 모달 차트
 
-// 기본 색상
-const TOTAL_COLOR = "#4e73df";
+let elderlyMainTrend = null;      // /api/elderly/trend 결과 캐시
 
-// 구별 색상: region 이름으로 HSL 색상 생성
+// 메인 차트에서 선택된 구
+const selectedRegions = new Set();
+// 구별 예측 시리즈 캐시: { "강남구": [ {year, value}, ... ] }
+const regionSeriesCache = {};
+
+// 서울 25개 구 리스트 (정렬된 상태라고 가정)
+const SEOUL_REGIONS = [
+  "강남구", "강동구", "강북구", "강서구",
+  "관악구", "광진구", "구로구", "금천구",
+  "노원구", "도봉구", "동대문구", "동작구",
+  "마포구", "서대문구", "서초구", "성동구",
+  "성북구", "송파구", "양천구", "영등포구",
+  "용산구", "은평구", "종로구", "중구", "중랑구"
+];
+
+// 전체(서울 합계) 라인 표시 여부
+let showTotal = true;
+
+// ------------------------------
+// 유틸 함수들
+// ------------------------------
+
+// 문자열 기반 HSL 색상 생성 (구별 라인용)
 function getColorForRegion(region) {
-  // 간단한 해시 → 0~360
   let hash = 0;
   for (let i = 0; i < region.length; i++) {
     hash = region.charCodeAt(i) + ((hash << 5) - hash);
   }
   const hue = Math.abs(hash) % 360;
-  // 채도, 명도는 고정
   return `hsl(${hue}, 65%, 50%)`;
 }
 
-// 🔹 노인 인구 전체 추세 + 구별 예측 캐시
-let elderlyMainTrend = [];               // /api/elderly/trend 데이터
-const selectedRegions = new Set();       // 체크된 구
-const regionSeriesCache = {};
-// 대시보드 기준 연도 (TOP5 계산용)
-const DASHBOARD_BASE_YEAR = 2023;
-const DASHBOARD_TARGET_YEAR = 2050;
-
-// 🔹 서울 25개 구 이름 목록 (체크박스 생성용)
-const SEOUL_REGIONS = [
-  "강남구", "강동구", "강북구", "강서구", "관악구",
-  "광진구", "구로구", "금천구", "노원구", "도봉구",
-  "동대문구", "동작구", "마포구", "서대문구", "서초구",
-  "성동구", "성북구", "송파구", "양천구", "영등포구",
-  "용산구", "은평구", "종로구", "중구", "중랑구",
-];
-// 공통 fetch 헬퍼
+// fetch + 에러 처리 공통 래퍼
 async function fetchJson(url) {
-    const res = await fetch(url);
-    if (!res.ok) {
-        throw new Error(`Request failed: ${res.status} ${url}`);
+  const res = await fetch(url);
+  let json;
+  try {
+    json = await res.json();
+  } catch (e) {
+    console.error("JSON 파싱 실패:", url, e);
+    throw new Error("서버 응답을 해석할 수 없습니다.");
+  }
+
+  if (!res.ok || (json.status && json.status.toLowerCase() === "error")) {
+    const msg = json.message || `요청 실패 (${res.status})`;
+    throw new Error(msg);
+  }
+  return json;
+}
+
+// Chart.js dataset 생성
+function createLineDataset(label, data, color, dashed = false) {
+  return {
+    label,
+    data,                  // [ {x: year, y: value}, ... ]
+    borderColor: color,
+    backgroundColor: color,
+    borderWidth: 2,
+    fill: false,
+    tension: 0.1,
+    spanGaps: true,
+    pointRadius: 2,
+    borderDash: dashed ? [6, 4] : [],
+    yAxisID: "y"
+  };
+}
+
+// ------------------------------
+// 1) 초기화
+// ------------------------------
+document.addEventListener("DOMContentLoaded", () => {
+  initDashboard().catch((err) => {
+    console.error("대시보드 초기화 오류:", err);
+    alert("대시보드를 불러오는 중 오류가 발생했습니다.");
+  });
+});
+
+async function initDashboard() {
+  // 구 체크박스
+  initRegionCheckboxes();
+
+  // 버튼/입력 이벤트 바인딩
+  bindForecastButtons();
+
+  // 주요 데이터 병렬로 로딩
+  await Promise.all([
+    loadElderlyTrend(),
+    loadLonelyTrend(),
+    loadTop5Tables()
+  ]);
+}
+
+// ------------------------------
+// 2) 노인 인구 추세 (메인 차트)
+// ------------------------------
+async function loadElderlyTrend() {
+  try {
+    const json = await fetchJson(
+      "/api/elderly/trend?start_year=2017&end_year=2050"
+    );
+    const items = json.items || json.data || [];
+
+    elderlyMainTrend = items;
+    renderElderlyTrendChart();
+    // Summary 카드 업데이트를 위해 ratio TOP5를 함께 쓰므로,
+    // 여기서는 차트만 그리고 summary는 loadTop5Tables() 안에서 처리
+  } catch (err) {
+    console.error("노인 인구 추세 로딩 실패:", err);
+    alert("노인 인구 추세 데이터를 불러오지 못했습니다.");
+  }
+}
+
+// 메인 노인 인구 차트 렌더링
+function renderElderlyTrendChart() {
+  const canvas = document.getElementById("dashboard-chart");
+  if (!canvas || !elderlyMainTrend) return;
+
+  const ctx = canvas.getContext("2d");
+
+  // X축: 연도 배열
+  const years = elderlyMainTrend.map((item) => item.year);
+  const totalSeries = elderlyMainTrend.map((item) => ({
+    x: item.year,
+    y: item.total_elderly_population || 0
+  }));
+
+  const datasets = [];
+
+  // 0) 전체 합계 라인
+  if (showTotal) {
+    datasets.push(
+      createLineDataset("서울 전체 노인 인구", totalSeries, "#4e73df", false)
+    );
+  }
+
+  // 1) 선택된 구별 라인들
+  selectedRegions.forEach((region) => {
+    const series = regionSeriesCache[region];
+    if (!series) return;
+
+    // series: [ {year, value}, ... ] 를 Chart.js용으로 변환
+    const data = series.map((row) => ({
+      x: row.year,
+      y: row.value
+    }));
+
+    datasets.push(
+      createLineDataset(region, data, getColorForRegion(region), true)
+    );
+  });
+
+  const config = {
+    type: "line",
+    data: {
+      labels: years,
+      datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          type: "linear",
+          title: { display: true, text: "연도" },
+          ticks: {
+            callback: (value) => `${value}`
+          }
+        },
+        y: {
+          title: { display: true, text: "노인 인구" }
+        }
+      },
+      plugins: {
+        legend: {
+          position: "bottom"
+        },
+        tooltip: {
+          mode: "index",
+          intersect: false,
+          callbacks: {
+            label: (context) => {
+              const label = context.dataset.label || "";
+              const val = context.parsed.y || 0;
+              return `${label}: ${val.toLocaleString("ko-KR")}`;
+            }
+          }
+        }
+      }
     }
-    return await res.json();
+  };
+
+  if (dashboardChart) {
+    dashboardChart.destroy();
+  }
+  dashboardChart = new Chart(ctx, config);
 }
 
-// =========================
-// 1) 노인 인구 추세 / TOP5 / 스냅샷 API 래퍼
-// =========================
-
-// 1-1) 전체 노인 인구 추세 (2017~2050)
-async function fetchElderlyTrend(startYear = 2017, endYear = 2050) {
-    const data = await fetchJson(`/api/elderly/trend?start_year=${startYear}&end_year=${endYear}`);
-    return data.items || [];
-}
-let showTotal = true;  // 전체 추세 표시 여부
-
+// ------------------------------
+// 3) 구 체크박스 & 구별 라인
+// ------------------------------
 function initRegionCheckboxes() {
   const container = document.getElementById("region-checkbox-container");
   if (!container) return;
 
   container.innerHTML = "";
 
-  // ✅ 0) 전체(서울 25개 구 합계) 체크박스
+  // 0) 전체(서울 합계) 체크박스
   const allWrapper = document.createElement("div");
   allWrapper.className = "form-check form-check-inline mb-1 me-3";
 
@@ -72,14 +230,14 @@ function initRegionCheckboxes() {
   allInput.type = "checkbox";
   allInput.className = "form-check-input";
   allInput.id = "chk-region-all";
-  allInput.checked = true;           // 기본 ON
+  allInput.checked = true;
   allInput.addEventListener("change", (e) => {
     showTotal = e.target.checked;
-    rebuildDashboardChart();
+    renderElderlyTrendChart();
   });
 
   const allLabel = document.createElement("label");
-  allLabel.className = "form-check-label fw-bold";
+  allLabel.className = "form-check-label";
   allLabel.setAttribute("for", "chk-region-all");
   allLabel.textContent = "서울 전체";
 
@@ -87,7 +245,7 @@ function initRegionCheckboxes() {
   allWrapper.appendChild(allLabel);
   container.appendChild(allWrapper);
 
-  // ✅ 1) 25개 구 체크박스
+  // 1) 서울 25개 구 체크박스
   SEOUL_REGIONS.forEach((name) => {
     const id = `chk-region-${name}`;
 
@@ -99,7 +257,6 @@ function initRegionCheckboxes() {
     input.className = "form-check-input";
     input.id = id;
     input.value = name;
-
     input.addEventListener("change", onRegionCheckboxChange);
 
     const label = document.createElement("label");
@@ -113,36 +270,39 @@ function initRegionCheckboxes() {
   });
 }
 
-
+// 체크박스 change 핸들러
 async function onRegionCheckboxChange(event) {
   const region = event.target.value;
 
   if (event.target.checked) {
     selectedRegions.add(region);
 
-    // 캐시에 없으면 API에서 한 번만 가져오기
+    // 캐시에 없으면 API로 한 번만 조회
     if (!regionSeriesCache[region]) {
       try {
-        const res = await fetch(`/api/elderly/forecast/${encodeURIComponent(region)}`);
-        const json = await res.json();
+        const json = await fetchJson(
+          `/api/elderly/forecast/${encodeURIComponent(region)}`
+        );
+        const data = json.data || json; // { region, history, forecast, message }
 
-        if (!res.ok || (json.status && json.status.toLowerCase() === "error")) {
-          console.warn("forecast API error for region:", region, json);
-          alert(`[${region}] 예측 데이터를 불러오지 못했습니다.`);
-          selectedRegions.delete(region);
-          event.target.checked = false;
-          return;
+        const history = data.history || [];
+        const forecast = data.forecast || [];
+
+        if (!history.length && !forecast.length) {
+          throw new Error("실측/예측 데이터가 없습니다.");
         }
 
-        const payload = json.data || json;
-        const history = payload.history || [];
-        const forecast = payload.forecast || [];
+        const combined = [...history, ...forecast]
+          .sort((a, b) => a.year - b.year)
+          .map((row) => ({
+            year: row.year,
+            value: row.value
+          }));
 
-        const all = [...history, ...forecast].sort((a, b) => a.year - b.year);
-        regionSeriesCache[region] = all;   // [{year, value}, ...]
+        regionSeriesCache[region] = combined;
       } catch (err) {
-        console.error("forecast fetch error:", err);
-        alert(`[${region}] 예측 데이터를 불러오지 못했습니다.`);
+        console.warn("구 예측 시리즈 로딩 실패:", region, err);
+        alert(`[${region}] 예측 데이터를 불러오지 못했습니다.\n${err.message}`);
         selectedRegions.delete(region);
         event.target.checked = false;
         return;
@@ -152,714 +312,486 @@ async function onRegionCheckboxChange(event) {
     selectedRegions.delete(region);
   }
 
-  // 그래프 다시 그리기
-  rebuildDashboardChart();
+  renderElderlyTrendChart();
 }
-function rebuildDashboardChart() {
-  if (!elderlyMainTrend.length) return;
 
-  const labels = elderlyMainTrend.map(d => d.year);
-  const baseValues = elderlyMainTrend.map(d => d.total_elderly_population);
+// ------------------------------
+// 4) 고독사 추세 (메인 차트)
+// ------------------------------
+async function loadLonelyTrend() {
+  try {
+    const json = await fetchJson(
+      "/api/lonely/trend?start_year=2017&end_year=2050"
+    );
+    const items = json.items || json.data || [];
 
-  const datasets = [];
+    const canvas = document.getElementById("lonely-chart");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
 
-  // ✅ 전체 추세는 showTotal 이 true일 때만 추가
-  if (showTotal) {
-    datasets.push({
-      label: "서울 25개 구 노인 인구(전체)",
-      data: baseValues,
-      borderColor: TOTAL_COLOR,
-      backgroundColor: "rgba(78, 115, 223, 0.08)",
-      tension: 0.15,
-      fill: false,
-      borderWidth: 3,
-      pointRadius: 2,
-    });
-  }
+    // history / forecast 분리
+    const history = items.filter((x) => (x.is_forecast || "N") === "N");
+    const forecast = items.filter((x) => (x.is_forecast || "N") === "Y");
 
-  // ✅ 선택된 각 구에 대해 dataset 추가
-  selectedRegions.forEach((region) => {
-    const series = regionSeriesCache[region];
-    if (!series) return;
+    const historyData = history.map((x) => ({ x: x.year, y: x.value }));
+    const forecastData = forecast.map((x) => ({ x: x.year, y: x.value }));
 
-    const map = new Map(series.map(d => [d.year, d.value]));
-    const data = labels.map(year => map.get(year) ?? null);
+    const datasets = [];
+    if (historyData.length) {
+      datasets.push(
+        createLineDataset("실측 고독사 수", historyData, "#e74a3b", false)
+      );
+    }
+    if (forecastData.length) {
+      datasets.push(
+        createLineDataset("예측 고독사 수", forecastData, "#f6c23e", true)
+      );
+    }
 
-    datasets.push({
-      label: region,
-      data,
-      borderColor: getColorForRegion(region),  // 🔴 개별 색상
-      tension: 0.25,
-      fill: false,
-      borderWidth: 2,
-      pointRadius: 0,
-    });
-  });
+    const labels = items.map((i) => i.year);
 
-  const canvas = document.getElementById("dashboard-chart");
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-
-  if (dashboardChart) {
-    dashboardChart.data.labels = labels;
-    dashboardChart.data.datasets = datasets;
-    dashboardChart.update();
-  } else {
-    dashboardChart = new Chart(ctx, {
+    const config = {
       type: "line",
       data: {
         labels,
-        datasets,
+        datasets
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: {
-          mode: "nearest",
-          intersect: false,
-        },
-        plugins: {
-          legend: { position: "top" },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => {
-                const v = ctx.parsed.y;
-                if (v == null) return "";
-                return `${ctx.dataset.label}: ${v.toLocaleString("ko-KR")}명`;
-              },
-            },
-          },
-        },
         scales: {
           x: {
-            title: { display: true, text: "연도" },
+            type: "linear",
+            title: { display: true, text: "연도" }
           },
           y: {
-            title: { display: true, text: "노인 인구 수" },
-            beginAtZero: true,
-            ticks: {
-              callback: (v) => v.toLocaleString("ko-KR") + "명",
-            },
-          },
+            title: { display: true, text: "고독사 수" }
+          }
         },
-      },
-    });
-  }
-}
-
-
-// 1-2) 증가 TOP5 (증가율 / 증가 인원수)
-async function fetchElderlyTop5(baseYear, targetYear, by) {
-    const params = new URLSearchParams({
-        base_year: baseYear,
-        target_year: targetYear,
-        by
-    });
-    const data = await fetchJson(`/api/elderly/top5?${params.toString()}`);
-    return data.items || [];
-}
-
-// 1-3) 특정 연도 구별 스냅샷 (필요시 확장용 – 현재는 여기선 안 씀)
-async function fetchElderlyRegions(year) {
-    const data = await fetchJson(`/api/elderly/regions?year=${year}`);
-    return data.items || [];
-}
-
-// =========================
-// 2) Summary 카드 렌더링
-//    - 총 노인 인구: targetYear(예: 2050) 전체 합
-//    - 증가 TOP 구 / 증가율 최하위 구: ratio TOP5 기준 상/하위
-// =========================
-function renderSummaryFromTrendAndTop(trendItems, ratioTop5) {
-    const totalEl = document.getElementById("summary-total");
-    const topEl = document.getElementById("summary-growth-top");
-    const bottomEl = document.getElementById("summary-growth-bottom");
-
-    if (!totalEl || !topEl || !bottomEl) return;
-
-    // 총 노인 인구: 추세 마지막 연도 값
-    if (trendItems && trendItems.length) {
-        const last = trendItems[trendItems.length - 1];
-        const total = last.total_elderly_population || 0;
-        totalEl.textContent = total.toLocaleString("ko-KR");
-    } else {
-        totalEl.textContent = "-";
-    }
-
-    // 증가 TOP 구 / 최하위 구: ratioTop5와 그 반대
-    if (ratioTop5 && ratioTop5.length) {
-        // ratioTop5는 이미 metric_value 내림차순 TOP5라서
-        const topRegion = ratioTop5[0]?.region || "-";
-        topEl.textContent = topRegion;
-    } else {
-        topEl.textContent = "-";
-    }
-
-    // 최하위 구는 전체 증가율 중 제일 낮은 구여야 해서,
-    // ratioTop5 에 없는 구들은 별도 계산이 필요하지만,
-    // 일단 TOP5 안에서만 최하위를 보여주는 버전으로 두고
-    // 필요하면 나중에 전체 구 기준으로 확장할 수 있음.
-    if (ratioTop5 && ratioTop5.length) {
-        const bottomRegion = ratioTop5[ratioTop5.length - 1]?.region || "-";
-        bottomEl.textContent = bottomRegion;
-    } else {
-        bottomEl.textContent = "-";
-    }
-}
-
-// =========================
-// 3) TOP5 테이블 렌더링
-//      - 왼쪽: 증가율 TOP5 (ratio)
-//      - 오른쪽: 인구 수 TOP5 (absolute)
-// =========================
-function renderTopTablesFromApis(ratioItems, absoluteItems) {
-    const growthBody = document.getElementById("population-growth-body");
-    const countBody = document.getElementById("population-count-body");
-    if (!growthBody || !countBody) return;
-
-    growthBody.innerHTML = "";
-    countBody.innerHTML = "";
-
-    // ratioItems: metric_value = 증가율 (0.35 → 35%)
-    ratioItems.forEach(row => {
-        const latest = row.target_value || 0;
-        const rate = (row.metric_value || 0) * 100; // %
-        growthBody.innerHTML += `
-            <tr>
-                <td>${row.region}</td>
-                <td>${latest.toLocaleString("ko-KR")}</td>
-                <td>${rate.toFixed(2)}%</td>
-            </tr>
-        `;
-    });
-
-    // absoluteItems: metric_value = 증가 인원수
-    // 표 헤더는 "독거노인 인구 TOP5 / 증가율(%)" 이라서,
-    // 여기서는 증가 인원수 + 증가율을 같이 보여준다.
-    absoluteItems.forEach(row => {
-        const latest = row.target_value || 0;
-        const diff = row.diff || 0;
-        let ratePercent = 0;
-        if (row.base_value) {
-            ratePercent = (diff / row.base_value) * 100;
+        plugins: {
+          legend: {
+            position: "bottom"
+          },
+          tooltip: {
+            mode: "index",
+            intersect: false,
+            callbacks: {
+              label: (ctx) => {
+                const label = ctx.dataset.label || "";
+                const val = ctx.parsed.y || 0;
+                return `${label}: ${val.toLocaleString("ko-KR")}`;
+              }
+            }
+          }
         }
-        countBody.innerHTML += `
-            <tr>
-                <td>${row.region}</td>
-                <td>${latest.toLocaleString("ko-KR")}</td>
-                <td>${ratePercent.toFixed(2)}%</td>
-            </tr>
-        `;
-    });
-}
+      }
+    };
 
-// =========================
-// 4) 메인 라인 차트 (전체 노인 인구 추세)
-//    - /api/elderly/trend 사용
-//    - 실측 / 예측을 다른 스타일로 표시
-// =========================
-async function renderElderlyTrendChart() {
-  const items = await fetchElderlyTrend(2017, 2050);
-  if (!items.length) return;
-
-  elderlyMainTrend = items;
-  rebuildDashboardChart();
-}
-
-
-// =========================
-// 5) 예측 버튼 클릭 핸들러 (/api/elderly/forecast/<region>)
-//    기존 코드 그대로 유지 (이미 동작 중이면 손댈 필요 X)
-// 예측 버튼 클릭 핸들러
-async function handleForecastClick() {
-  const input = document.getElementById("forecast-region-input");
-  if (!input) {
-    console.error("forecast-region-input 요소를 찾을 수 없습니다.");
-    return;
-  }
-
-  const region = input.value.trim();
-  if (!region) {
-    alert("구 이름을 입력해 주세요. (예: 강남구)");
-    input.focus();
-    return;
-  }
-
-  const url = `/api/elderly/forecast/${encodeURIComponent(region)}`;
-  console.log("[Forecast] 요청 URL:", url);
-
-  let res;
-  try {
-    res = await fetch(url);
-  } catch (err) {
-    console.error("[Forecast] fetch 실패:", err);
-    alert("예측 데이터를 불러오지 못했습니다. 네트워크 상태를 확인해 주세요.");
-    return;
-  }
-
-  let json;
-  try {
-    json = await res.json();
-  } catch (err) {
-    console.error("[Forecast] JSON 파싱 실패:", err);
-    alert("예측 데이터를 불러오지 못했습니다. 서버 응답 형식을 확인해 주세요.");
-    return;
-  }
-
-  console.log("[Forecast] 응답:", res.status, json);
-
-  // HTTP 에러 (404 등)
-  if (!res.ok) {
-    const msg =
-      (json && json.message) ||
-      `예측 API 호출 실패 (HTTP ${res.status})`;
-    openForecastModal(region, {
-      message: msg,
-      history: [],
-      forecast: [],
-    });
-    return;
-  }
-
-  // 논리적 에러(status = error)
-  if (json.status && json.status.toLowerCase() === "error") {
-    const msg = json.message || "예측 데이터를 찾을 수 없습니다.";
-    openForecastModal(region, {
-      message: msg,
-      history: [],
-      forecast: [],
-    });
-    return;
-  }
-
-  // 정상 성공 케이스
-  const payload = json.data || json;
-  openForecastModal(region, payload);
-}
-
-// =========================
-// 6) 예측 모달 & 차트
-// =========================
-function openForecastModal(region, data) {
-  const modalTitle = document.getElementById("forecast-modal-title");
-  const msgEl = document.getElementById("forecast-modal-message");
-  const tbody = document.getElementById("forecast-modal-body");
-
-  if (!modalTitle || !msgEl || !tbody) {
-    console.error("Forecast modal 요소를 찾을 수 없습니다.");
-    return;
-  }
-
-  const history = data.history || [];
-  const forecast = data.forecast || [];
-  const message = data.message || "ELDERLY_HISTORY 기반 실측/예측 데이터입니다.";
-
-  modalTitle.textContent = `[${region}] 예측 결과`;
-  msgEl.textContent = message;
-
-  tbody.innerHTML = "";
-
-  // 실측
-  history.forEach(item => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>실측</td>
-      <td>${item.year}</td>
-      <td>${item.value.toLocaleString("ko-KR")}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  // 예측 (노란색 배경)
-  forecast.forEach(item => {
-    const tr = document.createElement("tr");
-    tr.classList.add("table-warning");
-    tr.innerHTML = `
-      <td>예측</td>
-      <td>${item.year}</td>
-      <td>${item.value.toLocaleString("ko-KR")}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  renderForecastChart({ history, forecast });
-
-  const modal = new bootstrap.Modal(document.getElementById("forecastModal"));
-  modal.show();
-}
-
-
-function renderForecastChart(data) {
-  const canvas = document.getElementById("forecast-chart");
-  if (!canvas) return;
-
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-
-  const history = data.history || [];
-  const forecast = data.forecast || [];
-
-  const allYears = [...history, ...forecast].map(d => d.year);
-  const years = Array.from(new Set(allYears)).sort((a, b) => a - b);
-
-  const historyMap = new Map(history.map(d => [d.year, d.value]));
-  const forecastMap = new Map(forecast.map(d => [d.year, d.value]));
-
-  const historySeries = years.map(y => historyMap.get(y) ?? null);
-  const forecastSeries = years.map(y => forecastMap.get(y) ?? null);
-
-  if (forecastChart) {
-    forecastChart.destroy();
-  }
-
-  forecastChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: years,
-      datasets: [
-        {
-          label: "실측",
-          data: historySeries,
-          borderWidth: 2,
-          tension: 0.2,
-        },
-        {
-          label: "예측",
-          data: forecastSeries,
-          borderWidth: 2,
-          borderDash: [5, 5],
-          tension: 0.2,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      interaction: {
-        mode: "nearest",
-        intersect: false,
-      },
-      plugins: {
-        legend: {
-          display: true,
-          position: "bottom",
-        },
-        tooltip: {
-          callbacks: {
-            label: function (context) {
-              const label = context.dataset.label || "";
-              const value = context.parsed.y;
-              if (value == null) return "";
-              return `${label}: ${value.toLocaleString("ko-KR")}`;
-            },
-          },
-        },
-      },
-      scales: {
-        x: {
-          title: { display: true, text: "연도" },
-        },
-        y: {
-          title: { display: true, text: "노인 인구 수" },
-          beginAtZero: true,
-        },
-      },
-    },
-  });
-}
-
-// 고독사 추세용
-async function fetchLonelyTrend(startYear = 2017, endYear = 2050) {
-  const data = await fetchJson(`/api/lonely/trend?start_year=${startYear}&end_year=${endYear}`);
-  return data.items || [];
-}
-
-let lonelyChart = null;
-
-async function renderLonelyTrendChart() {
-  const items = await fetchLonelyTrend(2017, 2050);
-  if (!items.length) return;
-
-  const labels = items.map(d => d.year);
-  const values = items.map(d => d.value);
-  const borderStyles = items.map(d => (d.is_forecast ? [5, 5] : [])); // 필요하면 응용
-
-  const canvas = document.getElementById("lonely-chart");
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-
-  if (lonelyChart) lonelyChart.destroy();
-
-  lonelyChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "서울 25개 구 고독사 인원",
-          data: values,
-          borderColor: "#e74a3b",
-          backgroundColor: "rgba(231, 74, 59, 0.08)",
-          tension: 0.15,
-          fill: false,
-          borderWidth: 3,
-          pointRadius: 2,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: "nearest", intersect: false },
-      plugins: {
-        legend: { position: "top" },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => {
-              const v = ctx.parsed.y;
-              if (v == null) return "";
-              const item = items[ctx.dataIndex];
-              const suffix = item.is_forecast ? " (예측)" : " (실측)";
-              return ctx.dataset.label + suffix + ": " + v.toLocaleString("ko-KR") + "명";
-            },
-          },
-        },
-      },
-      scales: {
-        x: { title: { display: true, text: "연도" } },
-        y: {
-          title: { display: true, text: "고독사 인원 수" },
-          beginAtZero: true,
-          ticks: { callback: (v) => v.toLocaleString("ko-KR") + "명" },
-        },
-      },
-    },
-  });
-}
-
-async function fetchLonelyTop5(baseYear, targetYear, by) {
-  const params = new URLSearchParams({
-    base_year: baseYear,
-    target_year: targetYear,
-    by,
-  });
-  const data = await fetchJson(`/api/lonely/top5?${params.toString()}`);
-  return data.items || [];
-}
-
-function renderLonelyTopTables(ratioItems, absoluteItems) {
-  const growthBody = document.getElementById("lonely-growth-body");
-  const countBody = document.getElementById("lonely-count-body");
-  if (!growthBody || !countBody) return;
-
-  growthBody.innerHTML = "";
-  countBody.innerHTML = "";
-
-  ratioItems.forEach((row) => {
-    const latest = row.target_value || 0;
-    const rate = (row.metric_value || 0) * 100;
-    growthBody.innerHTML += `
-      <tr>
-        <td>${row.region}</td>
-        <td>${latest.toLocaleString("ko-KR")}</td>
-        <td>${rate.toFixed(2)}%</td>
-      </tr>
-    `;
-  });
-
-  absoluteItems.forEach((row) => {
-    const latest = row.target_value || 0;
-    const diff = row.diff || 0;
-    let ratePercent = 0;
-    if (row.base_value) {
-      ratePercent = (diff / row.base_value) * 100;
+    if (lonelyChart) {
+      lonelyChart.destroy();
     }
-    countBody.innerHTML += `
-      <tr>
-        <td>${row.region}</td>
-        <td>${latest.toLocaleString("ko-KR")}</td>
-        <td>${ratePercent.toFixed(2)}%</td>
-      </tr>
-    `;
-  });
-}
-// 🟩 고독사 예측 모달
-async function openLonelyForecastModal(regionName) {
-  const modalEl = document.getElementById("lonelyForecastModal");
-  const titleEl = document.getElementById("lonelyForecastLabel");
-  const msgEl = document.getElementById("lonely-forecast-message");
-  const tbody = document.getElementById("lonely-forecast-body");
-
-  if (!modalEl || !titleEl || !tbody) {
-    alert("고독사 예측 모달 요소를 찾을 수 없습니다.");
-    return;
+    lonelyChart = new Chart(ctx, config);
+  } catch (err) {
+    console.error("고독사 추세 로딩 실패:", err);
+    alert("고독사 추세 데이터를 불러오지 못했습니다.");
   }
+}
 
-  // 제목 초기화
-  titleEl.textContent = `[${regionName}] 고독사 예측 결과`;
-  msgEl.textContent = "";
+// ------------------------------
+// 5) TOP5 테이블 (4종)
+// ------------------------------
+async function loadTop5Tables() {
+  try {
+    // 노인 인구 증가율 TOP5
+    const elderlyRatioJson = await fetchJson(
+      "/api/elderly/top5?base_year=2023&target_year=2050&by=ratio"
+    );
+    const elderlyRatioItems = elderlyRatioJson.items || elderlyRatioJson.data || [];
+    renderTop5Table(
+      "population-growth-body",
+      elderlyRatioItems,
+      (row) => row.region,
+      (row) => (row.metric_value * 100).toFixed(1) // 0.35 → 35.0
+    );
+
+    // Summary 카드: 최신 총 인구 + 증가율 TOP/Bottom
+    renderSummaryFromTrendAndTop(elderlyMainTrend, elderlyRatioItems);
+
+    // 노인 인구 TOP5 (2050년 인구 기준)
+    const elderlyAbsJson = await fetchJson(
+      "/api/elderly/top5?base_year=2023&target_year=2050&by=absolute"
+    );
+    const elderlyAbsItems = elderlyAbsJson.items || elderlyAbsJson.data || [];
+    renderTop5Table(
+      "population-count-body",
+      elderlyAbsItems,
+      (row) => row.region,
+      (row) => (row.target_value || 0).toLocaleString("ko-KR")
+    );
+
+    // 고독사 증가율 TOP5
+    const lonelyRatioJson = await fetchJson(
+      "/api/lonely/top5?base_year=2023&target_year=2050&by=ratio"
+    );
+    const lonelyRatioItems = lonelyRatioJson.items || lonelyRatioJson.data || [];
+    renderTop5Table(
+      "lonely-growth-body",
+      lonelyRatioItems,
+      (row) => row.region,
+      (row) => (row.metric_value * 100).toFixed(1)
+    );
+
+    // 고독사 수 TOP5 (2050년 값 기준)
+    const lonelyAbsJson = await fetchJson(
+      "/api/lonely/top5?base_year=2023&target_year=2050&by=absolute"
+    );
+    const lonelyAbsItems = lonelyAbsJson.items || lonelyAbsJson.data || [];
+    renderTop5Table(
+      "lonely-count-body",
+      lonelyAbsItems,
+      (row) => row.region,
+      (row) => (row.target_value || 0).toLocaleString("ko-KR")
+    );
+  } catch (err) {
+    console.error("TOP5 데이터 로딩 실패:", err);
+    alert("TOP5 데이터를 불러오는 중 오류가 발생했습니다.");
+  }
+}
+
+// 공통 TOP5 렌더 함수
+function renderTop5Table(tbodyId, items, regionGetter, valueFormatter) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+
   tbody.innerHTML = "";
 
-  const url = `/api/lonely/forecast?region=${encodeURIComponent(regionName)}`;
-  let res;
-  let json;
-
-  try {
-    res = await fetch(url);
-    json = await res.json();
-  } catch (err) {
-    console.error("[LonelyForecast] fetch 실패:", err);
-    alert("고독사 예측 데이터를 불러오지 못했습니다.");
+  if (!items || !items.length) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 3;
+    td.className = "text-center text-muted";
+    td.textContent = "데이터 없음";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
     return;
   }
 
-  // HTTP 에러 또는 status=error 처리
-  if (!res.ok || (json.status && json.status.toLowerCase() === "error")) {
-    const msg =
-      (json && json.message) ||
-      `고독사 예측 API 호출 실패 (HTTP ${res.status})`;
-    msgEl.textContent = msg;
+  items.forEach((row, idx) => {
+    const tr = document.createElement("tr");
+
+    const tdRank = document.createElement("td");
+    tdRank.textContent = idx + 1;
+
+    const tdRegion = document.createElement("td");
+    tdRegion.textContent = regionGetter(row);
+
+    const tdValue = document.createElement("td");
+    tdValue.className = "text-end";
+    tdValue.textContent = valueFormatter(row);
+
+    tr.appendChild(tdRank);
+    tr.appendChild(tdRegion);
+    tr.appendChild(tdValue);
+    tbody.appendChild(tr);
+  });
+}
+
+// Summary 카드: 전체 추세 + 증가율 TOP5 기반
+function renderSummaryFromTrendAndTop(trendItems, ratioTop5) {
+  const totalEl = document.getElementById("summary-total");
+  const topEl = document.getElementById("summary-growth-top");
+  const bottomEl = document.getElementById("summary-growth-bottom");
+  if (!totalEl || !topEl || !bottomEl) return;
+
+  // 최신 연도 총 노인 인구
+  if (trendItems && trendItems.length) {
+    const last = trendItems[trendItems.length - 1];
+    const total = last.total_elderly_population || 0;
+    totalEl.textContent = total.toLocaleString("ko-KR");
+  } else {
+    totalEl.textContent = "-";
+  }
+
+  // 증가율 TOP / BOTTOM 구
+  if (ratioTop5 && ratioTop5.length) {
+    // TOP1
+    const topRow = ratioTop5[0];
+    topEl.textContent = `${topRow.region} (${(topRow.metric_value * 100).toFixed(1)}%)`;
+
+    // BOTTOM은 서버에서 따로 주지 않는다고 가정 → metric_value 기준 오름차순 정렬 후 첫 번째
+    const sorted = [...ratioTop5].sort((a, b) => a.metric_value - b.metric_value);
+    const bottomRow = sorted[0];
+    bottomEl.textContent = `${bottomRow.region} (${(bottomRow.metric_value * 100).toFixed(1)}%)`;
+  } else {
+    topEl.textContent = "-";
+    bottomEl.textContent = "-";
+  }
+}
+
+// ------------------------------
+// 6) 예측 모달 (노인 인구 / 고독사)
+// ------------------------------
+function bindForecastButtons() {
+  const elderlyBtn = document.getElementById("btn-load-forecast");
+  const elderlyInput = document.getElementById("forecast-region-input");
+  const lonelyBtn = document.getElementById("btn-load-lonely-forecast");
+  const lonelyInput = document.getElementById("lonely-forecast-region-input");
+
+  if (elderlyBtn && elderlyInput) {
+    elderlyBtn.addEventListener("click", () => {
+      const region = elderlyInput.value.trim();
+      if (!region) {
+        alert("구 이름을 입력하세요. (예: 강남구)");
+        return;
+      }
+      openElderlyForecastModal(region);
+    });
+
+    elderlyInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        elderlyBtn.click();
+      }
+    });
+  }
+
+  if (lonelyBtn && lonelyInput) {
+    lonelyBtn.addEventListener("click", () => {
+      const region = lonelyInput.value.trim();
+      if (!region) {
+        alert("구 이름을 입력하세요. (예: 강남구)");
+        return;
+      }
+      openLonelyForecastModal(region);
+    });
+
+    lonelyInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        lonelyBtn.click();
+      }
+    });
+  }
+}
+
+// 노인 인구 예측 모달
+async function openElderlyForecastModal(region) {
+  try {
+    const json = await fetchJson(
+      `/api/elderly/forecast/${encodeURIComponent(region)}`
+    );
+    const data = json.data || json;
+
+    const modalTitle = document.getElementById("forecast-modal-title");
+    const modalMsg = document.getElementById("forecast-modal-message");
+    const tbody = document.getElementById("forecast-modal-body");
+    const canvas = document.getElementById("forecast-chart");
+
+    if (!modalTitle || !modalMsg || !tbody || !canvas) return;
+
+    modalTitle.textContent = `${data.region} 노인 인구 실측/예측`;
+    modalMsg.textContent = data.message || "";
+
+    const history = data.history || [];
+    const forecast = data.forecast || [];
+
+    // 테이블 렌더
     tbody.innerHTML = "";
-    const modal = new bootstrap.Modal(modalEl);
-    modal.show();
-    return;
-  }
+    const rows = [
+      ...history.map((x) => ({ ...x, kind: "실측" })),
+      ...forecast.map((x) => ({ ...x, kind: "예측" }))
+    ].sort((a, b) => a.year - b.year);
 
-  // 정상 응답
-  const payload = json.data || json;
-  const history = payload.history || [];
-  const forecast = payload.forecast || [];
-  msgEl.textContent =
-    payload.message ||
-    "ELDERLY_STATS + PREDICTION_RESULT 기반 고독사 실측/예측 데이터입니다.";
+    if (!rows.length) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 3;
+      td.className = "text-center text-muted";
+      td.textContent = "데이터 없음";
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    } else {
+      rows.forEach((row) => {
+        const tr = document.createElement("tr");
 
-  // ----- 테이블 렌더링 -----
-  history.forEach((item) => {
-    tbody.innerHTML += `
-      <tr>
-        <td>실측</td>
-        <td>${item.year}</td>
-        <td>${(item.value ?? 0).toLocaleString("ko-KR")}</td>
-      </tr>
-    `;
-  });
+        const tdYear = document.createElement("td");
+        tdYear.textContent = row.year;
 
-  forecast.forEach((item) => {
-    tbody.innerHTML += `
-      <tr class="table-warning">
-        <td>예측</td>
-        <td>${item.year}</td>
-        <td>${(item.value ?? 0).toLocaleString("ko-KR")}</td>
-      </tr>
-    `;
-  });
+        const tdVal = document.createElement("td");
+        tdVal.className = "text-end";
+        tdVal.textContent = (row.value || 0).toLocaleString("ko-KR");
 
-  // ----- 차트 렌더링 -----
-  const canvas = document.getElementById("lonelyForecastChart");
-  if (canvas) {
-    const ctx = canvas.getContext("2d");
+        const tdKind = document.createElement("td");
+        tdKind.textContent = row.kind;
 
-    // 🔹 이전 차트 있으면 제거
-    if (lonelyForecastChart) {
-      lonelyForecastChart.destroy();
+        tr.appendChild(tdYear);
+        tr.appendChild(tdVal);
+        tr.appendChild(tdKind);
+        tbody.appendChild(tr);
+      });
     }
 
-    lonelyForecastChart = new Chart(ctx, {
+    // 차트 렌더
+    const ctx = canvas.getContext("2d");
+    const historyData = history.map((x) => ({ x: x.year, y: x.value }));
+    const forecastData = forecast.map((x) => ({ x: x.year, y: x.value }));
+
+    const datasets = [];
+    if (historyData.length) {
+      datasets.push(
+        createLineDataset("실측", historyData, "#1cc88a", false)
+      );
+    }
+    if (forecastData.length) {
+      datasets.push(
+        createLineDataset("예측", forecastData, "#36b9cc", true)
+      );
+    }
+
+    const labels = [...history, ...forecast].map((x) => x.year);
+
+    const config = {
       type: "line",
       data: {
-        labels: all.map(d => d.year),
-        datasets: [
-          {
-            label: `${regionName} 고독사 수`,
-            data: all.map(d => d.value),
-            borderColor: "#ff4d4d",
-            backgroundColor: "rgba(255, 77, 77, 0.2)",
-            borderWidth: 2,
-            tension: 0.3,
-            pointRadius: 3,
-            fill: true,
-          },
-        ],
+        labels,
+        datasets
       },
       options: {
         responsive: true,
-        plugins: {
-          legend: { position: "bottom" },
-          title: {
-            display: true,
-            text: `${regionName} 고독사 실측·예측 추세`,
-          },
-        },
+        maintainAspectRatio: false,
         scales: {
-          y: { beginAtZero: true, title: { display: true, text: "명" } },
-          x: { title: { display: true, text: "연도" } },
+          x: { type: "linear", title: { display: true, text: "연도" } },
+          y: { title: { display: true, text: "노인 인구" } }
         },
-      },
-    });
-  }
-
-  const modal = new bootstrap.Modal(modalEl);
-  modal.show();
-}
-
-  // ----- 모달 표시 -----
-  const modal = new bootstrap.Modal(modalEl);
-  modal.show();
-}
-
-// =========================
-// 7) 초기화
-// =========================
-async function initDashboard() {
-    try {
-        // 1) 추세 차트
-        const trendPromise = renderElderlyTrendChart();
-
-        // 2) TOP5 + Summary (동시에 필요한 데이터들)
-        const [ratioTop5, absoluteTop5, trendItems] = await Promise.all([
-            fetchElderlyTop5(DASHBOARD_BASE_YEAR, DASHBOARD_TARGET_YEAR, "ratio"),
-            fetchElderlyTop5(DASHBOARD_BASE_YEAR, DASHBOARD_TARGET_YEAR, "absolute"),
-            fetchElderlyTrend(2017, 2050),
-        ]);
-
-        renderTopTablesFromApis(ratioTop5, absoluteTop5);
-        renderSummaryFromTrendAndTop(trendItems, ratioTop5);
-
-        await trendPromise;
-    } catch (err) {
-        console.error("대시보드 초기화 실패:", err);
-    }
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  // 구 체크박스 생성
-  initRegionCheckboxes();
-
-  // 대시보드 기본 초기화 (추세 + TOP5 + 요약)
-  initDashboard();
-
-  // [노인 인구] 예측 버튼
-  const forecastBtn = document.getElementById("btn-load-forecast");
-  if (forecastBtn) {
-    forecastBtn.addEventListener("click", handleForecastClick);
-  }
-
-  // [고독사] 예측 버튼
-  const lonelyBtn = document.getElementById("btn-load-lonely-forecast");
-  if (lonelyBtn) {
-    lonelyBtn.addEventListener("click", () => {
-      const input = document.getElementById("lonely-forecast-region-input");
-      if (!input) return;
-
-      const region = input.value.trim();
-      if (!region) {
-        alert("구 이름을 입력해 주세요. (예: 강남구)");
-        input.focus();
-        return;
+        plugins: {
+          legend: { position: "bottom" }
+        }
       }
+    };
 
-      openLonelyForecastModal(region);
-    });
+    if (forecastChart) {
+      forecastChart.destroy();
+    }
+    forecastChart = new Chart(ctx, config);
+
+    // Bootstrap 모달 열기
+    const modalEl = document.getElementById("forecastModal");
+    if (modalEl) {
+      const modal = new bootstrap.Modal(modalEl);
+      modal.show();
+    }
+  } catch (err) {
+    console.error("노인 인구 예측 모달 오류:", err);
+    alert(`[${region}] 노인 인구 예측 데이터를 불러오지 못했습니다.\n${err.message}`);
   }
-});
+}
+
+// 고독사 예측 모달
+async function openLonelyForecastModal(region) {
+  try {
+    const json = await fetchJson(
+      `/api/lonely/forecast?region=${encodeURIComponent(region)}`
+    );
+    const data = json.data || json;
+
+    const modalTitle = document.getElementById("lonelyForecastLabel");
+    const modalMsg = document.getElementById("lonely-forecast-message");
+    const tbody = document.getElementById("lonely-forecast-body");
+    const canvas = document.getElementById("lonelyForecastChart");
+
+    if (!modalTitle || !modalMsg || !tbody || !canvas) return;
+
+    modalTitle.textContent = `${data.region} 고독사 실측/예측`;
+    modalMsg.textContent = data.message || "";
+
+    const history = data.history || [];
+    const forecast = data.forecast || [];
+
+    // 테이블 렌더
+    tbody.innerHTML = "";
+    const rows = [
+      ...history.map((x) => ({ ...x, kind: "실측" })),
+      ...forecast.map((x) => ({ ...x, kind: "예측" }))
+    ].sort((a, b) => a.year - b.year);
+
+    if (!rows.length) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 3;
+      td.className = "text-center text-muted";
+      td.textContent = "데이터 없음";
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    } else {
+      rows.forEach((row) => {
+        const tr = document.createElement("tr");
+
+        const tdYear = document.createElement("td");
+        tdYear.textContent = row.year;
+
+        const tdVal = document.createElement("td");
+        tdVal.className = "text-end";
+        tdVal.textContent = (row.value || 0).toLocaleString("ko-KR");
+
+        const tdKind = document.createElement("td");
+        tdKind.textContent = row.kind;
+
+        tr.appendChild(tdYear);
+        tr.appendChild(tdVal);
+        tr.appendChild(tdKind);
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 차트 렌더
+    const ctx = canvas.getContext("2d");
+    const historyData = history.map((x) => ({ x: x.year, y: x.value }));
+    const forecastData = forecast.map((x) => ({ x: x.year, y: x.value }));
+
+    const datasets = [];
+    if (historyData.length) {
+      datasets.push(
+        createLineDataset("실측", historyData, "#e74a3b", false)
+      );
+    }
+    if (forecastData.length) {
+      datasets.push(
+        createLineDataset("예측", forecastData, "#f6c23e", true)
+      );
+    }
+
+    const labels = [...history, ...forecast].map((x) => x.year);
+
+    const config = {
+      type: "line",
+      data: {
+        labels,
+        datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { type: "linear", title: { display: true, text: "연도" } },
+          y: { title: { display: true, text: "고독사 수" } }
+        },
+        plugins: {
+          legend: { position: "bottom" }
+        }
+      }
+    };
+
+    if (lonelyForecastChart) {
+      lonelyForecastChart.destroy();
+    }
+    lonelyForecastChart = new Chart(ctx, config);
+
+    // Bootstrap 모달 열기
+    const modalEl = document.getElementById("lonelyForecastModal");
+    if (modalEl) {
+      const modal = new bootstrap.Modal(modalEl);
+      modal.show();
+    }
+  } catch (err) {
+    console.error("고독사 예측 모달 오류:", err);
+    alert(`[${region}] 고독사 예측 데이터를 불러오지 못했습니다.\n${err.message}`);
+  }
+}

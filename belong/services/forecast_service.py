@@ -1,188 +1,208 @@
 # belong/services/forecast_service.py
-from sqlalchemy import func
-from typing import Dict, Any, Optional, List, Tuple
 
-from belong.extensions import logger, db
+from __future__ import annotations
+
+from typing import List, Dict, Any
+from sqlalchemy import func, case
+
+from belong.extensions import db, logger
 from belong.models.elderly_history import ElderlyHistory
 from belong.models.region import Region
-from belong.models.feature_stats import ElderlyStats
-from belong.models.prediction_result import PredictionResult
 
-# 2023년까지는 실측, 이후는 예측으로 간주
+# 2023년까지는 실측, 이후는 예측으로 취급
 ACTUAL_LAST_YEAR = 2023
-LONELY_SOURCE = "rule_based"
-class LonelyForecastService:
-    def forecast_region(self, region: str) -> Dict[str, Any]:
-        # 1) 실측 (ELDERLY_STATS)
-        actual_rows = (
-            db.session.query(
-                ElderlyStats.year.label("year"),
-                func.sum(ElderlyStats.target_value).label("value"),
-            )
-            .join(Region, ElderlyStats.region_id == Region.id)
-            .filter(
-                Region.name == region,
-                ElderlyStats.year <= ACTUAL_LAST_YEAR,
-            )
-            .group_by(ElderlyStats.year)
-            .order_by(ElderlyStats.year)
-            .all()
-        )
 
-        history = [
-            {"year": int(r.year), "value": int(r.value or 0)} for r in actual_rows
-        ]
-
-        # 2) 예측 (PREDICTION_RESULT)
-        forecast_rows = (
-            db.session.query(
-                PredictionResult.year.label("year"),
-                func.sum(PredictionResult.prediction_value).label("value"),
-            )
-            .filter(
-                PredictionResult.region_name == region,
-                PredictionResult.source == LONELY_SOURCE,
-                PredictionResult.year > ACTUAL_LAST_YEAR,
-            )
-            .group_by(PredictionResult.year)
-            .order_by(PredictionResult.year)
-            .all()
-        )
-
-        forecast = [
-            {"year": int(r.year), "value": int(r.value or 0)}
-            for r in forecast_rows
-        ]
-
-        if not history and not forecast:
-            return {
-                "region": region,
-                "history": [],
-                "forecast": [],
-                "message": "해당 구의 고독사 실측/예측 데이터를 찾을 수 없습니다.",
-            }
-
-        return {
-            "region": region,
-            "history": history,
-            "forecast": forecast,
-            "message": "ELDERLY_STATS + PREDICTION_RESULT 기반 고독사 실측/예측 데이터입니다.",
-        }
 
 class ForecastService:
     """
-    ELDERLY_HISTORY 기반 구별 노인 인구 실측/예측 조회 서비스.
+    ELDERLY_HISTORY 기반 노인 인구 실측/예측 서비스.
 
-    - history  : is_forecast != 'Y' 이고, year <= ACTUAL_LAST_YEAR
-    - forecast : is_forecast == 'Y' 이거나, year > ACTUAL_LAST_YEAR
+    - get_total_trend: /api/elderly/trend
+    - get_top5:       /api/elderly/top5
+    - forecast_region:/api/elderly/forecast/<region>
     """
 
-    def __init__(self, repo: Optional[object] = None) -> None:
-        """
-        repo 파라미터는 과거 DI 구조 호환용으로만 남겨둔다.
-        현재 구현에서는 직접 ORM 쿼리를 사용한다.
-        """
+    def __init__(self, repo=None):
+        # 예전 구조와 호환용 (repo를 넘겨줘도 지금 버전에서는 사용 안 함)
         self.repo = repo
-
-    # ------------------------------------------------------------------
-    # 내부 헬퍼: 특정 구의 전체 시계열 로드 & 실측/예측 분리
-    # ------------------------------------------------------------------
-    def _load_region_series(self, region: str) -> Tuple[List[Dict], List[Dict]]:
+    def get_total_trend(self, start_year: int, end_year: int) -> List[Dict[str, Any]]:
         """
-        ELDERLY_HISTORY + REGION 조인해서
-        해당 구의 (year, elderly_population, is_forecast) 전부 가져온 뒤
-        history / forecast 리스트로 나눈다.
+        전체 서울 노인 인구 추세.
 
         반환 형식:
-            history  = [{"year": 2017, "value": 8502}, ...]
-            forecast = [{"year": 2024, "value": 12345}, ...]
+        [
+          {
+            "year": 2017,
+            "total_elderly_population": 12345,
+            "is_forecast": "N"
+          },
+          ...
+        ]
         """
-        rows = (
+        q = (
             db.session.query(
                 ElderlyHistory.year.label("year"),
-                ElderlyHistory.elderly_population.label("value"),
-                ElderlyHistory.is_forecast.label("is_forecast"),
+                func.sum(ElderlyHistory.elderly_population).label(
+                    "total_elderly_population"
+                ),
+            )
+            .filter(ElderlyHistory.year >= start_year)
+            .filter(ElderlyHistory.year <= end_year)
+            .group_by(ElderlyHistory.year)
+            .order_by(ElderlyHistory.year.asc())
+        )
+
+        rows = q.all()
+        result: List[Dict[str, Any]] = []
+
+        for year, total in rows:
+            year_int = int(year)
+            total_int = int(total or 0)
+            result.append(
+                {
+                    "year": year_int,
+                    "total_elderly_population": total_int,
+                    "is_forecast": "Y" if year_int > ACTUAL_LAST_YEAR else "N",
+                }
+            )
+
+        return result
+
+    # --------------------------------------------------
+    # TOP5 (증가율 / 증가 인원수)
+    # --------------------------------------------------
+    def get_top5(
+        self, base_year: int, target_year: int, by: str = "ratio"
+    ) -> List[Dict[str, Any]]:
+        """
+        구별 노인 인구 증가 TOP5.
+
+        반환 형식:
+        [
+          {
+            "region": "강남구",
+            "base_value": 1234,
+            "target_value": 2345,
+            "diff": 1111,
+            "metric_value": 0.35  # ratio일 때는 비율(0.35 → 35%)
+          },
+          ...
+        ]
+        """
+        if by not in ("ratio", "absolute"):
+            raise ValueError("by 파라미터는 'ratio' 또는 'absolute' 이어야 합니다.")
+
+        # 한 번에 base/target 집계
+        base_case = case(
+            (ElderlyHistory.year == base_year, ElderlyHistory.elderly_population),
+            else_=0,
+        )
+        target_case = case(
+            (ElderlyHistory.year == target_year, ElderlyHistory.elderly_population),
+            else_=0,
+        )
+
+        q = (
+            db.session.query(
+                Region.name.label("region"),
+                func.sum(base_case).label("base_value"),
+                func.sum(target_case).label("target_value"),
             )
             .join(Region, ElderlyHistory.region_id == Region.id)
-            .filter(Region.name == region)
-            .order_by(ElderlyHistory.year)
+            .group_by(Region.name)
+        )
+
+        rows = q.all()
+        items: List[Dict[str, Any]] = []
+
+        for region, base_val, target_val in rows:
+            base_val = int(base_val or 0)
+            target_val = int(target_val or 0)
+            diff = target_val - base_val
+
+            if by == "ratio":
+                if base_val <= 0:
+                    # 기준 값이 0이면 증가율 계산 불가 → 스킵
+                    continue
+                metric = diff / base_val
+            else:
+                metric = diff
+
+            items.append(
+                {
+                    "region": region,
+                    "base_value": base_val,
+                    "target_value": target_val,
+                    "diff": diff,
+                    "metric_value": float(metric),
+                }
+            )
+
+        # metric_value 기준 내림차순 정렬 후 TOP5
+        items.sort(key=lambda x: x["metric_value"], reverse=True)
+        return items[:5]
+
+    # --------------------------------------------------
+    # 구별 예측 (모달)
+    # --------------------------------------------------
+    def forecast_region(self, region_name: str) -> Dict[str, Any]:
+        """
+        특정 구의 노인 인구 실측/예측 시계열.
+
+        반환 형식:
+        {
+          "region": "강남구",
+          "history": [ {"year": 2017, "value": 8502}, ... ],
+          "forecast": [ {"year": 2024, "value": 14123}, ... ],
+          "message": "ELDERLY_HISTORY 기반 실측/예측 데이터입니다."
+        }
+        """
+        region: Region | None = Region.query.filter_by(name=region_name).first()
+        if region is None:
+            logger.warning(f"[ForecastService] Region not found: {region_name}")
+            return {
+                "region": region_name,
+                "history": [],
+                "forecast": [],
+                "message": f"'{region_name}' 구를 REGION 테이블에서 찾을 수 없습니다.",
+            }
+
+        rows = (
+            db.session.query(
+                ElderlyHistory.year,
+                ElderlyHistory.elderly_population,
+                ElderlyHistory.is_forecast,
+            )
+            .filter(ElderlyHistory.region_id == region.id)
+            .order_by(ElderlyHistory.year.asc())
             .all()
         )
 
-        if not rows:
-            return [], []
+        history: List[Dict[str, Any]] = []
+        forecast: List[Dict[str, Any]] = []
 
-        history: List[Dict[str, int]] = []
-        forecast: List[Dict[str, int]] = []
-
-        for r in rows:
-            year = int(r.year)
-            value = int(r.value or 0)
-
+        for year, value, is_fc in rows:
             item = {
-                "year": year,
-                "value": value,
+                "year": int(year),
+                "value": int(value or 0),
             }
 
-            # 1) is_forecast 플래그 우선
-            is_flag_forecast = (r.is_forecast or "N").upper() == "Y"
-            # 2) 플래그가 비어 있어도 연도 기준으로 예측 구간 처리
-            is_future_year = year > ACTUAL_LAST_YEAR
-
-            if is_flag_forecast or is_future_year:
+            flag = (is_fc or "N").upper()
+            if flag == "Y" or int(year) > ACTUAL_LAST_YEAR:
                 forecast.append(item)
             else:
                 history.append(item)
 
-        # 반드시 history, forecast 둘 다 반환
-        return history, forecast
-
-    # ------------------------------------------------------------------
-    # 메인 비즈니스 로직: 모달용 데이터 응답
-    # ------------------------------------------------------------------
-    def forecast_region(
-        self,
-        region: str,
-        n_years: int = 0,      # 인터페이스 호환용(현재는 사용 안 함)
-        horizon: str = "db",   # 인터페이스 호환용(현재는 사용 안 함)
-    ) -> Dict[str, Any]:
-        """
-        주어진 region에 대해 ELDERLY_HISTORY 테이블에서
-        실측/예측 데이터를 그대로 읽어서 반환한다.
-
-        반환 형식:
-        {
-            "region": "강남구",
-            "history": [
-                {"year": 2017, "value": 8502},
-                {"year": 2018, "value": 8819},
-                ...
-            ],
-            "forecast": [
-                {"year": 2024, "value": 12345},
-                {"year": 2025, "value": 12500},
-                ...
-            ],
-            "message": "ELDERLY_HISTORY 기반 실측/예측 데이터입니다.",
-        }
-        """
-        logger.info(f"[REQUEST] Forecast (DB-based) region={region}")
-
-        history, forecast = self._load_region_series(region)
-
         if not history and not forecast:
-            logger.warning(
-                f"[Forecast] ELDERLY_HISTORY에 데이터 없음: region={region}"
-            )
             return {
-                "region": region,
+                "region": region_name,
                 "history": [],
                 "forecast": [],
                 "message": "ELDERLY_HISTORY에서 해당 구의 데이터를 찾을 수 없습니다.",
             }
 
         return {
-            "region": region,
+            "region": region_name,
             "history": history,
             "forecast": forecast,
             "message": "ELDERLY_HISTORY 기반 실측/예측 데이터입니다.",
