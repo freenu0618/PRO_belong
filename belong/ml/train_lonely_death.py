@@ -24,7 +24,7 @@ from belong.models.region import Region
 # 모델 저장 경로: belong/ml/forecast_model.pkl
 # ----------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent
-MODEL_PATH = BASE_DIR / "forecast_model.pkl"
+MODEL_PATH = BASE_DIR / "lonely_death_model.pkl"
 
 
 # ----------------------------------------------------------------------
