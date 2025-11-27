@@ -5,6 +5,10 @@ from belong.services.prediction_service import PredictionService
 from belong.services.correlation_service import CorrelationService
 from belong.services.population_service import PopulationService
 from belong.repositories.prediction_repo import PredictionRepository
+from belong.services.forecast_service import ForecastService
+from belong.repositories.forecast_repo import ForecastRepository
+from belong.services.elderly_service import ElderlyService
+from belong.repositories.elderly_repo import SqlAlchemyElderlyHistoryRepository
 
 def register_services(app):
     """
@@ -39,7 +43,8 @@ def register_services(app):
         "prediction_service": prediction_service,
         "correlation_service": correlation_service,
         "population_service": population_service,
-
+        "forecast_service": ForecastService(ForecastRepository()),
+        "elderly_service": ElderlyService(SqlAlchemyElderlyHistoryRepository()),
     }
 
     app.config["services"] = services
