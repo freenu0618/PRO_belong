@@ -1,11 +1,24 @@
 {% extends "base.html" %}
 {% block title %}{{ region }} 예측 결과{% endblock %}
 
+{# 🔹 상단 히어로 헤더 (지역별 예측 전용 배경 이미지) #}
+{% block header %}
+<div class="hero-header hero-header-region">
+    <div class="hero-header-overlay"></div>
+    <div class="hero-header-inner">
+        <h1 class="hero-title">{{ region }} 예측 결과</h1>
+        <p class="hero-subtitle">
+            {{ year }}년 노인 인구 예측 및 과거 이력을 한눈에 확인합니다.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
 {% block content %}
 
 <div class="container mt-4">
 
-    <!-- 제목 -->
+    <!-- 제목 (헤더에 이미 있으니 서브 타이틀 느낌으로 남겨두고 싶으면 두고, 아니면 지워도 됨) -->
     <h2 class="fw-bold">{{ region }} 예측 결과</h2>
     <p class="text-muted">예측 연도: {{ year }}</p>
 
