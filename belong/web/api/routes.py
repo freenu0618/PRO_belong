@@ -4,7 +4,9 @@ from belong.services.population_service import PopulationService
 from belong.services.forecast_service import ForecastService
 from belong.services.correlation_service import CorrelationService
 from belong.repositories.elderly_repo import SqlAlchemyElderlyHistoryRepository
-
+from belong.models.region import Region
+from belong.extensions import db
+import math
 # Service 인스턴스들은 지금은 간단히 전역으로 올려도 괜찮음
 population_service = PopulationService()
 # Oracle 연결을 우선 시도하고, 실패하면 InMemory로 fallback
@@ -13,6 +15,20 @@ forecast_service = ForecastService(repo=repo)
 
 # 새 CorrelationService는 내부에서 db.session을 사용함
 correlation_service = CorrelationService()
+
+def _clean_nan(obj):
+    """
+    JSON으로 보낼 데이터에서 NaN / Inf 를 None으로 치환
+    """
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    if isinstance(obj, dict):
+        return {k: _clean_nan(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_clean_nan(v) for v in obj]
+    return obj
 
 # 공통 API 에러 응답 헬퍼
 def api_error(status_code: int, code: str, message: str, **details):
@@ -35,6 +51,7 @@ def api_error(status_code: int, code: str, message: str, **details):
 # 상수 설정해서 최소연도, 최대 연도 설정
 MIN_YEAR = 2017
 MAX_YEAR = 2050
+
 
 def _validate_year(year: int):
     """
@@ -159,9 +176,6 @@ def predict():
 def health():
     """
     서비스 헬스 체크용 엔드포인트
-
-    - 브라우저나 모니터링 도구에서 /api/health 를 호출해서
-      서버가 살아있는지 확인하는 목적.
     """
     return jsonify({"status": "ok"})
 
@@ -170,24 +184,6 @@ def health():
 def elderly_population():
     """
     독거노인 인구 요약 API
-
-    - PopulationService.get_summary() 결과를 그대로 반환.
-    - 결과 예시:
-      [
-        {
-          "region": "강남구",
-          "latest_value": 5800,
-          "value": [
-            {"year": 2017, "value": 5000},
-            {"year": 2018, "value": 5200},
-            ...
-          ],
-          "growth_rate": 0.334
-        },
-        ...
-      ]
-
-    - 대시보드(/dashboard) 테이블, 카드 등에 사용 가능.
     """
     data = population_service.get_summary()
     return jsonify({"status": "success", "data": data})
@@ -197,15 +193,9 @@ def elderly_population():
 def elderly_forecast(region: str):
     """
     (보조용) 특정 구의 예측 데이터 조회 API
-
-    - path parameter로 region을 받는다.
-      예: GET /api/v1/elderly/forecast/강남구
-    - /predict와 거의 비슷하지만, 관리용/디버깅용 혹은
-      내부 화면에서 사용할 수 있는 형태로 남겨둔 엔드포인트.
     """
     data = forecast_service.forecast_region(region)
 
-    # history 자체가 없으면 region 없는 것으로 판단
     if data is None or data.get("history") is None:
         return jsonify(
             {"status": "error", "message": f"Region '{region}' not found"}
@@ -219,25 +209,48 @@ def elderly_correlation():
     """
     상관관계 분석 결과 API (DB 기반)
 
-    - ELDERLY_STATS 테이블에서 데이터를 조회해서
-      CorrelationService.compute()로 상관계수를 계산.
-    - /correlation 화면의 heatmap/막대 그래프 데이터 소스로 사용.
-
     선택 쿼리 파라미터:
-      - year_from: 시작 연도 (예: 2017)
-      - year_to:   종료 연도 (예: 2023)
-      (둘 다 없으면 전체 연도 대상으로 계산)
+      - year_from
+      - year_to
+      - region_name
     """
     year_from = request.args.get("year_from", type=int)
     year_to = request.args.get("year_to", type=int)
+    region_name = request.args.get("region_name", type=str)
 
-    data = correlation_service.compute(
+    region_ids = None
+
+    if region_name:
+        region_row = db.session.query(Region).filter(Region.name == region_name).first()
+        if region_row is None:
+            return api_error(
+                404,
+                "region_not_found",
+                f"Region '{region_name}' not found",
+                region_name=region_name,
+            )
+        region_ids = [region_row.id]
+
+    raw_data = correlation_service.compute(
         year_from=year_from,
         year_to=year_to,
-        region_ids=None,  # 필요하면 추후 region_code → region_id 매핑해서 넣을 수 있음
+        region_ids=region_ids,
     )
-    return jsonify({"status": "success", "data": data})
 
+    if raw_data is None:
+        return api_error(
+            404,
+            "no_data",
+            "no correlation data for given filters",
+            year_from=year_from,
+            year_to=year_to,
+            region_name=region_name,
+        )
+
+    # 🔥 NaN / Inf 정리
+    data = _clean_nan(raw_data)
+
+    return jsonify({"status": "success", "data": data})
 
 @api_bp.get("/predictions/<region>/<int:year>")
 def get_prediction(region: str, year: int):
