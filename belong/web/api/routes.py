@@ -194,17 +194,48 @@ def elderly_population():
     return jsonify({"status": "success", "data": data})
 
 
-@api_bp.get("/elderly/forecast/<region>")  # 기존 경로 유지
-def elderly_forecast(region: str):
+# ----------------------------------------
+# 3) 구별 노인 인구 예측 (모달)
+# ----------------------------------------
+@api_bp.get("/elderly/forecast/<region>")
+def api_elderly_forecast(region: str):
     """
-    (보조용) 특정 구의 예측 데이터 조회 API
+    GET /api/elderly/forecast/강남구
+
+    응답:
+    {
+      "status": "success",
+      "data": {
+        "region": "강남구",
+        "history": [...],
+        "forecast": [...],
+        "message": "..."
+      }
+    }
     """
+    region = region.strip()
+    if not region:
+        return (
+            jsonify(
+                {"status": "error", "message": "region 경로 파라미터는 필수입니다."}
+            ),
+            400,
+        )
+
     data = forecast_service.forecast_region(region)
 
-    if data is None or data.get("history") is None:
-        return jsonify(
-            {"status": "error", "message": f"Region '{region}' not found"}
-        ), 404
+    # history/forecast 둘 다 비어 있으면 404로 돌려줘도 JS 쪽에서 잘 처리됨
+    if not data.get("history") and not data.get("forecast"):
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": f"'{region}' 구의 노인 인구 데이터를 찾을 수 없습니다.",
+                    "data": data,
+                }
+            ),
+            404,
+        )
 
     return jsonify({"status": "success", "data": data})
 
@@ -371,50 +402,60 @@ def get_prediction_history(region: str):
         for r in rows
     ])
 
+# ----------------------------------------
+# 1) 노인 인구 전체 추세
+# ----------------------------------------
 @api_bp.get("/elderly/trend")
-def elderly_trend():
+def api_elderly_trend():
     """
-    노인 인구 전체 추세 (2017~2050) API.
-    예:
-      GET /api/elderly/trend?start_year=2017&end_year=2050
+    GET /api/elderly/trend?start_year=2017&end_year=2050
+
+    응답:
+    {
+      "status": "success",
+      "items": [
+        { "year": 2017, "total_elderly_population": 12345, "is_forecast": "N" },
+        ...
+      ]
+    }
     """
-    elderly_service = current_app.config["services"]["elderly_service"]
+    start_year = request.args.get("start_year", type=int) or 2017
+    end_year = request.args.get("end_year", type=int) or 2050
 
-    start_year = request.args.get("start_year", default=2017, type=int)
-    end_year = request.args.get("end_year", default=2050, type=int)
+    items = forecast_service.get_total_trend(start_year, end_year)
+    return jsonify({"status": "success", "items": items})
 
-    data = elderly_service.get_total_trend(start_year=start_year, end_year=end_year)
-    return jsonify(data)
-
+# ----------------------------------------
+# 2) 노인 인구 TOP5 (증가율 / 증가 인원수)
+# ----------------------------------------
 @api_bp.get("/elderly/top5")
-def elderly_top5():
+def api_elderly_top5():
     """
-    노인 인구 증가 TOP5 API.
-    예:
-      GET /api/elderly/top5?base_year=2023&target_year=2050&by=ratio
-      GET /api/elderly/top5?base_year=2023&target_year=2050&by=absolute
+    GET /api/elderly/top5?base_year=2023&target_year=2050&by=ratio|absolute
     """
-    elderly_service = current_app.config["services"]["elderly_service"]
-
     base_year = request.args.get("base_year", type=int)
     target_year = request.args.get("target_year", type=int)
-    by = request.args.get("by", default="ratio", type=str)
+    by = request.args.get("by", default="ratio")
 
     if base_year is None or target_year is None:
         return (
             jsonify(
                 {
-                    "error": "base_year와 target_year는 필수입니다.",
+                    "status": "error",
+                    "message": "base_year, target_year 파라미터는 필수입니다.",
                 }
             ),
             400,
         )
 
-    if by not in ("ratio", "absolute"):
-        return jsonify({"error": "by 파라미터는 'ratio' 또는 'absolute' 이어야 합니다."}), 400
+    try:
+        items = forecast_service.get_top5(base_year, target_year, by=by)
+    except ValueError as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
 
-    data = elderly_service.get_top5_growth(base_year=base_year, target_year=target_year, by=by)
-    return jsonify(data)
+    return jsonify({"status": "success", "items": items})
+
+
 
 @api_bp.get("/elderly/regions")
 def elderly_regions_snapshot():
@@ -527,43 +568,90 @@ def api_logout():
         "message": "로그아웃 되었습니다."
     }), 200
 
+# ----------------------------------------
+# 4) 고독사 전체 추세
+# ----------------------------------------
+@api_bp.get("/lonely/trend")
+def api_lonely_trend():
+    """
+    GET /api/lonely/trend?start_year=2017&end_year=2050
+    """
+    start_year = request.args.get("start_year", type=int) or 2017
+    end_year = request.args.get("end_year", type=int) or 2050
+
+    items = lonely_forecast_service.get_trend(start_year, end_year)
+    return jsonify({"status": "success", "items": items})
+
+# ----------------------------------------
+# 6) 구별 고독사 예측 (모달)
+# /api/lonely/forecast?region=강남구
+# ----------------------------------------
 @api_bp.get("/lonely/forecast")
 def api_lonely_forecast():
     """
-    고독사 구별 실측/예측 시계열 API.
+    GET /api/lonely/forecast?region=강남구
 
-    예:
-      GET /api/lonely/forecast?region=강남구
     응답:
-      {
-        "status": "success",
-        "data": {
-          "region": "강남구",
-          "history": [...],
-          "forecast": [...],
-          "message": "..."
-        }
+    {
+      "status": "success",
+      "data": {
+        "region": "강남구",
+        "history": [...],
+        "forecast": [...],
+        "message": "..."
       }
+    }
     """
-    region = request.args.get("region")
-
+    region = request.args.get("region", "", type=str).strip()
     if not region:
-        return jsonify({
-            "status": "error",
-            "message": "region 파라미터는 필수입니다. (예: 강남구)"
-        }), 400
+        return (
+            jsonify(
+                {"status": "error", "message": "region 쿼리 파라미터는 필수입니다."}
+            ),
+            400,
+        )
 
     data = lonely_forecast_service.forecast_region(region)
 
-    # 데이터가 아예 없을 때
     if not data.get("history") and not data.get("forecast"):
-        return jsonify({
-            "status": "error",
-            "message": f"'{region}' 구의 고독사 실측/예측 데이터를 찾을 수 없습니다.",
-            "data": data,
-        }), 404
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": f"'{region}' 구의 고독사 실측/예측 데이터를 찾을 수 없습니다.",
+                    "data": data,
+                }
+            ),
+            404,
+        )
 
-    return jsonify({
-        "status": "success",
-        "data": data,
-    })
+    return jsonify({"status": "success", "data": data})
+# ----------------------------------------
+# 5) 고독사 TOP5 (증가율 / 증가 인원수)
+# ----------------------------------------
+@api_bp.get("/lonely/top5")
+def api_lonely_top5():
+    """
+    GET /api/lonely/top5?base_year=2023&target_year=2050&by=ratio|absolute
+    """
+    base_year = request.args.get("base_year", type=int)
+    target_year = request.args.get("target_year", type=int)
+    by = request.args.get("by", default="ratio")
+
+    if base_year is None or target_year is None:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "base_year, target_year 파라미터는 필수입니다.",
+                }
+            ),
+            400,
+        )
+
+    try:
+        items = lonely_forecast_service.get_top5(base_year, target_year, by=by)
+    except ValueError as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+    return jsonify({"status": "success", "items": items})

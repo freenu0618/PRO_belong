@@ -1,328 +1,176 @@
 {% extends "base.html" %}
-{% block title %}Belong - Dashboard{% endblock %}
+{% block title %}Belong 대시보드{% endblock %}
 
 {% block content %}
-<div class="container py-4">
+<div class="container-fluid mt-3">
 
-  <!-- 🔹 Summary Cards -->
-  <div class="row g-3 mb-4">
-    <!-- 총 노인 인구 -->
-    <div class="col-md-4">
-      <div class="card l-bg-blue-dark text-black">
-        <div class="card-statistic-3 p-4">
-          <div class="card-icon card-icon-large">
-            <i class="fas fa-user-friends"></i>
-          </div>
-          <div class="mb-4">
-            <h5 class="card-title mb-0">총 노인 인구</h5>
-          </div>
-          <div class="row align-items-center mb-2 d-flex">
-            <div class="col-12">
-              <h2 id="summary-total" class="d-flex align-items-center mb-0">
-                -
-              </h2>
+    <!-- ✅ Summary Section -->
+    <div class="row text-center mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6>최신 총 노인 인구</h6>
+                    <h3 id="summary-total" class="fw-bold text-primary">-</h3>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
-    </div>
-
-    <!-- 증가 TOP 구 -->
-    <div class="col-md-4">
-      <div class="card l-bg-green-dark text-black">
-        <div class="card-statistic-3 p-4">
-          <div class="card-icon card-icon-large">
-            <i class="fas fa-arrow-up"></i>
-          </div>
-          <div class="mb-4">
-            <h5 class="card-title mb-0">증가 TOP 구</h5>
-          </div>
-          <div class="row align-items-center mb-2 d-flex">
-            <div class="col-12">
-              <h3 id="summary-growth-top" class="d-flex align-items-center mb-0">
-                -
-              </h3>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6>노인 인구 증가율 TOP 구</h6>
+                    <h4 id="summary-growth-top" class="fw-bold text-success">-</h4>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
-    </div>
-
-    <!-- 증가율 최하위 구 -->
-    <div class="col-md-4">
-      <div class="card l-bg-orange-dark text-black">
-        <div class="card-statistic-3 p-4">
-          <div class="card-icon card-icon-large">
-            <i class="fas fa-arrow-down"></i>
-          </div>
-          <div class="mb-4">
-            <h5 class="card-title mb-0">증가율 최하위 구</h5>
-          </div>
-          <div class="row align-items-center mb-2 d-flex">
-            <div class="col-12">
-              <h3 id="summary-growth-bottom" class="d-flex align-items-center mb-0">
-                -
-              </h3>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6>노인 인구 증가율 최하위 구</h6>
+                    <h4 id="summary-growth-bottom" class="fw-bold text-danger">-</h4>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 🔹 서울 25개 구 노인 인구 / 고독사 추세 -->
-  <div class="row mb-4">
-    <!-- 왼쪽: 노인 인구 추세 -->
-    <div class="col-md-6">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5 class="fw-bold mb-2">서울 25개 구 노인 인구 추세</h5>
-          <p class="text-muted mb-2">
-            각 구의 연도별 노인 인구 변화를 선 그래프로 표시합니다.
-          </p>
-          <div class="db-chart-wrapper" style="height: 380px;">
-            <canvas id="dashboard-chart"></canvas>
-          </div>
-          <div class="mt-3" id="region-checkbox-container"></div>
-        </div>
-      </div>
     </div>
 
-    <!-- 오른쪽: 서울 25개 구 고독사 추세 -->
-    <div class="col-md-6">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5 class="fw-bold mb-2">서울 25개 구 고독사 추세</h5>
-          <p class="text-muted mb-2">
-            연도별 고독사 발생 건수를 선 그래프로 표시합니다.
-          </p>
-          <div class="db-chart-wrapper" style="height: 380px;">
-            <canvas id="lonely-chart"></canvas>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 🔹 구별 TOP5 섹션 -->
-  <div class="row g-3 mt-3">
-    <!-- 독거노인 증가율 TOP5 -->
-    <div class="col-md-6">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5 class="fw-bold mb-3">독거노인 증가율 TOP 5</h5>
-          <div class="table-responsive">
-            <table class="table align-middle">
-              <thead class="table-dark">
-                <tr>
-                  <th>구</th>
-                  <th>노인 인구</th>
-                  <th>증가율(%)</th>
-                </tr>
-              </thead>
-              <tbody id="population-growth-body">
-                <!-- JS에서 렌더링 -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 독거노인 인구 TOP5 -->
-    <div class="col-md-6">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5 class="fw-bold mb-3">독거노인 인구 TOP 5</h5>
-          <div class="table-responsive">
-            <table class="table align-middle">
-              <thead class="table-dark">
-                <tr>
-                  <th>구</th>
-                  <th>노인 인구</th>
-                  <th>증가율(%)</th>
-                </tr>
-              </thead>
-              <tbody id="population-count-body">
-                <!-- JS에서 렌더링 -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 고독사 증가율 TOP5 -->
-    <div class="col-md-6">
-      <div class="card shadow-sm mt-3">
-        <div class="card-body">
-          <h5 class="fw-bold mb-3">고독사 증가율 TOP 5</h5>
-          <div class="table-responsive">
-            <table class="table align-middle">
-              <thead class="table-dark">
-                <tr>
-                  <th>구</th>
-                  <th>고독사 수</th>
-                  <th>증가율(%)</th>
-                </tr>
-              </thead>
-              <tbody id="lonely-growth-body">
-                <!-- JS에서 렌더링 -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 고독사 수 TOP5 -->
-    <div class="col-md-6">
-      <div class="card shadow-sm mt-3">
-        <div class="card-body">
-          <h5 class="fw-bold mb-3">고독사 수 TOP 5</h5>
-          <div class="table-responsive">
-            <table class="table align-middle">
-              <thead class="table-dark">
-                <tr>
-                  <th>구</th>
-                  <th>고독사 수</th>
-                  <th>증가율(%)</th>
-                </tr>
-              </thead>
-              <tbody id="lonely-count-body">
-                <!-- JS에서 렌더링 -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 🔹 Forecast Section (노인 인구 / 고독사 2컬럼) -->
-  <div class="row mt-4">
-    <!-- 왼쪽: 구별 예측 (노인 인구) -->
-    <div class="col-md-6">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5 class="fw-bold mb-3">구별 예측 (노인 인구)</h5>
-          <div class="row g-3">
-            <div class="col-12">
-              <label for="forecast-region-input" class="form-label">구 입력</label>
-              <input id="forecast-region-input"
-                     type="text"
-                     class="form-control"
-                     placeholder="예: 강남구">
-              <small class="text-muted">
-                예측할 구 이름을 정확히 입력한 뒤, 아래 버튼을 눌러주세요.
-              </small>
-              <button id="btn-load-forecast" class="btn btn-primary mt-2">
-                예측 불러오기
-              </button>
+    <!-- ✅ Main Charts -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light fw-bold">서울 노인 인구 추세</div>
+                <div id="region-checkbox-container" class="mt-2"></div>
+                <div class="card-body">
+                    <canvas id="dashboard-chart" height="300"></canvas>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
-    </div>
-
-    <!-- 오른쪽: 구별 예측 (고독사) -->
-    <div class="col-md-6">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5 class="fw-bold mb-3">구별 예측 (고독사)</h5>
-          <div class="row g-3">
-            <div class="col-12">
-              <label for="lonely-forecast-region-input" class="form-label">구 입력</label>
-              <input id="lonely-forecast-region-input"
-                     type="text"
-                     class="form-control"
-                     placeholder="예: 강남구">
-              <small class="text-muted">
-                예측할 구 이름을 정확히 입력한 뒤, 아래 버튼을 눌러주세요.
-              </small>
-              <button id="btn-load-lonely-forecast" class="btn btn-danger mt-2">
-                고독사 예측 보기
-              </button>
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light fw-bold">서울 고독사 추세</div>
+                <div class="card-body">
+                    <canvas id="lonely-chart" height="300"></canvas>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
     </div>
-  </div>
 
-  <!-- 🔹 [노인 인구] 구별 예측 모달 -->
-<div class="modal fade" id="forecastModal" tabindex="-1"
-     aria-labelledby="forecast-modal-title" aria-hidden="true">
+    <!-- ✅ TOP5 테이블 -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light fw-bold">노인 인구 증가율 TOP5</div>
+                <div class="card-body">
+                    <table class="table table-sm table-hover">
+                        <thead><tr><th>순위</th><th>구</th><th>증가율(%)</th></tr></thead>
+                        <tbody id="population-growth-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light fw-bold">노인 인구 TOP5</div>
+                <div class="card-body">
+                    <table class="table table-sm table-hover">
+                        <thead><tr><th>순위</th><th>구</th><th>2050년 인구</th></tr></thead>
+                        <tbody id="population-count-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light fw-bold">고독사 증가율 TOP5</div>
+                <div class="card-body">
+                    <table class="table table-sm table-hover">
+                        <thead><tr><th>순위</th><th>구</th><th>증가율(%)</th></tr></thead>
+                        <tbody id="lonely-growth-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light fw-bold">고독사 수 TOP5</div>
+                <div class="card-body">
+                    <table class="table table-sm table-hover">
+                        <thead><tr><th>순위</th><th>구</th><th>2050년 발생 수</th></tr></thead>
+                        <tbody id="lonely-count-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ 구별 예측 카드 -->
+    <div class="row mt-5">
+        <div class="col-md-6">
+            <div class="card shadow-sm p-3">
+                <h6 class="fw-bold">구별 노인 인구 예측</h6>
+                <div class="input-group">
+                    <input id="forecast-region-input" type="text" class="form-control" placeholder="예: 강남구">
+                    <button id="btn-load-forecast" class="btn btn-outline-primary">조회</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm p-3">
+                <h6 class="fw-bold">구별 고독사 예측</h6>
+                <div class="input-group">
+                    <input id="lonely-forecast-region-input" type="text" class="form-control" placeholder="예: 강남구">
+                    <button id="btn-load-lonely-forecast" class="btn btn-outline-danger">조회</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ✅ 노인 인구 예측 모달 -->
+<div class="modal fade" id="forecastModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header">
-        <!-- ★ JS에서 찾는 id: forecast-modal-title -->
-        <h5 class="modal-title" id="forecast-modal-title">예측 결과</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="forecast-modal-title"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <!-- ★ JS에서 찾는 id: forecast-modal-message -->
-        <p id="forecast-modal-message" class="text-muted mb-2">
-          ELDERLY_HISTORY 기반 실측/예측 데이터입니다.
-        </p>
-
-        <div class="table-responsive mb-3">
-          <table class="table table-sm">
-            <thead>
-              <tr>
-                <th>구분</th>
-                <th>연도</th>
-                <th>노인 인구</th>
-              </tr>
-            </thead>
-            <!-- ★ JS에서 찾는 id: forecast-modal-body -->
-            <tbody id="forecast-modal-body"></tbody>
-          </table>
-        </div>
-
-        <!-- 예측 차트 -->
-        <canvas id="forecast-chart" height="200"></canvas>
+        <p id="forecast-modal-message" class="text-muted small"></p>
+        <table class="table table-sm table-striped">
+          <thead><tr><th>연도</th><th>값</th><th>구분</th></tr></thead>
+          <tbody id="forecast-modal-body"></tbody>
+        </table>
+        <canvas id="forecast-chart" height="250"></canvas>
       </div>
     </div>
   </div>
 </div>
 
-
-  <!-- 🔹 [고독사] 구별 예측 모달 -->
-  <div class="modal fade" id="lonelyForecastModal" tabindex="-1" aria-labelledby="lonelyForecastLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="lonelyForecastLabel">고독사 예측 결과</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
-        </div>
-        <div class="modal-body">
-          <p id="lonely-forecast-message" class="text-muted mb-2"></p>
-          <div class="table-responsive mb-3">
-            <table class="table table-sm">
-              <thead>
-                <tr>
-                  <th>구분</th>
-                  <th>연도</th>
-                  <th>고독사 수</th>
-                </tr>
-              </thead>
-              <tbody id="lonely-forecast-body"></tbody>
-            </table>
-          </div>
-          <canvas id="lonelyForecastChart" height="200"></canvas>
-        </div>
+<!-- ✅ 고독사 예측 모달 -->
+<div class="modal fade" id="lonelyForecastModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="lonelyForecastLabel"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p id="lonely-forecast-message" class="text-muted small"></p>
+        <table class="table table-sm table-striped">
+          <thead><tr><th>연도</th><th>값</th><th>구분</th></tr></thead>
+          <tbody id="lonely-forecast-body"></tbody>
+        </table>
+        <canvas id="lonelyForecastChart" height="250"></canvas>
       </div>
     </div>
   </div>
-
 </div>
 {% endblock %}
 
 {% block scripts %}
-  {{ super() }}
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- 우리 대시보드 로직 -->
-  <script src="{{ url_for('static', filename='charts/dashboard.js') }}"></script>
+{{ super() }}
+<script src="{{ url_for('static', filename='charts/dashboard.js') }}"></script>
 {% endblock %}
