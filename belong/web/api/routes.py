@@ -7,6 +7,7 @@ from belong.repositories.elderly_repo import SqlAlchemyElderlyHistoryRepository
 from belong.models.region import Region
 from belong.extensions import db
 from belong.repositories.prediction_repo import PredictionRepository
+from belong.services.lonely_forecast_service import LonelyForecastService
 import math
 from werkzeug.security import generate_password_hash, check_password_hash
 from belong.models.user import User
@@ -16,7 +17,7 @@ population_service = PopulationService()
 # Oracle 연결을 우선 시도하고, 실패하면 InMemory로 fallback
 repo = SqlAlchemyElderlyHistoryRepository()
 forecast_service = ForecastService(repo=repo)
-
+lonely_forecast_service = LonelyForecastService()
 # 새 CorrelationService는 내부에서 db.session을 사용함
 correlation_service = CorrelationService()
 
@@ -526,15 +527,43 @@ def api_logout():
         "message": "로그아웃 되었습니다."
     }), 200
 
-@api_bp.route("/api/lonely/forecast")
-def get_lonely_forecast():
+@api_bp.get("/lonely/forecast")
+def api_lonely_forecast():
+    """
+    고독사 구별 실측/예측 시계열 API.
+
+    예:
+      GET /api/lonely/forecast?region=강남구
+    응답:
+      {
+        "status": "success",
+        "data": {
+          "region": "강남구",
+          "history": [...],
+          "forecast": [...],
+          "message": "..."
+        }
+      }
+    """
     region = request.args.get("region")
-    repo = PredictionRepository()
-    data = repo.get_predictions(region, 2024, 2050, "lonely_death")
+
+    if not region:
+        return jsonify({
+            "status": "error",
+            "message": "region 파라미터는 필수입니다. (예: 강남구)"
+        }), 400
+
+    data = lonely_forecast_service.forecast_region(region)
+
+    # 데이터가 아예 없을 때
+    if not data.get("history") and not data.get("forecast"):
+        return jsonify({
+            "status": "error",
+            "message": f"'{region}' 구의 고독사 실측/예측 데이터를 찾을 수 없습니다.",
+            "data": data,
+        }), 404
 
     return jsonify({
-        "region": region,
-        "history": [],  # 현재는 예측만 표시
-        "forecast": data,
-        "message": "PREDICTION_RESULT 기반 고독사 예측입니다."
+        "status": "success",
+        "data": data,
     })

@@ -1,14 +1,73 @@
 # belong/services/forecast_service.py
-
+from sqlalchemy import func
 from typing import Dict, Any, Optional, List, Tuple
 
 from belong.extensions import logger, db
 from belong.models.elderly_history import ElderlyHistory
 from belong.models.region import Region
+from belong.models.feature_stats import ElderlyStats
+from belong.models.prediction_result import PredictionResult
 
 # 2023년까지는 실측, 이후는 예측으로 간주
 ACTUAL_LAST_YEAR = 2023
+LONELY_SOURCE = "rule_based"
+class LonelyForecastService:
+    def forecast_region(self, region: str) -> Dict[str, Any]:
+        # 1) 실측 (ELDERLY_STATS)
+        actual_rows = (
+            db.session.query(
+                ElderlyStats.year.label("year"),
+                func.sum(ElderlyStats.target_value).label("value"),
+            )
+            .join(Region, ElderlyStats.region_id == Region.id)
+            .filter(
+                Region.name == region,
+                ElderlyStats.year <= ACTUAL_LAST_YEAR,
+            )
+            .group_by(ElderlyStats.year)
+            .order_by(ElderlyStats.year)
+            .all()
+        )
 
+        history = [
+            {"year": int(r.year), "value": int(r.value or 0)} for r in actual_rows
+        ]
+
+        # 2) 예측 (PREDICTION_RESULT)
+        forecast_rows = (
+            db.session.query(
+                PredictionResult.year.label("year"),
+                func.sum(PredictionResult.prediction_value).label("value"),
+            )
+            .filter(
+                PredictionResult.region_name == region,
+                PredictionResult.source == LONELY_SOURCE,
+                PredictionResult.year > ACTUAL_LAST_YEAR,
+            )
+            .group_by(PredictionResult.year)
+            .order_by(PredictionResult.year)
+            .all()
+        )
+
+        forecast = [
+            {"year": int(r.year), "value": int(r.value or 0)}
+            for r in forecast_rows
+        ]
+
+        if not history and not forecast:
+            return {
+                "region": region,
+                "history": [],
+                "forecast": [],
+                "message": "해당 구의 고독사 실측/예측 데이터를 찾을 수 없습니다.",
+            }
+
+        return {
+            "region": region,
+            "history": history,
+            "forecast": forecast,
+            "message": "ELDERLY_STATS + PREDICTION_RESULT 기반 고독사 실측/예측 데이터입니다.",
+        }
 
 class ForecastService:
     """
