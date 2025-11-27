@@ -2,41 +2,63 @@
 {% block title %}Belong 대시보드{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-3">
+<div class="container mt-3">
 
-    <!-- ✅ Summary Section -->
-    <div class="row text-center mb-4">
-        <div class="col-md-4">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6>최신 총 노인 인구</h6>
-                    <h3 id="summary-total" class="fw-bold text-primary">-</h3>
-                </div>
+    <!-- ✅ 대시보드 Hero 섹션 -->
+    <div class="dashboard-hero mb-3">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+                <h2 class="dashboard-title mb-1">서울 독거노인 · 고독사 대시보드</h2>
+                <p class="dashboard-subtitle mb-0">
+                    서울 25개 구의 독거노인 인구와 고독사 추세·예측을 한눈에 보는 모니터링 화면입니다.
+                </p>
+            </div>
+            <div class="text-end small text-muted">
+                <div>데이터 기준: 2017–2050</div>
+                <div>업데이트: <span id="dashboard-last-updated">정책 시나리오 v1</span></div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6>노인 인구 증가율 TOP 구</h6>
-                    <h4 id="summary-growth-top" class="fw-bold text-success">-</h4>
+
+        <!-- ✅ Summary 카드 3개 -->
+        <div class="row text-center g-3">
+            <div class="col-md-4">
+                <div class="card shadow-sm summary-card summary-card-total">
+                    <div class="card-body">
+                        <h6>최신 총 독거노인 인구</h6>
+                        <h3 id="summary-total" class="fw-bold text-primary">-</h3>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6>노인 인구 증가율 최하위 구</h6>
-                    <h4 id="summary-growth-bottom" class="fw-bold text-danger">-</h4>
+            <div class="col-md-4">
+                <div class="card shadow-sm summary-card summary-card-top">
+                    <div class="card-body">
+                        <h6>독거노인 인구 증가율 TOP 구</h6>
+                        <h4 id="summary-growth-top" class="fw-bold text-success">-</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm summary-card summary-card-bottom">
+                    <div class="card-body">
+                        <h6>독거노인 인구 증가율 최하위 구</h6>
+                        <h4 id="summary-growth-bottom" class="fw-bold text-danger">-</h4>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ✅ Main Charts -->
+    <!-- ✅ 추세 섹션 -->
+    <section class="dashboard-section mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="section-title mb-0">서울 독거노인 · 고독사 추세</h5>
+      <span class="section-caption">연도별 변화를 한눈에 비교합니다.</span>
+    </div>
+
     <div class="row">
         <div class="col-md-6">
             <div class="card shadow-sm">
-                <div class="card-header bg-light fw-bold">서울 노인 인구 추세</div>
+                <div class="card-header bg-light fw-bold">서울 독거노인 인구 추세</div>
                 <div id="region-checkbox-container" class="mt-2"></div>
                 <div class="card-body">
                     <canvas id="dashboard-chart" height="300"></canvas>
@@ -53,11 +75,16 @@
         </div>
     </div>
 
-    <!-- ✅ TOP5 테이블 -->
+    <!-- ✅ TOP5 섹션 -->
+  <section class="dashboard-section mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="section-title mb-0">TOP5 분석</h5>
+      <span class="section-caption">증가율과 규모 기준으로 상위 구를 보여줍니다.</span>
+    </div>
     <div class="row mt-4">
         <div class="col-md-6">
             <div class="card shadow-sm">
-                <div class="card-header bg-light fw-bold">노인 인구 증가율 TOP5</div>
+                <div class="card-header bg-light fw-bold">독거노인 인구 증가율 TOP5</div>
                 <div class="card-body">
                     <table class="table table-sm table-hover">
                         <thead><tr><th>순위</th><th>구</th><th>증가율(%)</th></tr></thead>
@@ -69,7 +96,7 @@
 
         <div class="col-md-6">
             <div class="card shadow-sm">
-                <div class="card-header bg-light fw-bold">노인 인구 TOP5</div>
+                <div class="card-header bg-light fw-bold">독거노인 인구 TOP5</div>
                 <div class="card-body">
                     <table class="table table-sm table-hover">
                         <thead><tr><th>순위</th><th>구</th><th>2050년 인구</th></tr></thead>
@@ -107,10 +134,15 @@
     </div>
 
     <!-- ✅ 구별 예측 카드 -->
+  <section class="dashboard-section mt-4 mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="section-title mb-0">구별 예측 조회</h5>
+      <span class="section-caption">관심 구의 미래 독거노인·고독사 수를 확인합니다.</span>
+    </div>
     <div class="row mt-5">
         <div class="col-md-6">
             <div class="card shadow-sm p-3">
-                <h6 class="fw-bold">구별 노인 인구 예측</h6>
+                <h6 class="fw-bold">구별 독거노인 인구 예측</h6>
                 <div class="input-group">
                     <input id="forecast-region-input" type="text" class="form-control" placeholder="예: 강남구">
                     <button id="btn-load-forecast" class="btn btn-outline-primary">조회</button>
@@ -129,7 +161,7 @@
     </div>
 </div>
 
-<!-- ✅ 노인 인구 예측 모달 -->
+<!-- ✅ 독거노인 인구 예측 모달 -->
 <div class="modal fade" id="forecastModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">

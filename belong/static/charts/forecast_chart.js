@@ -82,14 +82,14 @@ async function renderElderlyTrendChart() {
       labels,
       datasets: [
         {
-          label: "노인 인구(실측)",
+          label: "독거노인 인구(실측)",
           data: actualData,
           borderColor: "#4e73df",
           backgroundColor: "rgba(78, 115, 223, 0.05)",
           spanGaps: false,
         },
         {
-          label: "노인 인구(예측)",
+          label: "독거노인 인구(예측)",
           data: forecastData,
           borderColor: "#e74a3b",
           backgroundColor: "rgba(231, 74, 59, 0.05)",
