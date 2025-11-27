@@ -6,16 +6,8 @@
 
     <h3 class="text-center mb-4 fw-bold">회원가입</h3>
 
-    {# 에러 메시지 박스 #}
+    <!-- 에러 메시지 -->
     <div id="signup-error" class="alert alert-danger" style="display:none;"></div>
-
-    {# 회원가입 성공 팝업 #}
-    <div id="signup-success" class="alert alert-success d-flex justify-content-between align-items-center" style="display:none;">
-        <span>회원가입이 완료되었습니다.</span>
-        <button id="go-login-btn" class="btn btn-sm btn-light">
-            로그인하러 가기
-        </button>
-    </div>
 
     <form id="signup-form">
 
@@ -88,14 +80,11 @@ document.getElementById("signup-form").addEventListener("submit", async (e) => {
     const password2 = document.getElementById("password2").value.trim();
 
     const errorBox = document.getElementById("signup-error");
-    const successBox = document.getElementById("signup-success");
     const pwMsg = document.getElementById("pw-match-msg");
 
-    // 이전 상태 초기화
     errorBox.style.display = "none";
-    successBox.style.display = "none";
 
-    // ✅ 프론트에서 비밀번호 일치 여부 먼저 검증
+    // 프론트 검증
     if (!password1 || !password2) {
         errorBox.innerText = "비밀번호를 모두 입력해주세요.";
         errorBox.style.display = "block";
@@ -129,29 +118,12 @@ document.getElementById("signup-form").addEventListener("submit", async (e) => {
             return;
         }
 
-        // ✅ 회원가입 성공: 성공 배너만 띄우고, 자동 로그인은 안 함
-        successBox.style.display = "flex";
-
-        // 입력 비활성화 (선택 사항)
-        document.getElementById("username").disabled = true;
-        document.getElementById("email").disabled = true;
-        document.getElementById("password1").disabled = true;
-        document.getElementById("password2").disabled = true;
+        // 🎯 회원가입 성공 → 메인 페이지로 이동
+        window.location.href = "/";
 
     } catch (err) {
-        console.error(err);
         errorBox.innerText = "서버와 연결할 수 없습니다.";
         errorBox.style.display = "block";
-    }
-});
-
-// '로그인하러 가기' 버튼
-document.addEventListener("DOMContentLoaded", () => {
-    const goLoginBtn = document.getElementById("go-login-btn");
-    if (goLoginBtn) {
-        goLoginBtn.addEventListener("click", () => {
-            window.location.href = "{{ url_for('web.login') }}";
-        });
     }
 });
 </script>
