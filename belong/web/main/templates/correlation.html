@@ -1,6 +1,16 @@
 {% extends "base.html" %}
 {% block title %}상관관계 분석 - Belong{% endblock %}
 
+{# 🔹 상관관계 분석 전용 헤더(사진 + navbar) #}
+{% block header %}
+<header class="hero-header hero-header-corr">
+  <div class="hero-header-inner">
+    {% include 'navbar.html' %}
+  </div>
+  <div class="hero-header-line"></div>
+</header>
+{% endblock %}
+
 {% block content %}
 
 <div class="container py-5">
@@ -126,5 +136,5 @@
 
 {% block scripts %}
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- <script src="{{ url_for('static', filename='charts/correlation_map.js') }}"></script> -->
+  {# <script src="{{ url_for('static', filename='charts/correlation_map.js') }}"></script> #}
 {% endblock %}
