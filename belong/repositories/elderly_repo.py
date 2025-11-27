@@ -4,7 +4,7 @@ import cx_Oracle
 from config import Config
 
 from belong.extensions import db
-from belong.models.elderly_population import ElderlyHistory
+from belong.models.elderly_history import ElderlyHistory
 
 class ElderlyHistoryRepository:
     def get_history(self, region: str) -> Optional[List[Dict[str, int]]]:

@@ -18,6 +18,11 @@ class Region(db.Model):
 
     created_at = db.Column(db.DateTime, server_default=db.func.current_timestamp())
 
+    elderly_histories = db.relationship(
+        "ElderlyHistory",
+        back_populates="region",
+        lazy="dynamic",
+        cascade="all, delete-orphan",)
     # 나중에 relationship로 ElderlyStats와 연결할 예정
     elderly_stats = db.relationship(
         "ElderlyStats",
