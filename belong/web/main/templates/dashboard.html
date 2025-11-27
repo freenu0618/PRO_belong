@@ -70,71 +70,104 @@
         </div>
     </div>
 
-    <!-- 🔹 서울 25개 구 노인 인구 추세 차트 -->
+    <!-- 🔹 서울 25개 구 노인 인구 & 고독사 추세 (2컬럼) -->
     <div class="row mb-4">
-        <div class="col-12">
+        <!-- 왼쪽: 노인 인구 추세 -->
+        <div class="col-md-6">
             <div class="card shadow-sm">
                 <div class="card-body">
                     <h5 class="fw-bold mb-2">서울 25개 구 노인 인구 추세</h5>
                     <p class="text-muted mb-2">
                         각 구의 연도별 노인 인구 변화를 선 그래프로 표시합니다.
                     </p>
-                    <div class="db-chart-wrapper">
+                    <div class="db-chart-wrapper" style="height: 380px;">
                         <canvas id="dashboard-chart"></canvas>
                     </div>
+                    <div class="mt-3" id="region-checkbox-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 오른쪽: 서울 25개 구 고독사 추세 (추후 API 연동) -->
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="fw-bold mb-2">서울 25개 구 고독사 수 추세</h5>
+                    <p class="text-muted mb-2">
+                        ML 예측 모델을 이용해 서울 전체 고독사 발생 인원 추세를 표시할 예정입니다.
+                    </p>
+                    <div class="db-chart-wrapper">
+                        <canvas id="lonely-chart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
 
     <!-- 🔹 구별 TOP5 섹션 -->
-    <div class="row g-3 mt-3">
-        <!-- 왼쪽: 증가율 TOP5 -->
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h5 class="fw-bold mb-3">독거노인 증가율 TOP 5</h5>
-                    <div class="table-responsive">
-                        <table class="table align-middle">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>구</th>
-                                    <th>독거노인 수</th>
-                                    <th>증가율(%)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="population-growth-body">
-                                <!-- JS에서 렌더링 -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="row g-3 mt-3">
+    <!-- 독거노인 증가율 TOP5 -->
+    <div class="col-md-6">
+        ...
+        <tbody id="population-growth-body"></tbody>
+        ...
+    </div>
 
-        <!-- 오른쪽: 인구수 TOP5 -->
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h5 class="fw-bold mb-3">독거노인 인구 TOP 5</h5>
-                    <div class="table-responsive">
-                        <table class="table align-middle">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>구</th>
-                                    <th>독거노인 수</th>
-                                    <th>증가율(%)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="population-count-body">
-                                <!-- JS에서 렌더링 -->
-                            </tbody>
-                        </table>
-                    </div>
+    <!-- 독거노인 인구 TOP5 -->
+    <div class="col-md-6">
+        ...
+        <tbody id="population-count-body"></tbody>
+        ...
+    </div>
+
+    <!-- 고독사 증가율 TOP5 -->
+    <div class="col-md-6">
+        <div class="card shadow-sm mt-3">
+            <div class="card-body">
+                <h5 class="fw-bold mb-3">고독사 증가율 TOP 5</h5>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>구</th>
+                                <th>고독사 수</th>
+                                <th>증가율(%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lonely-growth-body">
+                            <!-- JS에서 렌더링 -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- 고독사 수 TOP5 -->
+    <div class="col-md-6">
+        <div class="card shadow-sm mt-3">
+            <div class="card-body">
+                <h5 class="fw-bold mb-3">고독사 수 TOP 5</h5>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>구</th>
+                                <th>고독사 수</th>
+                                <th>증가율(%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lonely-count-body">
+                            <!-- JS에서 렌더링 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 
     <!-- 🔹 Forecast Section -->
     <div class="card shadow-sm mt-4">
