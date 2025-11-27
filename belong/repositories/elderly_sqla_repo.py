@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import List, Dict, Optional
 
 from belong.extensions import db
-from belong.models.elderly_population import ElderlyHistory  # ORM 모델 (나중에 정의)
+from belong.models.elderly_history import ElderlyHistory # ORM 모델 (나중에 정의)
 from belong.repositories.elderly_repo import ElderlyHistoryRepository
 
 

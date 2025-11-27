@@ -365,3 +365,64 @@ def get_prediction_history(region: str):
         }
         for r in rows
     ])
+
+@api_bp.get("/elderly/trend")
+def elderly_trend():
+    """
+    노인 인구 전체 추세 (2017~2050) API.
+    예:
+      GET /api/elderly/trend?start_year=2017&end_year=2050
+    """
+    elderly_service = current_app.config["services"]["elderly_service"]
+
+    start_year = request.args.get("start_year", default=2017, type=int)
+    end_year = request.args.get("end_year", default=2050, type=int)
+
+    data = elderly_service.get_total_trend(start_year=start_year, end_year=end_year)
+    return jsonify(data)
+
+@api_bp.get("/elderly/top5")
+def elderly_top5():
+    """
+    노인 인구 증가 TOP5 API.
+    예:
+      GET /api/elderly/top5?base_year=2023&target_year=2050&by=ratio
+      GET /api/elderly/top5?base_year=2023&target_year=2050&by=absolute
+    """
+    elderly_service = current_app.config["services"]["elderly_service"]
+
+    base_year = request.args.get("base_year", type=int)
+    target_year = request.args.get("target_year", type=int)
+    by = request.args.get("by", default="ratio", type=str)
+
+    if base_year is None or target_year is None:
+        return (
+            jsonify(
+                {
+                    "error": "base_year와 target_year는 필수입니다.",
+                }
+            ),
+            400,
+        )
+
+    if by not in ("ratio", "absolute"):
+        return jsonify({"error": "by 파라미터는 'ratio' 또는 'absolute' 이어야 합니다."}), 400
+
+    data = elderly_service.get_top5_growth(base_year=base_year, target_year=target_year, by=by)
+    return jsonify(data)
+
+@api_bp.get("/elderly/regions")
+def elderly_regions_snapshot():
+    """
+    특정 연도의 구별 노인 인구 리스트 API.
+    예:
+      GET /api/elderly/regions?year=2050
+    """
+    elderly_service = current_app.config["services"]["elderly_service"]
+
+    year = request.args.get("year", type=int)
+    if year is None:
+        return jsonify({"error": "year 파라미터는 필수입니다."}), 400
+
+    data = elderly_service.get_region_snapshot(year=year)
+    return jsonify(data)
