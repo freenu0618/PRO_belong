@@ -15,16 +15,13 @@
 
 <body>
 
-    {# ===============================
-       공통 헤더(네비 + 배경) 블록
-       - 기본: 평범한 어두운 바(홈에서 사용)
-       - 서브페이지: 각 템플릿에서 hero-header로 오버라이드
-       =============================== #}
-    {% block header %}
-    <header class="belong-header-default">
+    {# 🔹 공통 헤더 (여기만 배경 이미지만 바뀜) #}
+    <header class="site-header {% block header_class %}{% endblock %}">
         {% include 'navbar.html' %}
     </header>
-    {% endblock %}
+
+    {# 필요하면 메인 페이지만 hero 쓰고, 나머지는 비워둠 #}
+    {% block hero %}{% endblock %}
 
     <main>
         {% block content %}{% endblock %}
@@ -34,12 +31,12 @@
         <small>Belong Project © 2025</small>
     </footer>
 
-    <!-- JS -->
+    <!-- JS (의존성 먼저, 우리 코드 나중) -->
     <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
 
-    <!-- 상관관계 페이지 지도 JS -->
+    <!-- 상관관계 지도 스크립트 (필요한 페이지에서만 실제로 동작) -->
     <script src="{{ url_for('static', filename='charts/correlation_map.js') }}"></script>
 
     {% block scripts %}{% endblock %}

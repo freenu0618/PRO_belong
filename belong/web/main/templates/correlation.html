@@ -1,15 +1,10 @@
 {% extends "base.html" %}
 {% block title %}상관관계 분석 - Belong{% endblock %}
 
-{# 🔹 상관관계 분석 전용 헤더(사진 + navbar) #}
-{% block header %}
-<header class="hero-header hero-header-corr">
-  <div class="hero-header-inner">
-    {% include 'navbar.html' %}
-  </div>
-  <div class="hero-header-line"></div>
-</header>
-{% endblock %}
+{# 🔹 상관관계 분석 전용 사진 헤더 #}
+{% block header_class %}header-corr{% endblock %}
+    <!-- 나머지 correlation.html 내용은 지금처럼 그대로 -->
+
 
 {% block content %}
 
