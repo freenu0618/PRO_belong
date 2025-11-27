@@ -200,7 +200,7 @@ function renderMainChart(history, prediction) {
                 y: {
                     title: {
                         display: true,
-                        text: "노인 인구 수"
+                        text: "독거노인 인구 수"
                     },
                     ticks: {
                         callback: (value) => value.toLocaleString("ko-KR")
@@ -263,7 +263,7 @@ function renderHistoryChart(historyList) {
                 y: {
                     title: {
                         display: true,
-                        text: "예측 노인 인구 수"
+                        text: "예측 독거노인 인구 수"
                     },
                     ticks: {
                         callback: (value) => value.toLocaleString("ko-KR")

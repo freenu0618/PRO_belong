@@ -227,16 +227,16 @@ body {
    prefix: .db-chart-wrapper
 =========================================== */
 
-.db-chart-wrapper {
-    position: relative;
-    height: 800px;      /* 필요하면 260~400px 사이로 조절 */
-    max-height: 800px;
-}
-
 #dashboard-chart {
     width: 100% !important;
-    height: 100% !important;
+    max-height: 360px;
 }
+
+/* 모달 안 차트가 아래로 길게 늘어나는 것 방지 */
+#forecast-chart,
+#lonelyForecastChart {
+    width: 100% !important;
+    max-height: 260px; /* 필요하면 220~300 사이에서 조절 */
 
 /* === 상관관계 페이지 전체를 스냅 스크롤 컨테이너로 === */
 .corr-page {
@@ -265,4 +265,204 @@ body {
 .corr-detail-section {
     padding: 20px 0 40px 0;
     align-items: flex-start;         /* 분석 섹션은 위쪽 정렬이 더 좋으면 이렇게 */
+}
+/* ===========================
+   Belong 대시보드 레이아웃
+   - 중앙 정렬 + 양쪽 여백
+   - 카드 스타일 가볍게
+   =========================== */
+
+/* 대시보드 전체 폭: 너무 넓지 않게 중앙 정렬 */
+.dashboard-container {
+    max-width: 1320px;           /* 필요하면 1200~1440 사이에서 조절 */
+    margin: 0 auto;              /* 가운데 정렬 */
+    padding-left: 24px;
+    padding-right: 24px;
+}
+
+/* 대시보드 카드 공통 느낌: 가벼운 그림자 + 둥근 모서리 */
+.dashboard-container .card {
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.18);  /* 아주 연한 회색 테두리 */
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05); /* 부드러운 그림자 */
+    background-color: #ffffff;
+}
+
+/* 카드 헤더는 살짝 밝은 그라데이션으로 구분 */
+.dashboard-container .card-header {
+    background: linear-gradient(90deg, #f9fafb 0%, #f3f4f6 100%);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+/* Summary 카드 숫자가 조금 더 눈에 띄도록 */
+.dashboard-container #summary-total,
+.dashboard-container #summary-growth-top,
+.dashboard-container #summary-growth-bottom {
+    font-size: 1.6rem;
+}
+/* ===========================
+   대시보드 상단 Hero 섹션
+   =========================== */
+
+.dashboard-hero {
+    padding: 18px 20px 20px;
+    border-radius: 20px;
+    background: linear-gradient(
+        135deg,
+        #e0f2fe 0%,   /* sky-100 */
+        #f5f3ff 40%,  /* indigo-50 */
+        #fef3c7 100%  /* amber-100 */);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+/* 제목 / 부제목 */
+.dashboard-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.dashboard-subtitle {
+    font-size: 0.86rem;
+    color: #6b7280;
+}
+
+/* ===========================
+   Summary 카드 포인트 컬러
+   =========================== */
+
+.summary-card {
+    position: relative;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    overflow: hidden;
+}
+
+/* 상단에 얇은 컬러 바 추가 */
+.summary-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-top: 4px solid var(--summary-color, #3b82f6);
+    opacity: 0.95;
+    pointer-events: none;
+}
+
+/* 카드 종류별 포인트 컬러 */
+.summary-card-total {
+    --summary-color: #3b82f6;  /* 파란색 */
+}
+
+.summary-card-top {
+    --summary-color: #10b981;  /* 초록색 */
+}
+
+.summary-card-bottom {
+    --summary-color: #f97316;  /* 주황색 */
+}
+
+/* Summary 숫자 조금 더 키우기 */
+.dashboard-hero #summary-total,
+.dashboard-hero #summary-growth-top,
+.dashboard-hero #summary-growth-bottom {
+    font-size: 1.6rem;
+}
+/* ===========================
+   섹션 타이틀 / 구분
+   =========================== */
+
+.dashboard-section {
+    padding-top: 8px;
+    padding-bottom: 4px;
+    border-top: 1px dashed rgba(156, 163, 175, 0.4);
+}
+
+.section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.section-caption {
+    font-size: 0.8rem;
+    color: #9ca3af;
+}
+
+/* ===========================
+   카드 인터랙션 (살짝만)
+   =========================== */
+
+.dashboard-container .card {
+    transition: transform 0.12s ease-out, box-shadow 0.12s ease-out;
+}
+
+.dashboard-container .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.09);
+}
+
+/* ===========================
+   테이블: 더 깔끔하게
+   =========================== */
+
+.dashboard-container table.table {
+    font-size: 0.86rem;
+}
+
+.dashboard-container .table thead {
+    background-color: #f9fafb;
+}
+
+.dashboard-container .table > :not(caption) > * > * {
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+    border-color: rgba(209, 213, 219, 0.7);
+}
+
+/* 홀수 줄만 은근하게 하이라이트 */
+.dashboard-container .table tbody tr:nth-child(odd) {
+    background-color: rgba(249, 250, 251, 0.7);
+}
+/* ===== 카드 전체를 더 둥글둥글 & 밝게 ===== */
+
+.dashboard-hero,
+.dashboard-container .card,
+.dashboard-section {
+    border-radius: 20px;  /* 전체 모서리 통일해서 둥글둥글하게 */
+}
+
+/* 카드 느낌을 조금 더 가볍게 */
+.dashboard-container .card {
+    background-color: #ffffff;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.04);
+}
+
+/* 섹션 구분선도 너무 칙칙하지 않게 */
+.dashboard-section {
+    border-top: 1px dashed rgba(209, 213, 219, 0.7);
+}
+/* ===== 구별 예측 입력창을 pill 스타일로 ===== */
+
+.dashboard-container .input-group .form-control {
+    border-radius: 999px 0 0 999px;
+}
+
+.dashboard-container .input-group .btn {
+    border-radius: 0 999px 999px 0;
+}
+
+/* hover 시 버튼에 살짝 색 채우기 */
+.dashboard-container .btn-outline-primary:hover {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+    color: #ffffff;
+}
+
+.dashboard-container .btn-outline-danger:hover {
+    background-color: #ef4444;
+    border-color: #ef4444;
+    color: #ffffff;
 }

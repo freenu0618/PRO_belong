@@ -241,7 +241,7 @@
         const regionText = region ? `${region}의 ` : "";
 
         el.textContent =
-            `${rangeText} 기준으로 ${regionText}노인 인구와의 상관관계를 보면, ` +
+            `${rangeText} 기준으로 ${regionText}독거노인 인구와의 상관관계를 보면, ` +
             sentences.join(" ");
     }
 
