@@ -7,6 +7,9 @@ from belong.repositories.elderly_repo import SqlAlchemyElderlyHistoryRepository
 from belong.models.region import Region
 from belong.extensions import db
 import math
+from werkzeug.security import generate_password_hash, check_password_hash
+from belong.models.user import User
+
 # Service 인스턴스들은 지금은 간단히 전역으로 올려도 괜찮음
 population_service = PopulationService()
 # Oracle 연결을 우선 시도하고, 실패하면 InMemory로 fallback
@@ -426,3 +429,98 @@ def elderly_regions_snapshot():
 
     data = elderly_service.get_region_snapshot(year=year)
     return jsonify(data)
+
+# ============================
+#  Auth API (signup / login / logout)
+# ============================
+
+@api_bp.post("/auth/signup")
+def api_signup():
+    """
+    POST /api/auth/signup
+    body: { "username": "...", "email": "...", "password": "..." }
+    """
+    data = request.get_json() or {}
+    username = (data.get("username") or "").strip()
+    email = (data.get("email") or "").strip()
+    password = (data.get("password") or "").strip()
+
+    # 1) 입력 검증
+    if not username or not email or not password:
+        return jsonify({
+            "status": "error",
+            "message": "아이디, 이메일, 비밀번호를 모두 입력해주세요."
+        }), 400
+
+    # 2) 중복 체크
+    existing = User.query.filter(
+        (User.username == username) | (User.email == email)
+    ).first()
+    if existing:
+        return jsonify({
+            "status": "error",
+            "message": "이미 사용 중인 아이디 또는 이메일입니다."
+        }), 409
+
+    # 3) 유저 생성 및 저장
+    user = User(username=username, email=email)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+
+    return jsonify({
+        "status": "success",
+        "data": {
+            "username": user.username,
+            "email": user.email,
+        }
+    }), 201
+
+
+@api_bp.post("/auth/login")
+def api_login():
+    """
+    POST /api/auth/login
+    body: { "username": "...", "password": "..." }
+    """
+    data = request.get_json() or {}
+    username = (data.get("username") or "").strip()
+    password = (data.get("password") or "").strip()
+
+    if not username or not password:
+        return jsonify({
+            "status": "error",
+            "message": "아이디와 비밀번호를 모두 입력해주세요."
+        }), 400
+
+    user = User.query.filter_by(username=username).first()
+
+    if user is None or not user.check_password(password):
+        # 아이디 or 비밀번호 틀린 경우
+        return jsonify({
+            "status": "error",
+            "message": "아이디 또는 비밀번호가 올바르지 않습니다."
+        }), 401
+
+    # 여기서는 서버 세션 대신, 프론트에서 localStorage로만 처리하니까
+    # 간단히 유저 정보만 내려준다.
+    return jsonify({
+        "status": "success",
+        "data": {
+            "username": user.username,
+            "email": user.email,
+        }
+    }), 200
+
+
+@api_bp.post("/auth/logout")
+def api_logout():
+    """
+    POST /api/auth/logout
+    - 서버 세션을 안 쓰고 있으니, 그냥 성공 응답만 주면 됨.
+    - 프론트에서는 localStorage.removeItem('belong_user') 같은 식으로 처리.
+    """
+    return jsonify({
+        "status": "success",
+        "message": "로그아웃 되었습니다."
+    }), 200
