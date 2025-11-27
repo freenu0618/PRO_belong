@@ -703,7 +703,63 @@ function renderLonelyTopTables(ratioItems, absoluteItems) {
     `;
   });
 }
+ // 🟩 고독사 예측 모달용 그래프 함수
+async function openLonelyForecastModal(regionName) {
+    const modal = new bootstrap.Modal(document.getElementById('lonelyForecastModal'));
+    modal.show();
 
+    try {
+      const response = await fetch(`/api/lonely/forecast?region=${encodeURIComponent(regionName)}`);
+      const data = await response.json();
+
+      const history = data.history || [];
+      const forecast = data.forecast || [];
+
+      const labels = [...history.map(d => d.year), ...forecast.map(d => d.year)];
+      const values = [...history.map(d => d.value), ...forecast.map(d => d.value)];
+
+      const ctx = document.getElementById('lonelyForecastChart').getContext('2d');
+      if (window.lonelyForecastChart) {
+        window.lonelyForecastChart.destroy();
+      }
+
+      window.lonelyForecastChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: `${regionName} 고독사 수`,
+              data: values,
+              borderColor: '#ff4d4d',
+              backgroundColor: 'rgba(255,77,77,0.2)',
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 3,
+              fill: true,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' },
+            title: {
+              display: true,
+              text: `${regionName} 고독사 실측·예측 추세`,
+              font: { size: 16 }
+            }
+          },
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: '명' } },
+            x: { title: { display: true, text: '연도' } }
+          }
+        }
+      });
+    } catch (error) {
+      console.error('고독사 예측 데이터 불러오기 실패:', error);
+    }
+  }
 // =========================
 // 7) 초기화
 // =========================

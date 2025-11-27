@@ -6,6 +6,7 @@ from belong.services.correlation_service import CorrelationService
 from belong.repositories.elderly_repo import SqlAlchemyElderlyHistoryRepository
 from belong.models.region import Region
 from belong.extensions import db
+from belong.repositories.prediction_repo import PredictionRepository
 import math
 from werkzeug.security import generate_password_hash, check_password_hash
 from belong.models.user import User
@@ -524,3 +525,16 @@ def api_logout():
         "status": "success",
         "message": "로그아웃 되었습니다."
     }), 200
+
+@api_bp.route("/api/lonely/forecast")
+def get_lonely_forecast():
+    region = request.args.get("region")
+    repo = PredictionRepository()
+    data = repo.get_predictions(region, 2024, 2050, "lonely_death")
+
+    return jsonify({
+        "region": region,
+        "history": [],  # 현재는 예측만 표시
+        "forecast": data,
+        "message": "PREDICTION_RESULT 기반 고독사 예측입니다."
+    })

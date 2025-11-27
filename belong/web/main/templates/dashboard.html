@@ -89,20 +89,20 @@
         </div>
 
         <!-- 오른쪽: 서울 25개 구 고독사 추세 (추후 API 연동) -->
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h5 class="fw-bold mb-2">서울 25개 구 고독사 수 추세</h5>
-                    <p class="text-muted mb-2">
-                        ML 예측 모델을 이용해 서울 전체 고독사 발생 인원 추세를 표시할 예정입니다.
-                    </p>
-                    <div class="db-chart-wrapper">
-                        <canvas id="lonely-chart"></canvas>
-                    </div>
-                </div>
+        <div class="modal fade" id="lonelyForecastModal" tabindex="-1" aria-labelledby="lonelyForecastLabel" aria-hidden="true">
+          <div class=`"modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="lonelyForecastLabel">고독사 예측 추세</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+              </div>
+              <div class="modal-body">
+                <canvas id="lonelyForecastChart"></canvas>
+              </div>
             </div>
+          </div>
         </div>
-    </div>
+`    </div>
 
 
     <!-- 🔹 구별 TOP5 섹션 -->
@@ -167,65 +167,88 @@
         </div>
     </div>
 </div>
+<!-- 🔸 구별 노인 인구 예측 모달 -->
+<div class="modal fade" id="forecastModal" tabindex="-1"
+     aria-labelledby="forecastModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="forecastModalLabel">예측 결과</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                aria-label="닫기"></button>
+      </div>
+      <div class="modal-body">
+        <p id="forecast-modal-message" class="text-muted mb-2"></p>
+
+        <!-- 실측/예측 값 테이블 -->
+        <div class="table-responsive mb-3">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>구분</th>
+                <th>연도</th>
+                <th>노인 인구</th>
+              </tr>
+            </thead>
+            <tbody id="forecast-modal-body">
+              <!-- JS에서 렌더링 -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 실측/예측 선형 그래프 -->
+        <div>
+          <canvas id="forecast-chart" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 
-    <!-- 🔹 Forecast Section -->
-    <div class="card shadow-sm mt-4">
-        <div class="card-body">
-            <h5 class="fw-bold mb-3">구별 예측 (노인 인구)</h5>
-            <div class="row g-3">
-                <div class="col-md-6 col-lg-4">
-                    <label for="forecast-region-input" class="form-label">구 입력</label>
-                    <input id="forecast-region-input"
-                           type="text"
-                           class="form-control"
-                           placeholder="예: 강남구">
-                    <small class="text-muted">
-                        예측할 구 이름을 정확히 입력한 뒤, 아래 버튼을 눌러주세요.
-                    </small>
-                    <button id="btn-load-forecast" class="btn btn-primary mt-2">
-                        예측 불러오기
-                    </button>
+<!-- 🔹 Forecast Section (노인 인구 / 고독사 2컬럼) -->
+<div class="row mt-4">
+    <!-- 왼쪽: 구별 예측 (노인 인구) -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="fw-bold mb-3">구별 예측 (노인 인구)</h5>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label for="forecast-region-input" class="form-label">구 입력</label>
+                        <input id="forecast-region-input"
+                               type="text"
+                               class="form-control"
+                               placeholder="예: 강남구">
+                        <small class="text-muted">
+                            예측할 구 이름을 정확히 입력한 뒤, 아래 버튼을 눌러주세요.
+                        </small>
+                        <button id="btn-load-forecast" class="btn btn-primary mt-2">
+                            예측 불러오기
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-</div>  <!-- /.container -->
-
-<!-- 🔹 Forecast Modal -->
-<div class="modal fade" id="forecastModal" tabindex="-1" aria-labelledby="forecastModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="forecastModalLabel">예측 결과</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p id="forecast-modal-message" class="text-muted"></p>
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>구분</th>
-                                <th>연도</th>
-                                <th>노인 인구 수</th>
-                            </tr>
-                        </thead>
-                        <tbody id="forecast-modal-body">
-                            <!-- JS에서 렌더링 -->
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- 🔹 예측 라인 차트 -->
-                <div class="mt-3">
-                    <canvas id="forecast-chart" height="160"></canvas>
-                </div>
+    <!-- 오른쪽: 구별 예측 (고독사) - 추후 API 연동 -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="fw-bold mb-3">구별 예측 (고독사)</h5>
+                <p class="text-muted">
+                    고독사 예측 모델 연동 후, 특정 구의 고독사 발생 인원을 연도별로 예측해서 표시할 예정입니다.
+                </p>
+                <button class="btn btn-outline-danger btn-sm" onclick="openLonelyForecastModal('강남구')">
+                  고독사 예측 보기
+                </button>
+                <!-- 나중에 input + 버튼 + 모달 or 차트 추가 -->
             </div>
         </div>
     </div>
 </div>
+
 
 {% endblock %}
 
