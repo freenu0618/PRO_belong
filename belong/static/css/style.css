@@ -553,7 +553,7 @@ body {
     width: 100%;
     min-height: 260px;          /* 사진 영역 높이 */
     color: #fff;
-    background-size: cover;
+    background-size: contain;
     background-position: center;
     position: relative;
     display: flex;

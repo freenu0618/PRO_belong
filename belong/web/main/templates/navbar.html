@@ -1,4 +1,4 @@
-<nav class="navbar navbar-expand-lg navbar-dark">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
 
         <!-- 브랜드 로고 + 이름 -->
@@ -21,7 +21,7 @@
         </button>
 
         <!-- 메뉴 -->
-        <div class="collapse navbar-collapse" id="navbarNav">
+        <div class="collapse navbar-collapse bg-dark" id="navbarNav">
 
             <!-- 가운데 메뉴 -->
             <ul class="navbar-nav mx-auto">
@@ -55,7 +55,7 @@
                     <a class="nav-link nav-link-lg" href="{{ url_for('web.signup') }}">회원가입</a>
                 </li>
 
-                <!-- 로그인 (사용자명 + 로그아웃) -->
+                <!-- 로그인 상태 -->
                 <li class="nav-item d-none" id="nav-username">
                     <span class="nav-link nav-link-lg text-primary fw-bold"></span>
                 </li>
@@ -73,16 +73,22 @@
 </nav>
 
 <style>
-    /* 기업형 메뉴 글씨 스타일 */
+    /* PC 모드 전용 메뉴 글씨 색 */
     .nav-link-lg {
         font-size: 17px;
         font-weight: 600;
         padding: 8px 16px !important;
-        color: #444 !important;
+        color: #f1f1f1 !important;  /* PC에서도 white */
         transition: color .2s ease;
     }
     .nav-link-lg:hover {
-        color: #0057ff !important;
+        color: #66a2ff !important;
+    }
+
+    /* 모바일에서 collapse 배경 유지 */
+    .navbar-collapse {
+        background-color: #212529 !important;
+        padding: 10px;
     }
 </style>
 
