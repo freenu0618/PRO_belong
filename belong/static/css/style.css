@@ -474,7 +474,7 @@ body {
 
 /* Navbar 전체 크기 + 색감 */
 .navbar {
-    height: 90px !important;
+    height: 76px !important;
     padding: 0 40px !important;
     display: flex;
     align-items: center;
@@ -585,7 +585,7 @@ body {
     margin-top: 20px;
 }
 
-/* 페이지별 배경사진 (원하는 사진으로 교체해서 사용) */
+/* 페이지별 배경사진 */
 .hero-header-dashboard {
     background-image: url("{{ url_for('static', filename='image/dashboard.jpg') }}");
 }
@@ -606,13 +606,18 @@ body {
 
 /* 공통 헤더 래퍼 */
 .site-header {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100%;
     background-color: #212529;          /* 기존 bg-dark 색 */
 }
 
 /* navbar 자체는 투명으로 만들어서 헤더 배경이 비치게 */
 .site-header .navbar {
-    background-color: transparent !important;
-    box-shadow: none;
+    width: 100%;
+    margin: 0;
+    padding-left: 0;
+    padding-right: 0;
 }
 
 /* 기본 navbar 높이 */
@@ -628,36 +633,37 @@ body {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-
-    /* navbar 밑에 사진이 더 보이도록 아래 padding */
     padding-bottom: 120px;
 }
 
 /* 대시보드 헤더 배경 */
 .header-dashboard {
     background-image: url("/static/image/dashboard.jpg");
-    background-size: cover;      /* 이거 */
-    background-position: center; /* 이거 */
+    background-size: cover;
+    background-position: center;
     background-repeat: no-repeat;
-    height: 750px;               /* ← 이 값만 바꾸면 세로 폭 조절 */
+    height: 550px;
 }
 
 /* 지역별 예측 헤더 배경 */
 .header-region {
     background-image: url("/static/image/region.jpg");
-    background-size: cover;      /* 이거 */
-    background-position: center; /* 이거 */
+    background-size: cover;
+    background-position: center;
     background-repeat: no-repeat;
-    height: 750px;               
+    height: 550px;
 }
 
-/* 상관관계 분석 헤더 배경 */
+/* ================================
+   🔥 상관관계 분석 헤더 배경 (수정된 부분)
+   - 사진의 중앙 아래쪽 사람이 많은 부분이 가운데 보이도록 조정
+================================ */
 .header-corr {
     background-image: url("/static/image/corr.png");
-    background-size: cover;      /* 이거 */
-    background-position: center; /* 이거 */
+    background-size: cover;
+    background-position: 50% 30%;   /* ← 수정됨(중앙보다 살짝 위쪽 보이도록) */
     background-repeat: no-repeat;
-    height: 750px;      
+    height: 550px;
 }
 
 /* 사진 헤더에서는 navbar 조금 더 두껍게 */
