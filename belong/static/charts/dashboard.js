@@ -119,7 +119,7 @@ async function initDashboard() {
 async function loadElderlyTrend() {
   try {
     const json = await fetchJson(
-      "/api/elderly/trend?start_year=2017&end_year=2050"
+      "/api/elderly/trend?start_year=2017&end_year=2035"
     );
     const items = json.items || json.data || [];
 
@@ -425,7 +425,7 @@ async function onLonelyRegionCheckboxChange(event) {
 async function loadLonelyTrend() {
   try {
     const json = await fetchJson(
-      "/api/lonely/trend?start_year=2017&end_year=2050"
+      "/api/lonely/trend?start_year=2017&end_year=2035"
     );
     const items = json.items || json.data || [];
 
@@ -508,7 +508,7 @@ async function loadTop5Tables() {
   try {
     // 노인 인구 증가율 TOP5
     const elderlyRatioJson = await fetchJson(
-      "/api/elderly/top5?base_year=2023&target_year=2050&by=ratio"
+      "/api/elderly/top5?base_year=2023&target_year=2035&by=ratio"
     );
     const elderlyRatioItems = elderlyRatioJson.items || elderlyRatioJson.data || [];
     renderTop5Table(
@@ -523,7 +523,7 @@ async function loadTop5Tables() {
 
     // 노인 인구 TOP5 (2050년 인구 기준)
     const elderlyAbsJson = await fetchJson(
-      "/api/elderly/top5?base_year=2023&target_year=2050&by=absolute"
+      "/api/elderly/top5?base_year=2023&target_year=2035&by=absolute"
     );
     const elderlyAbsItems = elderlyAbsJson.items || elderlyAbsJson.data || [];
     renderTop5Table(
@@ -535,7 +535,7 @@ async function loadTop5Tables() {
 
     // 고독사 증가율 TOP5
     const lonelyRatioJson = await fetchJson(
-      "/api/lonely/top5?base_year=2023&target_year=2050&by=ratio"
+      "/api/lonely/top5?base_year=2023&target_year=2035&by=ratio"
     );
     const lonelyRatioItems = lonelyRatioJson.items || lonelyRatioJson.data || [];
     renderTop5Table(
@@ -547,7 +547,7 @@ async function loadTop5Tables() {
 
     // 고독사 수 TOP5 (2050년 값 기준)
     const lonelyAbsJson = await fetchJson(
-      "/api/lonely/top5?base_year=2023&target_year=2050&by=absolute"
+      "/api/lonely/top5?base_year=2023&target_year=2035&by=absolute"
     );
     const lonelyAbsItems = lonelyAbsJson.items || lonelyAbsJson.data || [];
     renderTop5Table(
