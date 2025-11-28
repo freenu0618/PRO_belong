@@ -12,7 +12,7 @@ class ElderlyService:
         self.elderly_repo = elderly_repo
 
     # 1) 추세 그래프용
-    def get_total_trend(self, start_year: int = 2017, end_year: int = 2050) -> Dict:
+    def get_total_trend(self, start_year: int = 2017, end_year: int = 2035) -> Dict:
         """
         전체 연도별 노인 인구 추세 데이터.
         프론트에서 라인차트로 바로 쓸 수 있게 정제해서 반환.

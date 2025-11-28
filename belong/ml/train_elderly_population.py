@@ -16,7 +16,7 @@ from belong.models.region import Region
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = BASE_DIR / "elderly_population_model.pkl"
 
-
+FORECAST_LAST_YEAR = 2035
 def load_timeseries(start_year: int = 2017, end_year: int = 2023) -> pd.DataFrame:
     """
     ELDERLY_HISTORY(실측, is_forecast='N')에서 노인 인구 타임시리즈 로딩.
@@ -107,7 +107,7 @@ def make_forecast_df(
     ts: pd.DataFrame,
     models: dict,
     start_year: int = 2017,
-    end_year: int = 2050,
+    end_year: int = FORECAST_LAST_YEAR,
 ) -> pd.DataFrame:
     """
     학습된 per-region 선형 모델을 이용해 start_year~end_year 예측 DataFrame 생성.
@@ -197,10 +197,10 @@ def main():
         # 3) pkl 저장
         save_models(models)
 
-        # 4) 2017~2050 예측 DataFrame 생성
-        df_future = make_forecast_df(ts, models, start_year=2017, end_year=2050)
+        # 4) 2017~2035 예측 DataFrame 생성
+        df_future = make_forecast_df(ts, models, start_year=2017, end_year=2035)
 
-        # 5) 2024~2050 구간을 ELDERLY_HISTORY(is_forecast='Y')에 upsert
+        # 5) 2024~2035 구간을 ELDERLY_HISTORY(is_forecast='Y')에 upsert
         save_forecast_to_db(df_future, forecast_start_year=2024)
 
 

@@ -25,7 +25,7 @@ from belong.models.region import Region
 # ----------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = BASE_DIR / "lonely_death_model.pkl"
-
+FORECAST_LAST_YEAR = 2035
 
 # ----------------------------------------------------------------------
 # 1) DB → pandas DataFrame 로딩
