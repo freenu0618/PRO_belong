@@ -12,6 +12,7 @@ ELDERLY_STATS 기반 다중선형회귀(Multiple Linear Regression)로
 
 from typing import List, Dict
 
+import numpy as np
 import pandas as pd
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_squared_error, r2_score
@@ -76,12 +77,9 @@ def build_features(df: pd.DataFrame):
 
     # year 중심화 (마지막 실측 연도 기준)
     df["year_centered"] = df["year"] - ACTUAL_LAST_YEAR
-    # 2차항 추가 (완만한 곡선층)
-    df['year_centered_sq'] = df['year_centered']**2
 
     numeric_cols = [
         "year_centered",
-        "year_centered_sq",
         "elderly_population",
         "aging_index",
         "single_household_ratio",
@@ -183,8 +181,6 @@ def build_future_design_matrix(future_df: pd.DataFrame, model):
     """
     df = future_df.copy()
     df["year_centered"] = df["year"] - ACTUAL_LAST_YEAR
-
-    df["year_centered_sq"] = df["year_centered"] ** 2
     # 학습 때 사용한 numeric 컬럼 이름 재사용
     numeric_cols = model.numeric_columns_
 
@@ -223,12 +219,18 @@ def save_predictions_to_db(future_df: pd.DataFrame, y_pred) -> None:
 
     print("[INFO] 새로운 ml_linear_2 예측 INSERT ...")
     for (idx, row), pred in zip(future_df.iterrows(), y_pred):
+        # 음수 예측은 0으로 클램프
+        value = float(pred)
+        if value < 0:
+            value = 0.0
+
         pr = PredictionResult(
             region_name=row["region_name"],
             year=int(row["year"]),
-            prediction_value=float(pred),
+            prediction_value=value,
             source=ML_SOURCE,
         )
+
         db.session.add(pr)
 
     db.session.commit()
