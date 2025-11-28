@@ -59,7 +59,7 @@ async function updateForecastChart(region) {
 let elderlyTrendChart = null;
 
 async function renderElderlyTrendChart() {
-  const items = await fetchElderlyTrend(2017, 2050);
+  const items = await fetchElderlyTrend(2017, 2035);
 
   if (!items.length) return;
 

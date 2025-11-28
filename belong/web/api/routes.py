@@ -55,7 +55,7 @@ def api_error(status_code: int, code: str, message: str, **details):
 # ---- 입력값 Validation 설정 ----
 # 상수 설정해서 최소연도, 최대 연도 설정
 MIN_YEAR = 2017
-MAX_YEAR = 2050
+MAX_YEAR = 2035
 
 
 def _validate_year(year: int):
@@ -408,7 +408,7 @@ def get_prediction_history(region: str):
 @api_bp.get("/elderly/trend")
 def api_elderly_trend():
     """
-    GET /api/elderly/trend?start_year=2017&end_year=2050
+    GET /api/elderly/trend?start_year=2017&end_year=2035
 
     응답:
     {
@@ -420,7 +420,7 @@ def api_elderly_trend():
     }
     """
     start_year = request.args.get("start_year", type=int) or 2017
-    end_year = request.args.get("end_year", type=int) or 2050
+    end_year = request.args.get("end_year", type=int) or 2035
 
     items = forecast_service.get_total_trend(start_year, end_year)
     return jsonify({"status": "success", "items": items})
@@ -431,7 +431,7 @@ def api_elderly_trend():
 @api_bp.get("/elderly/top5")
 def api_elderly_top5():
     """
-    GET /api/elderly/top5?base_year=2023&target_year=2050&by=ratio|absolute
+    GET /api/elderly/top5?base_year=2023&target_year=2035&by=ratio|absolute
     """
     base_year = request.args.get("base_year", type=int)
     target_year = request.args.get("target_year", type=int)
@@ -462,7 +462,7 @@ def elderly_regions_snapshot():
     """
     특정 연도의 구별 노인 인구 리스트 API.
     예:
-      GET /api/elderly/regions?year=2050
+      GET /api/elderly/regions?year=2035
     """
     elderly_service = current_app.config["services"]["elderly_service"]
 
@@ -574,10 +574,10 @@ def api_logout():
 @api_bp.get("/lonely/trend")
 def api_lonely_trend():
     """
-    GET /api/lonely/trend?start_year=2017&end_year=2050
+    GET /api/lonely/trend?start_year=2017&end_year=2035
     """
     start_year = request.args.get("start_year", type=int) or 2017
-    end_year = request.args.get("end_year", type=int) or 2050
+    end_year = request.args.get("end_year", type=int) or 2035
 
     items = lonely_forecast_service.get_trend(start_year, end_year)
     return jsonify({"status": "success", "items": items})
@@ -632,7 +632,7 @@ def api_lonely_forecast():
 @api_bp.get("/lonely/top5")
 def api_lonely_top5():
     """
-    GET /api/lonely/top5?base_year=2023&target_year=2050&by=ratio|absolute
+    GET /api/lonely/top5?base_year=2023&target_year=2035&by=ratio|absolute
     """
     base_year = request.args.get("base_year", type=int)
     target_year = request.args.get("target_year", type=int)

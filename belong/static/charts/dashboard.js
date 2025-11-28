@@ -119,7 +119,7 @@ async function initDashboard() {
 async function loadElderlyTrend() {
   try {
     const json = await fetchJson(
-      "/api/elderly/trend?start_year=2017&end_year=2050"
+      "/api/elderly/trend?start_year=2017&end_year=2035"
     );
     const items = json.items || json.data || [];
 
@@ -425,7 +425,7 @@ async function onLonelyRegionCheckboxChange(event) {
 async function loadLonelyTrend() {
   try {
     const json = await fetchJson(
-      "/api/lonely/trend?start_year=2017&end_year=2050"
+      "/api/lonely/trend?start_year=2017&end_year=2035"
     );
     const items = json.items || json.data || [];
 

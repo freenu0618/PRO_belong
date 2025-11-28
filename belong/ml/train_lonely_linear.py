@@ -13,7 +13,7 @@ ELDERLY_STATS 기반 다중선형회귀(Multiple Linear Regression)로
 from typing import List, Dict
 
 import pandas as pd
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_squared_error, r2_score
 
 from belong.app import create_app
@@ -26,8 +26,8 @@ from belong.models.prediction_result import PredictionResult
 # 설정 값
 # -------------------------------
 ACTUAL_LAST_YEAR = 2023       # 실측 끝나는 연도 (ELDERLY_STATS 기준)
-FORECAST_LAST_YEAR = 2050     # 예측 마지막 연도
-ML_SOURCE = "ml_linear"       # PREDICTION_RESULT.source 값
+FORECAST_LAST_YEAR = 2035     # 예측 마지막 연도
+ML_SOURCE = "ml_linear_v2"       # PREDICTION_RESULT.source 값
 
 
 # -------------------------------
@@ -76,9 +76,12 @@ def build_features(df: pd.DataFrame):
 
     # year 중심화 (마지막 실측 연도 기준)
     df["year_centered"] = df["year"] - ACTUAL_LAST_YEAR
+    # 2차항 추가 (완만한 곡선층)
+    df['year_centered_sq'] = df['year_centered']**2
 
     numeric_cols = [
         "year_centered",
+        "year_centered_sq",
         "elderly_population",
         "aging_index",
         "single_household_ratio",
@@ -102,7 +105,7 @@ def build_features(df: pd.DataFrame):
 # -------------------------------
 # 3) 학습 + 간단 평가 (2023년 test)
 # -------------------------------
-def train_and_evaluate(df: pd.DataFrame) -> LinearRegression:
+def train_and_evaluate(df: pd.DataFrame) -> Ridge:
     """
     2017~2022 → train, 2023 → test 로 성능 확인 후
     전체(<=2023) 데이터로 다시 학습한 모델을 반환.
@@ -115,7 +118,7 @@ def train_and_evaluate(df: pd.DataFrame) -> LinearRegression:
     X_train, y_train = X[train_mask], y[train_mask]
     X_test, y_test = X[test_mask], y[test_mask]
 
-    model = LinearRegression()
+    model = Ridge(alpha=1.0, random_state=42)
     model.fit(X_train, y_train)
 
     if len(X_test) > 0:
@@ -174,13 +177,14 @@ def build_future_feature_df(df: pd.DataFrame) -> pd.DataFrame:
     return future_df
 
 
-def build_future_design_matrix(future_df: pd.DataFrame, model: LinearRegression):
+def build_future_design_matrix(future_df: pd.DataFrame, model):
     """
     미래 연도용 DataFrame → 학습 때와 동일한 컬럼 구성으로 X_future 생성.
     """
     df = future_df.copy()
     df["year_centered"] = df["year"] - ACTUAL_LAST_YEAR
 
+    df["year_centered_sq"] = df["year_centered"] ** 2
     # 학습 때 사용한 numeric 컬럼 이름 재사용
     numeric_cols = model.numeric_columns_
 
@@ -217,7 +221,7 @@ def save_predictions_to_db(future_df: pd.DataFrame, y_pred) -> None:
     )
     db.session.commit()
 
-    print("[INFO] 새로운 ml_linear 예측 INSERT ...")
+    print("[INFO] 새로운 ml_linear_2 예측 INSERT ...")
     for (idx, row), pred in zip(future_df.iterrows(), y_pred):
         pr = PredictionResult(
             region_name=row["region_name"],

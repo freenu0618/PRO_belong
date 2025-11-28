@@ -10,7 +10,7 @@ class LonelyService:
     def __init__(self, repo: LonelyStatsRepository):
         self.repo = repo
 
-    def get_total_trend(self, start_year: int = 2017, end_year: int = 2050) -> Dict:
+    def get_total_trend(self, start_year: int = 2017, end_year: int = 2035) -> Dict:
         items = self.repo.get_total_trend(start_year, end_year)
         return {
             "start_year": start_year,
