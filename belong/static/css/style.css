@@ -553,7 +553,11 @@ body {
     width: 100%;
     min-height: 260px;          /* 사진 영역 높이 */
     color: #fff;
+<<<<<<< HEAD
     background-size: contain;
+=======
+    background-size: cover;
+>>>>>>> c9827a1 (저장)
     background-position: center;
     position: relative;
     display: flex;

@@ -9,9 +9,9 @@ from belong.models.prediction_result import PredictionResult
 # 실측 데이터가 존재하는 마지막 연도
 ACTUAL_LAST_YEAR = 2023
 
-# PREDICTION_RESULT.source 에 사용되는 고독사 예측 식별자
-LONELY_SOURCE = "lonely_death"
-
+# ✅ PREDICTION_RESULT.source 에 사용되는 고독사 예측 식별자
+#    실제 DB에 맞게 'rule_based' 로 통일
+LONELY_SOURCE = "rule_based"
 
 class LonelyStatsRepository:
     """

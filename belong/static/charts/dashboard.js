@@ -147,7 +147,7 @@ function renderElderlyTrendChart() {
   // 0) 전체 합계 라인
   if (showTotal) {
     datasets.push(
-      createLineDataset("서울 전체 독거노인 인구", totalSeries, "#4e73df", false)
+      createLineDataset("서울 전체 노인 인구", totalSeries, "#4e73df", false)
     );
   }
 
@@ -659,7 +659,7 @@ async function openElderlyForecastModal(region) {
         maintainAspectRatio: false,
         scales: {
           x: { type: "linear", title: { display: true, text: "연도" } },
-          y: { title: { display: true, text: "독거노인 인구" } }
+          y: { title: { display: true, text: "노인 인구" } }
         },
         plugins: {
           legend: { position: "bottom" }
