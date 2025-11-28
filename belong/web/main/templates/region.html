@@ -13,7 +13,14 @@
             <input type="text" class="form-control mb-3" id="region-input" placeholder="예: 강남구">
 
             <label class="fw-bold">예측 연도</label>
-            <input type="number" class="form-control mb-3" id="year-input" placeholder="예: 2026">
+
+            <!-- 🔥 수정됨: 입력 가능 연도 범위 제한 -->
+            <input type="number"
+                   class="form-control mb-3"
+                   id="year-input"
+                   placeholder="예: 2026"
+                   min="2026"
+                   max="2035">
 
             <button type="submit" class="btn btn-primary w-100 mt-3">
                 예측하기
@@ -33,7 +40,15 @@ document.getElementById("region-form").addEventListener("submit", function(e){
     e.preventDefault();
 
     const region = document.getElementById("region-input").value.trim();
-    const year = document.getElementById("year-input").value.trim();
+    const yearInput = document.getElementById("year-input");
+    let year = parseInt(yearInput.value.trim(), 10);
+
+    // 🔥 입력 가능 범위: 2026 ~ 2035
+    if (year < 2026) year = 2026;
+    if (year > 2035) year = 2035;
+
+    // 값 보정 후 input에 다시 지정
+    yearInput.value = year;
 
     if (!region || !year) {
         document.getElementById("region-error").innerText = "지역명과 연도를 모두 입력해주세요.";
