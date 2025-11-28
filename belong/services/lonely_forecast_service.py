@@ -14,7 +14,7 @@ from belong.models.prediction_result import (
 
 # 고독사 실측 마지막 연도
 ACTUAL_LAST_YEAR = 2023
-# 현재 DB에 저장된 예측 source
+# 지금 DB에 저장된 source 값 (rule_based)
 LONELY_SOURCE = "rule_based"
 
 

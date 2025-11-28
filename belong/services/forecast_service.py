@@ -14,6 +14,9 @@ ACTUAL_LAST_YEAR = 2023
 
 
 class ForecastService:
+    def __init__(self, repo=None):
+        # 예전 구조와 호환용 (repo를 넘겨줘도 지금 버전에서는 사용 안 함)
+        self.repo = repo
     """
     ELDERLY_HISTORY 기반 노인 인구 실측/예측 서비스.
 
@@ -22,9 +25,6 @@ class ForecastService:
     - forecast_region:/api/elderly/forecast/<region>
     """
 
-    def __init__(self, repo=None):
-        # 예전 구조와 호환용 (repo를 넘겨줘도 지금 버전에서는 사용 안 함)
-        self.repo = repo
     def get_total_trend(self, start_year: int, end_year: int) -> List[Dict[str, Any]]:
         """
         전체 서울 노인 인구 추세.
