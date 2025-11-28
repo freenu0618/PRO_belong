@@ -33,6 +33,11 @@ const SEOUL_REGIONS = [
 
 // 전체(서울 합계) 라인 표시 여부
 let showTotal = true;
+// 🔹 고독사 전체 추세 + 구별 예측 캐시
+let lonelyMainTrend = [];                    // /api/lonely/trend 데이터 (서울 전체)
+const selectedLonelyRegions = new Set();     // 체크된 구 (고독사)
+const lonelyRegionSeriesCache = {};          // { region: [{year, value}, ...] }
+let showLonelyTotal = true;                  // 서울 전체 라인 표시 여부
 
 // ------------------------------
 // 유틸 함수들
@@ -269,6 +274,61 @@ function initRegionCheckboxes() {
     container.appendChild(wrapper);
   });
 }
+function initLonelyRegionCheckboxes() {
+  const container = document.getElementById("lonely-region-checkbox-container");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  // 0) 전체(서울 25개 구 합계) 체크박스
+  const allWrapper = document.createElement("div");
+  allWrapper.className = "form-check form-check-inline mb-1 me-3";
+
+  const allInput = document.createElement("input");
+  allInput.type = "checkbox";
+  allInput.className = "form-check-input";
+  allInput.id = "chk-lonely-all";
+  allInput.checked = true;
+
+  allInput.addEventListener("change", (e) => {
+    showLonelyTotal = e.target.checked;
+    rebuildLonelyTrendChart();
+  });
+
+  const allLabel = document.createElement("label");
+  allLabel.className = "form-check-label fw-bold";
+  allLabel.setAttribute("for", "chk-lonely-all");
+  allLabel.textContent = "서울 전체";
+
+  allWrapper.appendChild(allInput);
+  allWrapper.appendChild(allLabel);
+  container.appendChild(allWrapper);
+
+  // 1) 25개 구 체크박스
+  SEOUL_REGIONS.forEach((name) => {
+    const id = `chk-lonely-region-${name}`;
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "form-check form-check-inline mb-1";
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.className = "form-check-input";
+    input.id = id;
+    input.value = name;
+
+    input.addEventListener("change", onLonelyRegionCheckboxChange);
+
+    const label = document.createElement("label");
+    label.className = "form-check-label";
+    label.setAttribute("for", id);
+    label.textContent = name;
+
+    wrapper.appendChild(input);
+    wrapper.appendChild(label);
+    container.appendChild(wrapper);
+  });
+}
 
 // 체크박스 change 핸들러
 async function onRegionCheckboxChange(event) {
@@ -314,6 +374,50 @@ async function onRegionCheckboxChange(event) {
 
   renderElderlyTrendChart();
 }
+
+async function onLonelyRegionCheckboxChange(event) {
+  const region = event.target.value;
+
+  if (event.target.checked) {
+    selectedLonelyRegions.add(region);
+
+    // 캐시에 없으면 API에서 한 번만 가져오기
+    if (!lonelyRegionSeriesCache[region]) {
+      try {
+        const url = `/api/lonely/forecast?region=${encodeURIComponent(region)}`;
+        const res = await fetch(url);
+        const json = await res.json();
+
+        if (!res.ok || (json.status && json.status.toLowerCase() === "error")) {
+          console.warn("lonely forecast API error:", region, json);
+          alert(`[${region}] 고독사 예측 데이터를 불러오지 못했습니다.`);
+          selectedLonelyRegions.delete(region);
+          event.target.checked = false;
+          return;
+        }
+
+        const payload = json.data || json;
+        const history = payload.history || [];
+        const forecast = payload.forecast || [];
+        const all = [...history, ...forecast].sort((a, b) => a.year - b.year);
+
+        // [{year, value}, ...]
+        lonelyRegionSeriesCache[region] = all;
+      } catch (err) {
+        console.error("lonely forecast fetch error:", err);
+        alert(`[${region}] 고독사 예측 데이터를 불러오지 못했습니다.`);
+        selectedLonelyRegions.delete(region);
+        event.target.checked = false;
+        return;
+      }
+    }
+  } else {
+    selectedLonelyRegions.delete(region);
+  }
+
+  rebuildLonelyTrendChart();
+}
+
 
 // ------------------------------
 // 4) 고독사 추세 (메인 차트)
