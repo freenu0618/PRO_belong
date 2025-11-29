@@ -57,7 +57,7 @@ class PredictionService:
 
         history = features["history"]
         y_pred = None
-        source = "rule_based"
+        source = "ml_linear_rate_v0_3"
 
         # 1) 모델 예측 시도
         if self.model is not None and hasattr(self.model, "predict"):
