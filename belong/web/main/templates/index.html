@@ -3,8 +3,8 @@
 
 {% block content %}
 
-<!-- Fullscreen Carousel -->
-<div id="mainCarousel" class="carousel slide" data-bs-ride="carousel">
+<!-- 1. Fullscreen Carousel -->
+<div id="mainCarousel" class="carousel slide hero-carousel" data-bs-ride="carousel">
 
   <div class="carousel-inner">
     <!-- 1번 슬라이드: c1 -->
@@ -52,73 +52,140 @@
   </button>
 </div>
 
+<section class="hero-grid">
 
+  <!-- ① 위-왼쪽: 메뉴1, 메뉴2 -->
+  <div class="hero-cell hero-menu hero-menu-top">
+    <p class="hero-kicker">
+      Belong은<br>
+      이런 데이터를 다룹니다:
+    </p>
 
-<!-- 기능 카드 섹션 -->
-<section class="main-wrapper">
-  <div class="container">
+    <div class="hero-list">
+      <!-- 메뉴 1: 고독사 리스크 분석 (대시보드로 이동) -->
+      <button type="button"
+              class="hero-item is-active"
+              data-group="top"
+              data-image="{{ url_for('static', filename='image/c1.jpg') }}"
+              data-target="{{ url_for('web.dashboard') }}">
+        고독사 리스크 분석<span class="hero-arrow">›</span>
+      </button>
 
-    <div class="row mb-5 text-center">
-      <h2 class="fw-bold">Belong 기능 안내</h2>
-      <p class="text-muted">서울 25개 구 데이터 기반 분석/예측 서비스</p>
+      <!-- 메뉴 2: 아직 기능 없음, 일단 자리만 -->
+      <button type="button"
+              class="hero-item"
+              data-group="top"
+              data-image="{{ url_for('static', filename='image/c2.jpg') }}">
+        메뉴 2<span class="hero-arrow">›</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ② 위-오른쪽: 메뉴1/2 이미지 영역 -->
+  <div class="hero-cell hero-image hero-image-top"
+       style="background-image: url('{{ url_for('static', filename='image/c1.jpg') }}');">
+  </div>
+
+  <!-- ③ 아래-왼쪽: 메뉴3/4 이미지 영역 -->
+  <div class="hero-cell hero-image hero-image-bottom"
+       style="background-image: url('{{ url_for('static', filename='image/c3.jpg') }}');">
+  </div>
+
+  <!-- ④ 아래-오른쪽: 메뉴3, 메뉴4 -->
+  <div class="hero-cell hero-menu hero-menu-bottom">
+    <div class="hero-list hero-list-bottom">
+      <button type="button"
+              class="hero-item"
+              data-group="bottom"
+              data-image="{{ url_for('static', filename='image/c3.jpg') }}">
+        <span class="hero-arrow"><</span>메뉴 3
+      </button>
+
+      <button type="button"
+              class="hero-item"
+              data-group="bottom"
+              data-image="{{ url_for('static', filename='image/c1.jpg') }}">
+        <span class="hero-arrow"><</span>메뉴 4
+      </button>
+    </div>
+  </div>
+
+</section>
+
+<!-- 3. 아래 카드 2개 (소개용) -->
+<section class="container py-5">
+  <div class="row g-4">
+    <div class="col-12 col-md-6">
+      <div class="card h-100 shadow-sm border-0 feature-card">
+        <div class="card-body p-4">
+          <h5 class="card-title">내용1</h5>
+          <p class="card-text text-muted mb-0">
+            첫 번째 내용 설명 글이 들어갑니다.
+            (예: “서울 전체 고독사/노인 인구를 한눈에 보는 대시보드로 이동합니다.”)
+          </p>
+        </div>
+      </div>
     </div>
 
-    <div class="row">
-
-      <!-- Dashboard -->
-      <div class="col-md-4 mb-4">
-        <div class="main-card main-card-has-bg"
-             style="background-image: url({{ url_for('static', filename='image/s1.png') }});">
-          <div class="main-card-img-overlay d-flex flex-column justify-content-end">
-            <div class="main-card-body bg-white bg-opacity-75 p-3 rounded">
-              <h4 class="fw-bold">
-                <a href="{{ url_for('web.dashboard') }}" class="text-dark text-decoration-none">
-                  구별 현황 대시보드
-                </a>
-              </h4>
-              <p class="text-muted">서울 25개 구 독거노인 현황 종합 분석</p>
-            </div>
-          </div>
+    <div class="col-12 col-md-6">
+      <div class="card h-100 shadow-sm border-0 feature-card">
+        <div class="card-body p-4">
+          <h5 class="card-title">내용2</h5>
+          <p class="card-text text-muted mb-0">
+            두 번째 내용 설명 글이 들어갑니다.
+            (예: “관심 구를 선택해 2035년까지의 고독사 위험 예측을 확인해보세요.”)
+          </p>
         </div>
       </div>
-
-      <!-- Region -->
-      <div class="col-md-4 mb-4">
-        <div class="main-card main-card-has-bg"
-             style="background-image: url({{ url_for('static', filename='image/s2.png') }});">
-          <div class="main-card-img-overlay d-flex flex-column justify-content-end">
-            <div class="main-card-body bg-white bg-opacity-75 p-3 rounded">
-              <h4 class="fw-bold">
-                <a href="{{ url_for('web.region', region='강남구') }}" class="text-dark text-decoration-none">
-                  지역별 독거노인 수 예측
-                </a>
-              </h4>
-              <p class="text-muted">구별 데이터 기반 단기/중기 예측</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Correlation -->
-      <div class="col-md-4 mb-4">
-        <div class="main-card main-card-has-bg"
-             style="background-image: url({{ url_for('static', filename='image/s3.png') }});">
-          <div class="main-card-img-overlay d-flex flex-column justify-content-end">
-            <div class="main-card-body bg-white bg-opacity-75 p-3 rounded">
-              <h4 class="fw-bold">
-                <a href="{{ url_for('web.correlation') }}" class="text-dark text-decoration-none">
-                  독거노인 상관관계 분석
-                </a>
-              </h4>
-              <p class="text-muted">변수 ↔ 독거노인 증가율 관계 분석</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
     </div>
-
   </div>
 </section>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const heroItems = document.querySelectorAll('.hero-item');
+  const topImage  = document.querySelector('.hero-image-top');
+  const bottomImage = document.querySelector('.hero-image-bottom');
+
+  if (!heroItems.length) return;
+
+  heroItems.forEach(item => {
+    const group = item.dataset.group;      // "top" 또는 "bottom"
+    const img   = item.dataset.image;
+    const target = item.dataset.target;    // 메뉴1에만 있음
+
+    // hover / focus 시 이미지 교체 + 텍스트 강조
+    const activate = () => {
+      // 같은 그룹 안에서만 is-active 처리
+      heroItems.forEach(i => {
+        if (i.dataset.group === group) {
+          i.classList.remove('is-active');
+        }
+      });
+      item.classList.add('is-active');
+
+      if (img) {
+        if (group === 'top' && topImage) {
+          topImage.style.backgroundImage = `url('${img}')`;
+        } else if (group === 'bottom' && bottomImage) {
+          bottomImage.style.backgroundImage = `url('${img}')`;
+        }
+      }
+    };
+
+    item.addEventListener('mouseenter', activate);
+    item.addEventListener('focus', activate);
+
+    // data-target 있으면 클릭 시 해당 페이지로 이동 (고독사 리스크 분석)
+    if (target) {
+      item.addEventListener('click', () => {
+        window.location.href = target;
+      });
+    }
+  });
+});
+</script>
 {% endblock %}

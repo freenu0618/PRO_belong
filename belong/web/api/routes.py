@@ -6,7 +6,7 @@ from belong.services.correlation_service import CorrelationService
 from belong.repositories.elderly_repo import SqlAlchemyElderlyHistoryRepository
 from belong.models.region import Region
 from belong.extensions import db
-from belong.repositories.prediction_repo import PredictionRepository
+from belong.repositories import prediction_repo
 from belong.services.lonely_forecast_service import LonelyForecastService
 import math
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -288,29 +288,16 @@ def elderly_correlation():
 
     return jsonify({"status": "success", "data": data})
 
-@api_bp.get("/predictions/<region>/<int:year>")
-def get_prediction(region: str, year: int):
-    """
-    예: GET /api/predictions/강남구/2025
-    → 예측만 수행 (저장은 안 해도 됨)
-    """
-    ok, err = _validate_year(year)
-    if not ok:
-        return api_error(400, "invalid_input", "year is out of allowed range", **err)
 
-    services = current_app.config["services"]
-    prediction_service = services.get("prediction_service")
-    if prediction_service is None:
-        return api_error(500, "service_not_configured",
-                         "prediction_service is not configured")
+@api_bp.post("/predictions/<region>/<int:year>")
+def api_save_prediction(region, year):
+    body = request.get_json()
+    value = body.get("prediction_value")
+    source = body.get("source", "rule_based")
 
-    result = prediction_service.predict(region, year)
-    if result is None:
-        return api_error(404, "no_data",
-                         "no prediction data available for given region and year",
-                         region=region, year=year)
+    prediction_repo.upsert_prediction(region, year, value, source)
 
-    return jsonify(result)
+    return jsonify({"status": "success"})
 
 
 @api_bp.get("/elderly-stats/<region_code>/<int:start_year>/<int:end_year>")

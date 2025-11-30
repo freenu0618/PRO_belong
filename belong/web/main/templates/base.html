@@ -1,19 +1,24 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>{% block title %}Belong{% endblock %}</title>
+    <title>{% block title %}고독사 안심 프로젝트-Belong{% endblock %}</title>
 
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+      crossorigin="anonymous"
+    >
 
-    <!-- Global style -->
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
+  </head>
+  <body>
 
-<body>
 
     {# 🔹 공통 헤더 (여기만 배경 이미지만 바뀜) #}
     <header class="site-header {% block header_class %}{% endblock %}">
@@ -32,13 +37,15 @@
     </footer>
 
     <!-- JS (의존성 먼저, 우리 코드 나중) -->
-    <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+     <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+      crossorigin="anonymous"
+    ></script>
 
     <!-- 상관관계 지도 스크립트 (필요한 페이지에서만 실제로 동작) -->
     <script src="{{ url_for('static', filename='charts/correlation_map.js') }}"></script>
 
     {% block scripts %}{% endblock %}
-</body>
+  </body>
 </html>
