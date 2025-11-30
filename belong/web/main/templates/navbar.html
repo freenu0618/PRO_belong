@@ -1,7 +1,7 @@
 <nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container">
 
-        <!-- 브랜드 로고 + 이름 -->
+        <!-- 브랜드 로고 + 이름 (항상 홈으로 이동) -->
         <a class="navbar-brand d-flex align-items-center fw-bold" href="{{ url_for('web.index') }}">
             <img src="{{ url_for('static', filename='image/logo.png') }}"
                  alt="Belong Logo"
@@ -26,27 +26,37 @@
             <!-- 가운데 메뉴 -->
             <ul class="navbar-nav mx-auto">
 
+                <!-- 홈 -->
                 <li class="nav-item">
                     <a class="nav-link nav-link-lg" href="{{ url_for('web.index') }}">홈</a>
                 </li>
 
-                <li class="nav-item">
-                    <a class="nav-link nav-link-lg" href="{{ url_for('web.dashboard') }}">대시보드</a>
+                <!-- 대시보드 / 지역별 예측 / 상관관계 분석을 하나로 묶은 드롭다운 -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link nav-link-lg dropdown-toggle"
+                       href="#"
+                       id="navAnalysisDropdown"
+                       role="button"
+                       data-bs-toggle="dropdown"
+                       aria-expanded="false">
+                        고독사 리스크 서비스
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navAnalysisDropdown">
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('web.dashboard') }}">대시보드</a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('web.region') }}">지역별 예측</a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('web.correlation') }}">상관관계 분석</a>
+                        </li>
+                    </ul>
                 </li>
-
-                <li class="nav-item">
-                    <a class="nav-link nav-link-lg" href="{{ url_for('web.region') }}">지역별 예측</a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link nav-link-lg" href="{{ url_for('web.correlation') }}">상관관계 분석</a>
-                </li>
-
             </ul>
 
             <!-- 오른쪽 로그인/회원가입 -->
             <ul class="navbar-nav">
-
                 <!-- 비로그인 -->
                 <li class="nav-item" id="nav-login-link">
                     <a class="nav-link nav-link-lg" href="{{ url_for('web.login') }}">로그인</a>
