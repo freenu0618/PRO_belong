@@ -47,13 +47,24 @@ def load_regions(df: pd.DataFrame) -> dict:
     print(f"[REGION] CSV에서 발견된 구 개수: {len(region_names)}")
 
     inserted = 0
+
+    # 이미 있는 name은 그대로 두고, 없는 name만 id를 직접 부여해서 INSERT
+    # id는 1,2,3,... 순서로 사용 (REGION 테이블 비어 있다고 가정)
+    next_id = 1
+    existing_regions = {r.name: r.id for r in Region.query.all()}
+    if existing_regions:
+        # 혹시 모를 경우를 위해 이미 있는 id 중 최대값 + 1부터 시작
+        next_id = max(existing_regions.values()) + 1
+
     for name in region_names:
         existing = Region.query.filter_by(name=name).one_or_none()
         if existing:
             continue
-        region = Region(name=name)
+
+        region = Region(id=next_id, name=name)   # ✅ id 직접 지정
         db.session.add(region)
         inserted += 1
+        next_id += 1
 
     if inserted > 0:
         db.session.commit()
@@ -65,7 +76,6 @@ def load_regions(df: pd.DataFrame) -> dict:
     region_map = {r.name: r.id for r in regions}
     print(f"[REGION] 총 {len(region_map)}개 구 로딩됨.")
     return region_map
-
 
 # ----------------------------------------------------------------------
 # ELDERLY_STATS 로딩
@@ -82,6 +92,10 @@ def load_elderly_stats(df: pd.DataFrame, region_map: dict) -> None:
     inserted = 0
     updated = 0
 
+    # 🔹 이미 존재하는 id 들 중 최대값을 찾아서, 그 다음 번호부터 채운다
+    existing_ids = [row.id for row in ElderlyStats.query.with_entities(ElderlyStats.id)]
+    next_id = (max(existing_ids) + 1) if existing_ids else 1
+
     for _, row in df.iterrows():
         region_name = row["region"]
         year = int(row["year"])
@@ -97,9 +111,11 @@ def load_elderly_stats(df: pd.DataFrame, region_map: dict) -> None:
             stats = existing
             updated += 1
         else:
-            stats = ElderlyStats(region_id=region_id, year=year)
+            # ✅ 새로 만들 때 id를 직접 지정
+            stats = ElderlyStats(id=next_id, region_id=region_id, year=year)
             db.session.add(stats)
             inserted += 1
+            next_id += 1
 
         # ---- CSV → 모델 필드 매핑 (컬럼명 그대로 사용) ----
         stats.single_house_total = _to_int(row["single_house_total"])
@@ -126,10 +142,10 @@ def load_elderly_stats(df: pd.DataFrame, region_map: dict) -> None:
 
         stats.cpi_index = _to_float(row["cpi_index"])
 
-        stats.low_income_elderly_65_79_ratio = _to_float(
+        stats.low_inc_65_79_ratio = _to_float(
             row["low_income_elderly_65_79_ratio"]
         )
-        stats.low_income_elderly_80_over_ratio = _to_float(
+        stats.low_inc_80_plus_ratio = _to_float(
             row["low_income_elderly_80_over_ratio"]
         )
 

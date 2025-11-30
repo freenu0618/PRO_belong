@@ -1,675 +1,486 @@
-/* ===== Fixed Navbar 보정 ===== */
+/* ===============================
+   0. 기본 설정
+   =============================== */
+
+html, body {
+  height: 100%;
+}
+
 body {
-    padding-top: 0 !important;
-    margin-top: 0 !important;
-    background-color: #ffffff !important;
+  background-color: #ffffff;
+  color: #111827;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-/* ===== Uracle 스타일: Fullscreen Carousel ===== */
+/* 메인 영역 기본 높이 확보 */
+main {
+  min-height: calc(100vh - 80px);
+}
+
+
+/* ===============================
+   1. 캐러셀 (홈 상단)
+   =============================== */
+
+.hero-carousel {
+  margin-top: 0rem;
+}
+
 .main-slide {
-    position: relative;
-    height: 100vh;
-    background-size: cover;
-    background-position: center;
+  position: relative;
+  height: 50vh;
+  background-size: cover;
+  background-position: center;
+  text-align: center;
+  border-radius: 0rem;
+  overflow: hidden;
 }
 
-.main-slide:nth-child(1) {
-    background-image: url("https://source.unsplash.com/1600x900/?ai,tech");
-}
-.main-slide:nth-child(2) {
-    background-image: url("https://source.unsplash.com/1600x900/?seoul,city");
-}
-.main-slide:nth-child(3) {
-    background-image: url("https://source.unsplash.com/1600x900/?data,visualization");
+.carousel-inner {
+  position: relative;
+  height: 50vh;
 }
 
-.overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,0.55);
+.carousel-item .overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom right,
+    rgba(0, 0, 0, 0.55),
+    rgba(0, 0, 0, 0.25)
+  );
 }
 
+/* 글자 영역 */
 .carousel-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    color: white;
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  color: #ffffff;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+  padding: 1.5rem;
 }
 
 .carousel-content h1 {
-    font-size: 3.2rem;
-    font-weight: 700;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
 }
 
 .carousel-content p {
-    margin-top: 15px;
-    font-size: 1.2rem;
+  font-size: clamp(0.9rem, 1.3vw, 1.05rem);
+  opacity: 0.9;
+  margin-bottom: 0;
 }
 
 
+/* ===============================
+   2. 헤더 / 네비게이션
+   =============================== */
 
-/* =====================================================
-   🔵 메인 페이지 (index.html) 전용 카드 스타일
-   Prefix: .main-card
-===================================================== */
-.main-wrapper {
-    margin-top: 80px;
-}
-
-.main-card {
-    border: none;
-    overflow: hidden;
-    border-radius: 20px;
-    min-height: 450px;
-    transition: all 0.4s ease;
-    box-shadow: 0 0 12px rgba(0,0,0,0.2);
-}
-
-.main-card-has-bg {
-    width: 100%;
-    height: 100%;
-    background-size: cover;   /* 비율 유지하면서 카드 영역을 꽉 채움 */
-    background-position: center center;  /* 중앙 기준으로 잘라서 보여줌 */
-    background-repeat: no-repeat;
-}
-
-.main-card-has-bg:hover {
-    background-size: 130%;
-    transform: scale(0.98);
-}
-
-.main-card-img-overlay {
-    background: linear-gradient(0deg, rgba(255,186,33,0.3), rgba(255,186,33,1));
-    transition: background 0.4s ease;
-}
-
-.main-card:hover .main-card-img-overlay {
-    background: linear-gradient(0deg, rgba(255,186,33,0.6), rgba(255,186,33,1));
-}
-
-.main-card-body {
-    transition: margin 0.4s ease;
-}
-
-.main-card:hover .main-card-body {
-    margin-top: 20px;
-}
-
-
-
-/* =====================================================
-   🔵 대시보드 페이지 (dashboard.html) 전용 카드 스타일
-   Prefix: .dash-card
-===================================================== */
-
-.dash-card {
-    background-color: #fff;
-    border-radius: 10px;
-    border: none;
-    position: relative;
-    margin-bottom: 30px;
-    padding: 20px;
-    box-shadow: 
-        0 0.46875rem 2.1875rem rgba(90,97,105,0.1),
-        0 0.9375rem 1.40625rem rgba(90,97,105,0.1),
-        0 0.25rem 0.53125rem rgba(90,97,105,0.12),
-        0 0.125rem 0.1875rem rgba(90,97,105,0.1);
-}
-
-.l-bg-purple {
-    background: linear-gradient(to right, #7b4397, #dc2430) !important;
-    color: #fff;
-}
-.l-bg-blue {
-    background: linear-gradient(to right, #373b44, #4286f4) !important;
-    color: #fff;
-}
-.l-bg-green {
-    background: linear-gradient(to right, #0a504a, #38ef7d) !important;
-    color: #fff;
-}
-
-.card-icon-large i {
-    font-size: 75px;
-    opacity: 0.15;
-    position: absolute;
-    right: 20px;
-    top: 20px;
-}
-
-/* ================================
-   REGION DETAIL - PREDICT MODAL UI
-   (prefix: rdp-)
-================================ */
-
-.rdp-container {
-    display: flex;
-    justify-content: center;
-    margin-top: 30px;
-}
-
-.rdp-btn {
-    background-color: #198754;
-    color: #fff;
-}
-
-.rdp-modal-body {
-    border: none;
-    background-color: white;
-}
-
-.rdp-modal-content {
-    border: none;
-    background: transparent;
-}
-
-.rdp-close {
-    font-size: 28px;
-    font-weight: bold;
-    color: #000;
-}
-
-.rdp-form-control {
-    width: 80%;
-    height: 50px;
-    border-radius: 20px;
-}
-
-/* 지도 프레임(하얀 박스) - 가운데 정렬 */
-.map-frame {
-    width: 800px;                 /* 전체 박스 가로 (원하는 값으로) */
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    background-color: #ffffff;
-    padding: 20px;
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.03);
-    margin: 0 auto;
-}
-
-/* 지도 컨테이너: 왼쪽 정렬 + 세로 가운데 */
-#map-container {
-    width: 100%;
-    height: 500px;                 /* 컨테이너 세로 */
-    display: flex;
-    justify-content: center;   /* ✅ 왼쪽에 붙이기 */
-    align-items: center;           /* 세로 가운데 */
-    overflow: hidden;
-    padding-left: 0px;            /* 왼쪽 여백 (조절 가능) */
-}
-
-/* ✅ 여기서 실제 지도 크기를 고정 */
-#map-container svg {
-    width: 560px;                  /* ← 최소 줌일 때 느낌 나는 값으로 맞추기 */
-    height: auto;
-    display: block;
-    margin-left: -10px;
-    transform: none !important;    /* 혹시 남아있던 transform 강제로 제거 */
-    transform-origin: 50% 50% !important;
-}
-
-
-/* 반응형 - 화면 좁을 때는 조금 더 줄이기 */
-@media (max-width: 992px) {
-    .map-frame {
-        width: 100%;
-    }
-
-    .map-container {
-        height: 380px;
-    }
-}
-
-/* ===========================================
-   🔵 Dashboard Line Chart 고정 높이
-   (무한 세로 확장 방지)
-   prefix: .db-chart-wrapper
-=========================================== */
-
-#dashboard-chart {
-    width: 100% !important;
-    max-height: 360px;
-}
-
-/* 모달 안 차트가 아래로 길게 늘어나는 것 방지 */
-#forecast-chart,
-#lonelyForecastChart {
-    width: 100% !important;
-    max-height: 260px; /* 필요하면 220~300 사이에서 조절 */
-}
-/* === 상관관계 페이지 전체를 스냅 스크롤 컨테이너로 === */
-.corr-page {
-    height: calc(100vh - 70px);   /* 70px = 네가 main에 준 margin-top 정도 */
-    overflow-y: auto;
-    scroll-snap-type: y mandatory;   /* 세로 방향 스냅 */
-}
-
-/* 각 섹션을 '페이지' 처럼 취급 */
-.corr-hero {
-    scroll-snap-align: start;
-    min-height: calc(100vh - 70px);
-    display: flex;
-    align-items: flex-start;  /* ✅ content를 위쪽으로 */
-    padding-top: 24px;        /* 적당한 위 여백 */
-}
-
-.corr-detail-section {
-    scroll-snap-align: start;
-    min-height: calc(100vh - 70px);  /* 화면 한 페이지 정도 높이 */
-    display: flex;
-    align-items: center;             /* 내용 세로 가운데 (원하면 유지) */
-}
-
-/* 필요하면 2페이지는 위아래 여백만 */
-.corr-detail-section {
-    padding: 20px 0 40px 0;
-    align-items: flex-start;         /* 분석 섹션은 위쪽 정렬이 더 좋으면 이렇게 */
-}
-/* ===========================
-   Belong 대시보드 레이아웃
-   - 중앙 정렬 + 양쪽 여백
-   - 카드 스타일 가볍게
-   =========================== */
-
-/* 대시보드 전체 폭: 너무 넓지 않게 중앙 정렬 */
-.dashboard-container {
-    max-width: 1320px;           /* 필요하면 1200~1440 사이에서 조절 */
-    margin: 0 auto;              /* 가운데 정렬 */
-    padding-left: 24px;
-    padding-right: 24px;
-}
-
-/* 대시보드 카드 공통 느낌: 가벼운 그림자 + 둥근 모서리 */
-.dashboard-container .card {
-    border-radius: 16px;
-    border: 1px solid rgba(148, 163, 184, 0.18);  /* 아주 연한 회색 테두리 */
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05); /* 부드러운 그림자 */
-    background-color: #ffffff;
-}
-
-/* 카드 헤더는 살짝 밝은 그라데이션으로 구분 */
-.dashboard-container .card-header {
-    background: linear-gradient(90deg, #f9fafb 0%, #f3f4f6 100%);
-    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
-    font-weight: 600;
-    font-size: 0.95rem;
-}
-
-/* Summary 카드 숫자가 조금 더 눈에 띄도록 */
-.dashboard-container #summary-total,
-.dashboard-container #summary-growth-top,
-.dashboard-container #summary-growth-bottom {
-    font-size: 1.6rem;
-}
-/* ===========================
-   대시보드 상단 Hero 섹션
-   =========================== */
-
-.dashboard-hero {
-    padding: 18px 20px 20px;
-    border-radius: 20px;
-    background: linear-gradient(
-        135deg,
-        #e0f2fe 0%,   /* sky-100 */
-        #f5f3ff 40%,  /* indigo-50 */
-        #fef3c7 100%  /* amber-100 */);
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
-}
-
-/* 제목 / 부제목 */
-.dashboard-title {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #111827;
-}
-
-.dashboard-subtitle {
-    font-size: 0.86rem;
-    color: #6b7280;
-}
-
-/* ===========================
-   Summary 카드 포인트 컬러
-   =========================== */
-
-.summary-card {
-    position: relative;
-    border-radius: 16px;
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    overflow: hidden;
-}
-
-/* 상단에 얇은 컬러 바 추가 */
-.summary-card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-top: 4px solid var(--summary-color, #3b82f6);
-    opacity: 0.95;
-    pointer-events: none;
-}
-
-/* 카드 종류별 포인트 컬러 */
-.summary-card-total {
-    --summary-color: #3b82f6;  /* 파란색 */
-}
-
-.summary-card-top {
-    --summary-color: #10b981;  /* 초록색 */
-}
-
-.summary-card-bottom {
-    --summary-color: #f97316;  /* 주황색 */
-}
-
-/* Summary 숫자 조금 더 키우기 */
-.dashboard-hero #summary-total,
-.dashboard-hero #summary-growth-top,
-.dashboard-hero #summary-growth-bottom {
-    font-size: 1.6rem;
-}
-/* ===========================
-   섹션 타이틀 / 구분
-   =========================== */
-
-.dashboard-section {
-    padding-top: 8px;
-    padding-bottom: 4px;
-    border-top: 1px dashed rgba(156, 163, 175, 0.4);
-}
-
-.section-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #111827;
-}
-
-.section-caption {
-    font-size: 0.8rem;
-    color: #9ca3af;
-}
-
-/* ===========================
-   카드 인터랙션 (살짝만)
-   =========================== */
-
-.dashboard-container .card {
-    transition: transform 0.12s ease-out, box-shadow 0.12s ease-out;
-}
-
-.dashboard-container .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.09);
-}
-
-/* ===========================
-   테이블: 더 깔끔하게
-   =========================== */
-
-.dashboard-container table.table {
-    font-size: 0.86rem;
-}
-
-.dashboard-container .table thead {
-    background-color: #f9fafb;
-}
-
-.dashboard-container .table > :not(caption) > * > * {
-    padding-top: 0.35rem;
-    padding-bottom: 0.35rem;
-    border-color: rgba(209, 213, 219, 0.7);
-}
-
-/* 홀수 줄만 은근하게 하이라이트 */
-.dashboard-container .table tbody tr:nth-child(odd) {
-    background-color: rgba(249, 250, 251, 0.7);
-}
-/* ===== 카드 전체를 더 둥글둥글 & 밝게 ===== */
-
-.dashboard-hero,
-.dashboard-container .card,
-.dashboard-section {
-    border-radius: 20px;  /* 전체 모서리 통일해서 둥글둥글하게 */
-}
-
-/* 카드 느낌을 조금 더 가볍게 */
-.dashboard-container .card {
-    background-color: #ffffff;
-    border: 1px solid rgba(148, 163, 184, 0.16);
-    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.04);
-}
-
-/* 섹션 구분선도 너무 칙칙하지 않게 */
-.dashboard-section {
-    border-top: 1px dashed rgba(209, 213, 219, 0.7);
-}
-/* ===== 구별 예측 입력창을 pill 스타일로 ===== */
-
-.dashboard-container .input-group .form-control {
-    border-radius: 999px 0 0 999px;
-}
-
-.dashboard-container .input-group .btn {
-    border-radius: 0 999px 999px 0;
-}
-
-/* hover 시 버튼에 살짝 색 채우기 */
-.dashboard-container .btn-outline-primary:hover {
-    background-color: #3b82f6;
-    border-color: #3b82f6;
-    color: #ffffff;
-}
-
-.dashboard-container .btn-outline-danger:hover {
-    background-color: #ef4444;
-    border-color: #ef4444;
-    color: #ffffff;
-}
-
-/* ============================================================
-   🌟 글로벌 NAVBAR (기업형 디자인)
-   기존 스타일과 충돌 없도록 전역 prefix 없이 구성
-============================================================ */
-
-/* Navbar 전체 크기 + 색감 */
-.navbar {
-    height: 76px !important;
-    padding: 0 40px !important;
-    display: flex;
-    align-items: center;
-    background-color: #1f252b !important;   /* 고급 다크톤 */
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    z-index: 9999;
-}
-
-/* 로고 이미지 */
-.navbar-brand img {
-    height: 55px;
-    width: auto;
-    margin-right: 10px;
-}
-
-/* 로고 텍스트 */
-.navbar-brand {
-    font-size: 26px;
-    font-weight: 700;
-    color: #ffffff !important;
-    display: flex;
-    align-items: center;
-}
-
-/* 중앙 메뉴 */
-.navbar-nav .nav-link {
-    font-size: 19px;
-    font-weight: 500;
-    margin: 0 15px;
-    color: #d8d8d8 !important;
-    transition: all 0.25s ease;
-}
-
-.navbar-nav .nav-link:hover {
-    color: #ffffff !important;
-    transform: translateY(-2px);
-}
-
-/* 오른쪽 로그인/회원가입 */
-.navbar .ms-auto .nav-link {
-    font-size: 17px;
-    color: #e3e3e3 !important;
-}
-
-.navbar .ms-auto .nav-link:hover {
-    color: #ffffff !important;
-}
-
-/* 반응형: 좁은 화면에서 패딩 ↓ */
-@media (max-width: 992px) {
-    .navbar {
-        height: 75px !important;
-        padding: 0 20px !important;
-    }
-}
-
-/* ================================
-   공통 헤더 (기본 네비바)
-   - 홈 페이지에서 쓰는 어두운 바
-================================ */
-
-.belong-header-default {
-    width: 100%;
-    background-color: #212529;  /* 기존 bg-dark 색 */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    padding: 0;                 /* 네비 자체에서 패딩 있음 */
-}
-
-/* ================================
-   사진 배경 헤더 (서브 페이지용)
-   - 위에 네비 + 아래로 사진이 쫙 깔리는 형태
-   - .hero-header-XXX 로 페이지별 배경만 교체
-================================ */
-
-.hero-header {
-    width: 100%;
-    min-height: 260px;          /* 사진 영역 높이 */
-    color: #fff;
-<<<<<<< HEAD
-    background-size: contain;
-=======
-    background-size: cover;
->>>>>>> c9827a1 (저장)
-    background-position: center;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-}
-
-/* 안쪽 콘텐츠 폭 제한 */
-.hero-header-inner {
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 16px 32px 40px 32px;   /* 위쪽 네비 공간 + 아래 여백 */
-}
-
-/* 네비바를 사진 위에 올릴 때 배경 투명 처리 */
-.hero-header nav {
-    background-color: transparent !important;
-    box-shadow: none;
-}
-
-/* 헤더 아래 가로선 */
-.hero-header-line {
-    width: 100%;
-    border-bottom: 1px solid rgba(255,255,255,0.6);
-    margin-top: 20px;
-}
-
-/* 페이지별 배경사진 */
-.hero-header-dashboard {
-    background-image: url("{{ url_for('static', filename='image/dashboard.jpg') }}");
-}
-
-.hero-header-region {
-    background-image: url("{{ url_for('static', filename='image/region.jpg') }}");
-}
-
-.hero-header-corr {
-    background-image: url("{{ url_for('static', filename='image/corr.png') }}");
-}
-
-/* =====================================================
-   🔹 공통 헤더 & 페이지별 사진 배경
-   - 기본: 어두운 바(bar)
-   - dashboard / region / corr 에서는 사진 + 높이 증가
-===================================================== */
-
-/* 공통 헤더 래퍼 */
 .site-header {
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100%;
-    background-color: #212529;          /* 기존 bg-dark 색 */
+  background-color: #0f172a;  /* 진한 남색 */
+  position: sticky;           /* 스크롤해도 상단에 고정 */
+  top: 0;
+  z-index: 1020;
 }
 
-/* navbar 자체는 투명으로 만들어서 헤더 배경이 비치게 */
-.site-header .navbar {
-    width: 100%;
-    margin: 0;
-    padding-left: 0;
-    padding-right: 0;
+/* 상단 네비바 전체 */
+.navbar {
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+  background: transparent;    /* 실제 배경색은 site-header가 담당 */
+  border-radius: 1.5rem;
+  overflow: hidden;
 }
 
-/* 기본 navbar 높이 */
-.site-header .navbar {
-    padding-top: 0.6rem;
-    padding-bottom: 0.6rem;
+/* 로고 텍스트 조금 더 깔끔하게 */
+.navbar-brand span {
+  letter-spacing: 0.03em;
 }
 
-/* 🔸 사진 헤더 공통 옵션 */
-.header-dashboard,
-.header-region,
-.header-corr {
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    padding-bottom: 120px;
+/* 가운데 메뉴들 */
+.nav-link.nav-link-lg {
+  font-size: 0.95rem;
+  padding: 0.5rem 0.9rem;
+  color: #ffffff;
 }
 
-/* 대시보드 헤더 배경 */
-.header-dashboard {
-    background-image: url("/static/image/dashboard.jpg");
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    height: 550px;
+/* hover 색상 */
+.nav-link.nav-link-lg:hover {
+  color: rgba(255, 0, 0, 0.5);
 }
 
-/* 지역별 예측 헤더 배경 */
-.header-region {
-    background-image: url("/static/image/region.jpg");
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    height: 550px;
+/* 모바일 토글 아이콘 */
+.navbar-dark .navbar-toggler {
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
-/* ================================
-   🔥 상관관계 분석 헤더 배경 (수정된 부분)
-   - 사진의 중앙 아래쪽 사람이 많은 부분이 가운데 보이도록 조정
-================================ */
-.header-corr {
-    background-image: url("/static/image/corr.png");
-    background-size: cover;
-    background-position: 50% 30%;   /* ← 수정됨(중앙보다 살짝 위쪽 보이도록) */
-    background-repeat: no-repeat;
-    height: 550px;
+
+/* ===============================
+   BAT 스타일 2×2 그리드 Hero
+   =============================== */
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;   /* 가로 1/2, 1/2 */
+  grid-template-rows: 50vh 50vh;    /* 세로 1/2, 1/2 = 전체 100vh */
+  min-height: 100vh;
 }
 
-/* 사진 헤더에서는 navbar 조금 더 두껍게 */
-.header-dashboard .navbar,
-.header-region .navbar,
-.header-corr .navbar {
-    padding-top: 1.1rem;
-    padding-bottom: 1.1rem;
+/* 각 칸 공통 스타일 */
+.hero-cell {
+  position: relative;
+  overflow: hidden;
+}
+
+/* 텍스트 있는 칸 */
+.hero-menu {
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;   /* ✅ 세로로 쌓이게 */
+  align-items: flex-start;  /* 왼쪽 정렬 */
+  justify-content: flex-start; /* 위쪽부터 시작 */
+}
+
+.hero-menu-top {
+  padding: 3rem 5vw 2.5rem;
+}
+
+.hero-menu-bottom {
+  padding: 3rem 5vw 2.5rem;
+}
+
+
+/* 위쪽 설명 텍스트 */
+.hero-kicker {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin-bottom: 1.8rem;  /* 살짝만 띄우기 */
+  color: #6b7280;
+}
+
+
+/* 메뉴 리스트 공통 */
+.hero-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;   /* ✅ 오른쪽으로 꽉 쓰기 */
+}
+
+
+/* 각 줄 (버튼처럼 보이는 텍스트) */
+.hero-item {
+  border: none;
+  background: none;
+  padding: 15px 0;
+  margin: 0;
+  text-align: left;
+  cursor: pointer;
+
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1.05;
+  font-weight: 700;
+
+  color: #d1d5db;   /* 기본 연한 회색 */
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* 강조 상태 */
+.hero-item.is-active {
+  color: #111827;
+}
+
+/* 호버 */
+.hero-item:hover {
+  color: #4b5563;
+}
+
+/* 화살표 */
+.hero-arrow {
+  font-size: 0.8em;
+}
+
+/* 이미지 칸 공통 */
+.hero-image {
+  background-size: cover;
+  background-position: center;
+}
+
+/* 반응형: 모바일에서는 한 줄씩 세로로 쌓기 */
+@media (max-width: 991.98px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .hero-cell {
+    min-height: 50vh;
+  }
+
+  .hero-menu-top,
+  .hero-menu-bottom {
+    padding: 2.5rem 1.75rem;
+  }
+}
+
+
+/* ===============================
+   3. 서브 페이지 Hero (대시보드 / 지역 / 상관관계)
+   =============================== */
+
+.page-hero {
+  position: relative;
+  margin-top: 1.5rem;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.page-hero-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: brightness(0.5);
+  opacity: 0.7; /* 사진 투명도 느낌 */
+}
+
+.page-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+      circle at top left,
+      rgba(15, 23, 42, 0.9),
+      rgba(15, 23, 42, 0.6)
+  );
+}
+
+.page-hero-content {
+  position: relative;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  max-width: 900px;
+}
+
+.page-hero-eyebrow {
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+  opacity: 0.8;
+}
+
+.page-hero-title {
+  font-size: clamp(2.1rem, 4vw, 3rem);
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 0.75rem;
+}
+
+.page-hero-title .accent {
+  color: #facc15; /* 강조 색상 */
+}
+
+.page-hero-subtitle {
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+@media (max-width: 991.98px) {
+  .page-hero {
+    margin-top: 1rem;
+    border-radius: 0;
+  }
+
+  .page-hero-content {
+    padding: 2.25rem 1.25rem;
+  }
+}
+
+
+/* ===============================
+   4. 아래 카드 섹션
+   =============================== */
+
+.feature-card {
+  border-radius: 1.2rem;
+  background-color: #ffffff;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 30px rgba(15, 23, 42, 0.08);
+}
+
+.feature-card .card-title {
+  font-weight: 700;
+}
+
+
+/* ===============================
+   5. 푸터
+   =============================== */
+
+footer {
+  background-color: #0f172a;  /* 네비바와 동일 색 */
+  font-size: 0.85rem;
+  color: #ffffff;
+}
+
+
+/* ===============================
+   6. 반응형 (모바일)
+   =============================== */
+
+@media (max-width: 991.98px) {
+  .hero-row {
+    min-height: auto;
+  }
+
+  .hero-left-inner {
+    padding: 2.5rem 1.75rem;
+  }
+
+  .hero-image {
+    min-height: 260px;
+  }
+}
+/* ===============================
+   Dashboard 레이아웃 (3 : 13)
+   =============================== */
+
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 3fr 13fr;
+  gap: 1.5rem;
+  margin: 2.5rem 0 3rem;
+}
+
+/* 왼쪽 컨트롤 패널 */
+.dashboard-controls {
+  min-width: 260px;
+}
+
+.control-card {
+  border-radius: 1.25rem;
+}
+
+.region-checkbox-list {
+ display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));  /* ◀ 3열 그리드 */
+  gap: 0.3rem 0.75rem;                               /* 세로/가로 간격 */
+  padding-right: 0.25rem;
+}
+
+.region-checkbox-list .form-check {
+  margin-bottom: 0;          /* 아래 여백 줄이기 */
+  display: flex;
+  align-items: center;
+}
+
+.region-checkbox-list .form-check-input {
+  margin-right: 0.35rem;
+}
+
+.year-separator {
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+/* 오른쪽 그래프 영역: 1 : 5 : 1 : 5 : 1 */
+.dashboard-graphs {
+  min-height: 70vh;
+}
+
+.dashboard-graphs-grid {
+  display: grid;
+  grid-template-columns: 1fr 5fr 1fr 5fr 1fr;
+  gap: 0;
+  height: 100%;
+}
+
+/* 양쪽 여백 */
+.graph-gutter {
+  background: transparent;
+}
+
+/* 가운데 구분선 */
+.graph-divider {
+  border-left: 1px solid #e5e7eb;
+}
+
+/* 각 지역 그래프 컬럼 */
+.graph-column {
+  padding: 0 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.graph-region-title {
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+/* 그래프 카드 */
+.graph-card {
+  background-color: #ffffff;
+  border-radius: 1.1rem;
+  padding: 0.75rem 0.75rem 0.5rem;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-height: 170px;
+}
+
+.graph-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 0.2rem;
+}
+
+.graph-card canvas {
+  width: 100% !important;
+  height: 120px !important;
+}
+
+/* 반응형 (태블릿/모바일) */
+@media (max-width: 1199.98px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-controls {
+    max-width: 480px;
+  }
+
+  .dashboard-graphs-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .graph-divider,
+  .graph-gutter {
+    display: none;
+  }
+
+  .graph-column {
+    padding: 0 0 1rem;
+  }
 }
