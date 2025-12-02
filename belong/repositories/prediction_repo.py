@@ -60,52 +60,6 @@ class PredictionRepository:
         )
         return rows
 
-
-    # ----------------------------------------
-    # 기존 bulk 저장 로직
-    # ----------------------------------------
-    def upsert_prediction(region_name: str, year: int, value, source: str):
-        """
-        (region_name, year) 기준으로:
-          - 기존 row가 있으면 prediction_value, source 를 update
-          - 없으면 새로 insert
-        NaN 값은 NULL(DB에서는 None)로 저장.
-        """
-
-        # NaN → None 변환 (선택적 개선)
-        if value is None:
-            prediction_value = None
-        else:
-            try:
-                f = float(value)
-                prediction_value = None if math.isnan(f) else f
-            except (TypeError, ValueError):
-                prediction_value = None
-
-        existing = (
-            PredictionResult.query
-            .filter_by(region_name=region_name, year=year)
-            .first()
-        )
-
-        if existing:
-            # 이미 있는 경우: 값만 덮어쓰기
-            existing.prediction_value = prediction_value
-            existing.source = source
-            # 필요하면 existing.updated_at = func.current_timestamp() 같은 것도 가능
-        else:
-            # 없는 경우: 새로 INSERT
-            prediction = PredictionResult(
-                region_name=region_name,
-                year=year,
-                prediction_value=prediction_value,
-                source=source,
-            )
-            db.session.add(prediction)
-
-        db.session.commit()
-
-
     # ----------------------------------------
     # 기존 다중 조회 로직
     # ----------------------------------------

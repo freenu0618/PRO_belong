@@ -1,3 +1,4 @@
+from belong.repositories.lonely_repo import LonelyStatsRepository
 from belong.repositories.region_repo import RegionRepository
 from belong.repositories.feature_stats_repo import ElderlyStatsRepository
 from belong.services.feature_stats_service import FeatureStatsService
@@ -9,6 +10,7 @@ from belong.services.forecast_service import ForecastService
 from belong.repositories.forecast_repo import ForecastRepository
 from belong.services.elderly_service import ElderlyService
 from belong.repositories.elderly_repo import SqlAlchemyElderlyHistoryRepository
+from belong.services.lonely_service import LonelyService
 
 def register_services(app):
     """
@@ -29,7 +31,8 @@ def register_services(app):
     prediction_service = PredictionService(
         feature_stats_service=feature_stats_service,
     )
-
+    lonely_repo = LonelyStatsRepository()
+    lonely_service = LonelyService(repo=lonely_repo)
     prediction_service.prediction_repo = prediction_repo
     correlation_service = CorrelationService()
     population_service = PopulationService()
@@ -38,6 +41,7 @@ def register_services(app):
     services = {
         "region_repo": region_repo,
         "elderly_stats_repo": elderly_stats_repo,
+        "lonely_service": lonely_service,
         "feature_stats_service": feature_stats_service,
         "prediction_repo": prediction_repo,
         "prediction_service": prediction_service,

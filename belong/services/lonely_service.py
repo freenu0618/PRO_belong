@@ -24,6 +24,7 @@ class LonelyService:
         target_year: int,
         by: str = "ratio",
     ) -> Dict:
+
         rows = self.repo.get_region_values_for_years(base_year, target_year)
 
         results: List[Dict] = []
