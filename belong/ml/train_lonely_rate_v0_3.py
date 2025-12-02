@@ -289,7 +289,7 @@ def build_future_design_matrix(future_df: pd.DataFrame, model: Ridge) -> pd.Data
 
 
 # -------------------------------
-# 5) 단조비감소(non-decreasing) 후처리
+# 5) 단조비 감소(non-decreasing) 후처리
 # -------------------------------
 
 def enforce_non_decreasing_by_region(

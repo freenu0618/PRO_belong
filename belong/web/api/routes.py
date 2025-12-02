@@ -6,7 +6,6 @@ from belong.services.correlation_service import CorrelationService
 from belong.repositories.elderly_repo import SqlAlchemyElderlyHistoryRepository
 from belong.models.region import Region
 from belong.extensions import db
-from belong.repositories import prediction_repo
 from belong.services.lonely_forecast_service import LonelyForecastService
 import math
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -289,17 +288,6 @@ def elderly_correlation():
     return jsonify({"status": "success", "data": data})
 
 
-@api_bp.post("/predictions/<region>/<int:year>")
-def api_save_prediction(region, year):
-    body = request.get_json()
-    value = body.get("prediction_value")
-    source = body.get("source", "rule_based")
-
-    prediction_repo.upsert_prediction(region, year, value, source)
-
-    return jsonify({"status": "success"})
-
-
 @api_bp.get("/elderly-stats/<region_code>/<int:start_year>/<int:end_year>")
 def get_elderly_stats_series(region_code: str, start_year: int, end_year: int):
     # 1) 입력값 검증
@@ -397,20 +385,27 @@ def api_elderly_trend():
     """
     GET /api/elderly/trend?start_year=2017&end_year=2035
 
-    응답:
-    {
-      "status": "success",
-      "items": [
-        { "year": 2017, "total_elderly_population": 12345, "is_forecast": "N" },
-        ...
-      ]
-    }
+    노인 인구(실측 + 예측) 전체 추세.
     """
     start_year = request.args.get("start_year", type=int) or 2017
     end_year = request.args.get("end_year", type=int) or 2035
 
-    items = forecast_service.get_total_trend(start_year, end_year)
-    return jsonify({"status": "success", "items": items})
+    elderly_service = current_app.config["services"]["elderly_service"]
+
+    data = elderly_service.get_total_trend(
+        start_year=start_year,
+        end_year=end_year,
+    )
+
+    return jsonify(
+        {
+            "status": "success",
+            "start_year": data["start_year"],
+            "end_year": data["end_year"],
+            "items": data["items"],
+        }
+    )
+
 
 # ----------------------------------------
 # 2) 노인 인구 TOP5 (증가율 / 증가 인원수)
@@ -435,30 +430,51 @@ def api_elderly_top5():
             400,
         )
 
+    # (선택) 연도 범위 검증 재사용
+    ok, err = _validate_year_range(base_year, target_year)
+    if not ok:
+        return api_error(400, "invalid_input", "year range not valid", **err)
+
+    elderly_service = current_app.config["services"]["elderly_service"]
+
     try:
-        items = forecast_service.get_top5(base_year, target_year, by=by)
+        data = elderly_service.get_top5_growth(
+            base_year=base_year,
+            target_year=target_year,
+            by=by,
+        )
     except ValueError as e:
         return jsonify({"status": "error", "message": str(e)}), 400
 
-    return jsonify({"status": "success", "items": items})
+    # ElderlyService가 이미 {"base_year"...,"items":[...]} 구조를 주므로 그대로 래핑
+    return jsonify(
+        {
+            "status": "success",
+            **data,
+        }
+    )
 
 
 
 @api_bp.get("/elderly/regions")
 def elderly_regions_snapshot():
     """
-    특정 연도의 구별 노인 인구 리스트 API.
-    예:
-      GET /api/elderly/regions?year=2035
+    GET /api/elderly/regions?year=2035
     """
     elderly_service = current_app.config["services"]["elderly_service"]
 
     year = request.args.get("year", type=int)
     if year is None:
-        return jsonify({"error": "year 파라미터는 필수입니다."}), 400
+        return jsonify({"status": "error", "message": "year 파라미터는 필수입니다."}), 400
 
     data = elderly_service.get_region_snapshot(year=year)
-    return jsonify(data)
+    return jsonify(
+        {
+            "status": "success",
+            **data,  # year, items
+        }
+    )
+
 
 # ============================
 #  Auth API (signup / login / logout)
@@ -562,12 +578,28 @@ def api_logout():
 def api_lonely_trend():
     """
     GET /api/lonely/trend?start_year=2017&end_year=2035
+
+    고독사(타깃: target_value) 전체 추세.
     """
     start_year = request.args.get("start_year", type=int) or 2017
     end_year = request.args.get("end_year", type=int) or 2035
 
-    items = lonely_forecast_service.get_trend(start_year, end_year)
-    return jsonify({"status": "success", "items": items})
+    # 앱 설정에 등록된 LonelyService 사용 (ElderlyService 패턴과 동일)
+    lonely_service = current_app.config["services"]["lonely_service"]
+
+    data = lonely_service.get_total_trend(
+        start_year=start_year,
+        end_year=end_year,
+    )
+
+    return jsonify(
+        {
+            "status": "success",
+            "start_year": data["start_year"],
+            "end_year": data["end_year"],
+            "items": data["items"],
+        }
+    )
 
 # ----------------------------------------
 # 6) 구별 고독사 예측 (모달)
@@ -620,6 +652,8 @@ def api_lonely_forecast():
 def api_lonely_top5():
     """
     GET /api/lonely/top5?base_year=2023&target_year=2035&by=ratio|absolute
+
+    고독사 증가율/증가 인원수 기준 TOP5 구.
     """
     base_year = request.args.get("base_year", type=int)
     target_year = request.args.get("target_year", type=int)
@@ -636,9 +670,26 @@ def api_lonely_top5():
             400,
         )
 
+    # Elderly 쪽과 동일한 규칙으로 연도 범위 검증
+    ok, err = _validate_year_range(base_year, target_year)
+    if not ok:
+        return api_error(400, "invalid_input", "year range not valid", **err)
+
+    lonely_service = current_app.config["services"]["lonely_service"]
+
     try:
-        items = lonely_forecast_service.get_top5(base_year, target_year, by=by)
+        data = lonely_service.get_top5_growth(
+            base_year=base_year,
+            target_year=target_year,
+            by=by,
+        )
     except ValueError as e:
         return jsonify({"status": "error", "message": str(e)}), 400
 
-    return jsonify({"status": "success", "items": items})
+    # LonelyService가 {"base_year","target_year","by","items"} 구조로 주니까 그대로 감싸서 리턴
+    return jsonify(
+        {
+            "status": "success",
+            **data,
+        }
+    )

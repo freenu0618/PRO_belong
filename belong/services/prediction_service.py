@@ -110,6 +110,76 @@ class PredictionService:
 
         return result
 
+    def ensure_predictions_for_year(self, year: int) -> Dict[str, float]:
+        """
+        주어진 year에 대해,
+        - 모든 '구(region_name)'에 대한 예측값이 PREDICTION_RESULT에 존재하도록 보장하고
+        - {region_name: prediction_value} 딕셔너리를 반환한다.
+
+        로직:
+         1) 전체 구 목록(region 목록)을 가져온다.
+         2) 각 region/year에 대해, 이미 예측값이 DB에 있으면 재사용.
+         3) 없으면 predict_and_store(region, year)를 호출해서 새로 생성.
+        """
+
+        if self.prediction_repo is None:
+            raise RuntimeError("PredictionRepository가 설정되지 않았습니다.")
+
+        # 1) 전체 구 목록 가져오기
+        # FeatureStatsService 안에 region_repo가 있다고 가정
+        region_repo = getattr(self.feature_stats_service, "region_repo", None)
+        if region_repo is None:
+            raise RuntimeError(
+                "FeatureStatsService에 region_repo가 없어서 전체 구 목록을 가져올 수 없습니다."
+            )
+
+        # ⚠ 여기서 사용하는 메서드 이름은 네 RegionRepository 구현에 맞게 바꿔줘.
+        # 예: list_all(), get_all(), get_all_regions() 등
+        regions = region_repo.get_all()  # [Region(...), Region(...), ...]
+
+        result_map: Dict[str, float] = {}
+
+        for region in regions:
+            region_name = getattr(region, "name", None)
+            if not region_name:
+                continue
+
+            # 2) 이미 해당 연도 예측이 있는지 확인
+            existing = self.prediction_repo.get_predictions(
+                region=region_name,
+                start_year=year,
+                end_year=year,
+                source="model",
+            )
+
+            if not existing:
+                existing = self.prediction_repo.get_predictions(
+                    region=region_name,
+                    start_year=year,
+                    end_year=year,
+                    source="rule_based",
+                )
+
+            if existing:
+                # get_predictions가 [{"year":..., "value":...}, ...] 형식이라고 가정
+                prediction_value = float(existing[0]["value"])
+                logger.info(
+                    f"[PredictionService] 이미 존재하는 예측 사용: region={region_name}, year={year}, value={prediction_value}"
+                )
+            else:
+                logger.info(f"[PredictionService] 예측 생성: region={region_name}, year={year}")
+                result = self.predict_and_store(region_name, year)
+                if result is None:
+                    logger.warning(
+                        f"[PredictionService] 예측 실패: region={region_name}, year={year} → 결과를 건너뜁니다."
+                    )
+                    continue  # 이 구는 map에 안 넣고 건너뛰기
+
+                prediction_value = float(result["prediction"])
+
+            result_map[region_name] = prediction_value
+
+        return result_map
     # ------------------------------------------------------------------
     # 내부 헬퍼들
     # ------------------------------------------------------------------
