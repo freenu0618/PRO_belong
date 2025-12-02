@@ -12,6 +12,7 @@ from belong.services.elderly_service import ElderlyService
 from belong.repositories.elderly_repo import SqlAlchemyElderlyHistoryRepository
 from belong.services.lonely_service import LonelyService
 
+
 def register_services(app):
     """
     모든 레포지토리/서비스를 생성하고 app.config['services'] 컨테이너에 저장.
@@ -20,35 +21,46 @@ def register_services(app):
     # --- Repository 생성 ---
     region_repo = RegionRepository()
     elderly_stats_repo = ElderlyStatsRepository()
+    lonely_stats_repo = LonelyStatsRepository()
+    prediction_repo = PredictionRepository()
 
     # --- Service 생성 ---
     feature_stats_service = FeatureStatsService(
         elderly_stats_repo=elderly_stats_repo,
         region_repo=region_repo,
     )
-    prediction_repo = PredictionRepository()
 
     prediction_service = PredictionService(
         feature_stats_service=feature_stats_service,
+        prediction_repo=prediction_repo,   # ← 생성자에서 바로 주입
     )
-    lonely_repo = LonelyStatsRepository()
-    lonely_service = LonelyService(repo=lonely_repo)
-    prediction_service.prediction_repo = prediction_repo
+
+    lonely_service = LonelyService(
+        repo=lonely_stats_repo,
+        prediction_service=prediction_service,  # ← 예측 서비스 같이 주입
+    )
+
     correlation_service = CorrelationService()
     population_service = PopulationService()
+    forecast_service = ForecastService(ForecastRepository())
+    elderly_service = ElderlyService(SqlAlchemyElderlyHistoryRepository())
 
     # --- 서비스 컨테이너 등록 ---
     services = {
+        # Repos
         "region_repo": region_repo,
         "elderly_stats_repo": elderly_stats_repo,
-        "lonely_service": lonely_service,
-        "feature_stats_service": feature_stats_service,
+        "lonely_repo": lonely_stats_repo,
         "prediction_repo": prediction_repo,
+
+        # Services
+        "feature_stats_service": feature_stats_service,
         "prediction_service": prediction_service,
+        "lonely_service": lonely_service,
         "correlation_service": correlation_service,
         "population_service": population_service,
-        "forecast_service": ForecastService(ForecastRepository()),
-        "elderly_service": ElderlyService(SqlAlchemyElderlyHistoryRepository()),
+        "forecast_service": forecast_service,
+        "elderly_service": elderly_service,
     }
 
     app.config["services"] = services

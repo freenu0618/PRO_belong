@@ -23,14 +23,18 @@ class PredictionRepository:
     def save(self, region: str, year: int, value: float, source: str) -> None:
         """
         단일 예측값 저장.
-        기존 동일 (region, year, source) 데이터 삭제 후 새로 저장.
+
+        (region, year) 기준으로:
+          - 기존 row가 있으면 모두 삭제
+          - 새 row 1개를 삽입
+
+        DB 제약: (region_name, year)에 유니크 인덱스가 있는 상황을 가정.
         """
 
-        # 기존 값 삭제
+        # ✅ 기존 값 삭제: source 상관없이 (region, year) 기준으로 삭제
         db.session.query(PredictionResult).filter_by(
             region_name=region,
             year=year,
-            source=source
         ).delete()
 
         # 새 값 삽입
