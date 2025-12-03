@@ -1,32 +1,76 @@
-{# templates/login.html #}
 {% extends "base.html" %}
 {% block title %}로그인{% endblock %}
 
 {% block content %}
-<div class="container py-5" style="max-width: 420px;">
+<div class="auth-page page-gradient">
+  <div class="auth-card row g-0">
+    <!-- LEFT PANEL -->
+    <div class="auth-left col-md-6 d-none d-md-block position-relative">
+      <div class="auth-left-overlay position-absolute top-0 start-0 end-0 bottom-0 p-4 d-flex flex-column justify-content-between">
+        <div>
+          <div class="auth-badge mb-3">
+            <span class="auth-dot"></span>
+            <span>Belong · 고독사 예측 서비스</span>
+          </div>
+          <h2 class="auth-title-main mb-3">
+            함께하면,<br>
+            <span class="auth-highlight">보이지 않던 위험</span>이 보입니다.
+          </h2>
+          <p class="mb-0" style="max-width: 260px; font-size: 0.9rem;">
+            1인 고령가구 데이터를 기반으로,<br>
+            고독사 위험을 미리 예측하고 대응할 수 있도록 돕는 서비스입니다.
+          </p>
+        </div>
+        <div class="auth-footer-text">
+          이미 계정이 있으신가요?<br>
+          <span class="text-slate-200">지금 로그인하고 대시보드에서 지역별 현황을 확인해 보세요.</span>
+        </div>
+      </div>
+    </div>
 
-    <h3 class="text-center mb-4 fw-bold">로그인</h3>
+    <!-- RIGHT PANEL -->
+    <div class="auth-right col-md-6 p-4 p-md-5">
+      <div class="mb-4 text-center text-md-start">
+        <h3 class="fw-bold mb-1">Belong에 로그인</h3>
+        <p class="mb-0 text-secondary" style="font-size: 0.9rem;">
+          계정을 입력하고 서비스를 계속 이용하세요.
+        </p>
+      </div>
 
-    <div id="login-error" class="alert alert-danger" style="display:none;"></div>
+      <div id="login-error" class="alert alert-danger py-2 px-3" style="display:none; font-size:0.9rem;"></div>
 
-    <form id="login-form">
+      <form id="login-form" novalidate>
         <div class="mb-3">
-            <label class="form-label">아이디</label>
-            <input type="text" class="form-control" id="username" required>
+          <label class="form-label auth-input-label">아이디</label>
+          <input type="text" class="form-control auth-input" id="username" required autocomplete="username">
         </div>
 
-        <div class="mb-3">
-            <label class="form-label">비밀번호</label>
-            <input type="password" class="form-control" id="password" required>
+        <div class="mb-2">
+          <label class="form-label auth-input-label">비밀번호</label>
+          <input type="password" class="form-control auth-input" id="password" required autocomplete="current-password">
         </div>
 
-        <button type="submit" class="btn btn-primary w-100 mt-2">로그인</button>
-
-        <div class="text-center mt-3">
-            <a href="{{ url_for('web.signup') }}">회원가입</a>
+        <div class="d-flex justify-content-between align-items-center mb-4" style="font-size: 0.85rem;">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="rememberMe">
+            <label class="form-check-label text-secondary" for="rememberMe">
+              로그인 상태 유지
+            </label>
+          </div>
+          <a href="#" class="auth-link opacity-75" onclick="return false;">비밀번호 찾기</a>
         </div>
-    </form>
 
+        <button type="submit" class="btn auth-btn-primary w-100 py-2 mb-3">
+          로그인
+        </button>
+
+        <div class="text-center auth-footer-text">
+          아직 계정이 없으신가요?
+          <a href="{{ url_for('web.signup') }}" class="auth-link ms-1">회원가입</a>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
