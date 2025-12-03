@@ -16,7 +16,7 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import Ridge
+from xgboost import XGBRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
 
@@ -38,8 +38,7 @@ FORECAST_START_YEAR = 2024
 FORECAST_LAST_YEAR = 2030        # 예측 마지막 연도
 TRAIN_START_YEAR = 2019          # 학습 데이터 시작 연도 (필요시 2020으로 조정 가능)
 
-ML_SOURCE = "ml_linear_rate_v0_3"
-
+ML_SOURCE = "ml_xgb_rate_v1_0"
 
 # -------------------------------
 # 유틸: 구/연도별 노인 인구 (ELDERLY_HISTORY)
@@ -157,17 +156,22 @@ def build_features(df: pd.DataFrame):
 # -------------------------------
 
 
-from sklearn.linear_model import Ridge
-from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
-from sklearn.metrics import mean_squared_error, r2_score
-import numpy as np
+def train_and_evaluate(df: pd.DataFrame) -> XGBRegressor:
+    """
+    XGBoostRegressor로 death_rate를 학습하고,
+    TimeSeriesSplit + GridSearchCV로 하이퍼파라미터(alpha 역할들) 튜닝.
 
-def train_and_evaluate(df: pd.DataFrame) -> Ridge:
+    - 학습: TRAIN_START_YEAR ~ ACTUAL_LAST_YEAR-1
+    - 최종 평가: ACTUAL_LAST_YEAR(=2023) 한 해에 대한 death_rate 예측
+    """
+
+    # 연도 기준 정렬 (TimeSeriesSplit이 순서를 믿고 동작하니까)
     df_sorted = df.sort_values(["year", "region_name"]).reset_index(drop=True)
 
+    # 1) 피처/타깃 만들기
     X, y, region_cols, numeric_cols = build_features(df_sorted)
 
-    # 학습 구간: TRAIN_START_YEAR ~ ACTUAL_LAST_YEAR-1
+    # === 학습/평가 구간 마스크 ===
     train_mask = (df_sorted["year"] >= TRAIN_START_YEAR) & (
         df_sorted["year"] < ACTUAL_LAST_YEAR
     )
@@ -175,20 +179,33 @@ def train_and_evaluate(df: pd.DataFrame) -> Ridge:
 
     X_train_all = X[train_mask]
     y_train_all = y[train_mask]
+
     X_test = X[test_mask]
     y_test = y[test_mask]
 
-    print(f"[INFO] Ridge train size={len(X_train_all)}, test size={len(X_test)}")
+    print(f"[INFO] XGBoost train size={len(X_train_all)}, test size={len(X_test)}")
 
-    # 1) alpha를 로그 스케일로 넓게 탐색
-    alpha_grid = np.logspace(-4, 2, 20)
-
-    # 2) TimeSeriesSplit으로 연도 순서를 지키는 CV
+    # === TimeSeriesSplit 설정 ===
+    # 데이터가 많지 않으니 3-split 정도로 충분
     tscv = TimeSeriesSplit(n_splits=3)
 
-    param_grid = {"alpha": alpha_grid}
+    # === 하이퍼파라미터 후보 설정 ===
+    # 너무 많은 조합은 피하고, 작은 범위에서만 탐색
+    param_grid = {
+        "n_estimators": [100, 200],
+        "max_depth": [2, 3],
+        "learning_rate": [0.03, 0.1],
+        "subsample": [0.8, 1.0],
+        "colsample_bytree": [0.8, 1.0],
+        # 필요하면 "reg_lambda": [0.0, 1.0] 도 추가 가능
+    }
 
-    base_model = Ridge(random_state=42)
+    base_model = XGBRegressor(
+        objective="reg:squarederror",
+        random_state=42,
+        tree_method="hist",  # CPU용 빠른 모드
+        n_jobs=-1,
+    )
 
     grid = GridSearchCV(
         estimator=base_model,
@@ -198,30 +215,41 @@ def train_and_evaluate(df: pd.DataFrame) -> Ridge:
         n_jobs=-1,
     )
 
-    print("[STEP] Ridge TimeSeriesSplit + GridSearchCV 로 alpha 튜닝 시작 ...")
+    print("[STEP] XGBoost TimeSeriesSplit + GridSearchCV 로 하이퍼파라미터 튜닝 시작 ...")
     grid.fit(X_train_all, y_train_all)
 
-    best_alpha = grid.best_params_["alpha"]
+    best_params = grid.best_params_
     best_cv_mse = -grid.best_score_
 
-    print(f"[CV] best alpha={best_alpha:.6f}")
+    print(f"[CV] best params={best_params}")
     print(f"[CV] best CV MSE={best_cv_mse:.8f}")
 
-    # 3) 최종 모델: best_alpha로 train 전체 구간 재학습
-    final_model = Ridge(alpha=best_alpha, random_state=42)
+    # === 최종 모델: best_params + 전체 train 구간으로 재학습 ===
+    final_model = XGBRegressor(
+        objective="reg:squarederror",
+        random_state=42,
+        tree_method="hist",
+        n_jobs=-1,
+        **best_params,
+    )
+
+    print(
+        f"[STEP] best params로 TRAIN_START_YEAR~{ACTUAL_LAST_YEAR-1} 전체 구간 재학습 ..."
+    )
     final_model.fit(X_train_all, y_train_all)
 
-    # 4) 2023년(테스트 연도) 성능 출력
+    # === 2023년 최종 평가 ===
     if len(X_test) > 0:
         y_pred_test = final_model.predict(X_test)
         rmse = mean_squared_error(y_test, y_pred_test)
         r2 = r2_score(y_test, y_pred_test)
         print(
             f"[EVAL] {ACTUAL_LAST_YEAR}년 death_rate "
-            f"RMSE={rmse:.8f}, R²={r2:.3f} (Ridge tuned, alpha={best_alpha:.6f})"
+            f"RMSE={rmse:.8f}, R²={r2:.3f} (XGBoost tuned)"
         )
 
-    # 5) 미래 예측용 메타데이터 붙이기
+    # === 미래 피처 생성용 메타데이터를 모델에 심어둔다 ===
+    # build_future_design_matrix 에서 사용
     final_model.feature_columns_ = X.columns.tolist()
     final_model.region_ohe_columns_ = region_cols
     final_model.numeric_columns_ = numeric_cols
@@ -296,7 +324,7 @@ def build_future_feature_df(latest_stats: pd.DataFrame,
 
 
 
-def build_future_design_matrix(future_df: pd.DataFrame, model: Ridge) -> pd.DataFrame:
+def build_future_design_matrix(future_df: pd.DataFrame, model: XGBRegressor) -> pd.DataFrame:
     """
     미래 피처 DataFrame → 학습 때와 동일한 X 컬럼 구성.
     """

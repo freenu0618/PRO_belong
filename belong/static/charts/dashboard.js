@@ -299,11 +299,17 @@ function renderRegionCharts(slot, region, elderlyData, lonelyData) {
   const eHistory = (elderlyData.history || []).filter(
     (row) => row.year >= selectedStartYear && row.year <= selectedEndYear
   );
+
   const eForecastAll = (elderlyData.forecast || []).sort((a, b) => a.year - b.year);
 
-  // 추세 그래프용 (history + forecast 전체)
-  const eTrendYears = [...eHistory, ...eForecastAll].map((r) => r.year);
-  const eTrendValues = [...eHistory, ...eForecastAll].map((r) => r.value || 0);
+  // ✅ 추세 그래프에서 쓸 forecast는 선택 연도 안으로 한 번 더 필터링
+  const eForecastTrend = eForecastAll.filter(
+    (row) => row.year >= selectedStartYear && row.year <= selectedEndYear
+  );
+
+  // 추세 그래프용 (history + forecast, 둘 다 선택 연도 구간)
+  const eTrendYears = [...eHistory, ...eForecastTrend].map((r) => r.year);
+  const eTrendValues = [...eHistory, ...eForecastTrend].map((r) => r.value || 0);
 
   createLineChart(
     `trend-elderly-${slot}`,
@@ -315,7 +321,7 @@ function renderRegionCharts(slot, region, elderlyData, lonelyData) {
     false
   );
 
-  // 5년 예측용
+  // 🔹 5년 예측 그래프는 기존 로직 유지 (2024~2028 등 전체 forecast 기준)
   const eForecast5 = eForecastAll.slice(0, 5);
   const eForecastYears = eForecast5.map((r) => r.year);
   const eForecastValues = eForecast5.map((r) => r.value || 0);
@@ -334,10 +340,16 @@ function renderRegionCharts(slot, region, elderlyData, lonelyData) {
   const lHistory = (lonelyData.history || []).filter(
     (row) => row.year >= selectedStartYear && row.year <= selectedEndYear
   );
+
   const lForecastAll = (lonelyData.forecast || []).sort((a, b) => a.year - b.year);
 
-  const lTrendYears = [...lHistory, ...lForecastAll].map((r) => r.year);
-  const lTrendValues = [...lHistory, ...lForecastAll].map((r) => r.value || 0);
+  // ✅ 고독사 추세용 forecast도 연도 범위로 필터링
+  const lForecastTrend = lForecastAll.filter(
+    (row) => row.year >= selectedStartYear && row.year <= selectedEndYear
+  );
+
+  const lTrendYears = [...lHistory, ...lForecastTrend].map((r) => r.year);
+  const lTrendValues = [...lHistory, ...lForecastTrend].map((r) => r.value || 0);
 
   createLineChart(
     `trend-lonely-${slot}`,

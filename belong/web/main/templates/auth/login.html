@@ -1,3 +1,4 @@
+{# templates/login.html #}
 {% extends "base.html" %}
 {% block title %}로그인{% endblock %}
 
@@ -27,43 +28,8 @@
     </form>
 
 </div>
-
 {% endblock %}
 
 {% block scripts %}
-<script>
-document.getElementById("login-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value.trim();
-    const errorBox = document.getElementById("login-error");
-
-    try {
-        const res = await fetch("/api/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password })
-        });
-
-        const json = await res.json();
-
-        if (!res.ok || json.status !== "success") {
-            errorBox.innerText = json.message || "아이디 또는 비밀번호가 올바르지 않습니다.";
-            errorBox.style.display = "block";
-            return;
-        }
-
-        // ✔ 로그인 성공 → localStorage 저장
-        localStorage.setItem("belong_user", json.data.username);
-
-        // ✔ 메인 페이지 이동
-        window.location.href = "{{ url_for('web.index') }}";
-
-    } catch (err) {
-        errorBox.innerText = "서버와 연결할 수 없습니다.";
-        errorBox.style.display = "block";
-    }
-});
-</script>
+  <script src="{{ url_for('static', filename='js/login.js') }}"></script>
 {% endblock %}

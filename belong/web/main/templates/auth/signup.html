@@ -1,3 +1,4 @@
+{# templates/signup.html #}
 {% extends "base.html" %}
 {% block title %}회원가입{% endblock %}
 
@@ -44,87 +45,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-function checkPasswordMatch() {
-    const pw1 = document.getElementById("password1").value;
-    const pw2 = document.getElementById("password2").value;
-    const msg = document.getElementById("pw-match-msg");
-
-    if (!pw2) {
-        msg.style.display = "none";
-        return;
-    }
-
-    if (pw1 === pw2) {
-        msg.style.display = "inline";
-        msg.classList.remove("text-danger");
-        msg.classList.add("text-success");
-        msg.innerText = "비밀번호가 일치합니다.";
-    } else {
-        msg.style.display = "inline";
-        msg.classList.remove("text-success");
-        msg.classList.add("text-danger");
-        msg.innerText = "비밀번호가 일치하지 않습니다.";
-    }
-}
-
-document.getElementById("password1").addEventListener("input", checkPasswordMatch);
-document.getElementById("password2").addEventListener("input", checkPasswordMatch);
-
-document.getElementById("signup-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const username = document.getElementById("username").value.trim();
-    const email = document.getElementById("email").value.trim();
-    const password1 = document.getElementById("password1").value.trim();
-    const password2 = document.getElementById("password2").value.trim();
-
-    const errorBox = document.getElementById("signup-error");
-    const pwMsg = document.getElementById("pw-match-msg");
-
-    errorBox.style.display = "none";
-
-    // 프론트 검증
-    if (!password1 || !password2) {
-        errorBox.innerText = "비밀번호를 모두 입력해주세요.";
-        errorBox.style.display = "block";
-        return;
-    }
-
-    if (password1 !== password2) {
-        errorBox.innerText = "비밀번호가 서로 일치하지 않습니다.";
-        errorBox.style.display = "block";
-
-        pwMsg.style.display = "inline";
-        pwMsg.classList.remove("text-success");
-        pwMsg.classList.add("text-danger");
-        pwMsg.innerText = "비밀번호가 일치하지 않습니다.";
-
-        return;
-    }
-
-    try {
-        const res = await fetch("/api/auth/signup", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, email, password: password1 })
-        });
-
-        const json = await res.json();
-
-        if (!res.ok || json.status !== "success") {
-            errorBox.innerText = json.message || "이미 가입된 회원입니다.";
-            errorBox.style.display = "block";
-            return;
-        }
-
-        // 🎯 회원가입 성공 → 메인 페이지로 이동
-        window.location.href = "/";
-
-    } catch (err) {
-        errorBox.innerText = "서버와 연결할 수 없습니다.";
-        errorBox.style.display = "block";
-    }
-});
-</script>
+  <script src="{{ url_for('static', filename='js/signup.js') }}"></script>
 {% endblock %}
