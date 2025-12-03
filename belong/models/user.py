@@ -2,7 +2,7 @@
 
 from belong.extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
-
+from sqlalchemy import Sequence
 
 class User(db.Model):
     """
@@ -12,7 +12,7 @@ class User(db.Model):
 
     __tablename__ = "USER"
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer,Sequence("USER_SEQ"), primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
