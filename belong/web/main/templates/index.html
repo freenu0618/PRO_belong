@@ -51,96 +51,96 @@
     <span class="carousel-control-next-icon"></span>
   </button>
 </div>
+<div class="page-gradient py-4">
+  <section class="hero-grid">
 
-<section class="hero-grid">
+    <!-- ① 위-왼쪽: 메뉴1, 메뉴2 -->
+    <div class="hero-cell hero-menu hero-menu-top">
+      <p class="hero-kicker">
+        Belong은<br>
+        이런 데이터를 다룹니다:
+      </p>
 
-  <!-- ① 위-왼쪽: 메뉴1, 메뉴2 -->
-  <div class="hero-cell hero-menu hero-menu-top">
-    <p class="hero-kicker">
-      Belong은<br>
-      이런 데이터를 다룹니다:
-    </p>
+      <div class="hero-list">
+        <!-- 메뉴 1: 고독사 리스크 분석 (대시보드로 이동) -->
+        <button type="button"
+                class="hero-item is-active"
+                data-group="top"
+                data-image="{{ url_for('static', filename='image/c1.jpg') }}"
+                data-target="{{ url_for('web.dashboard') }}">
+          고독사 리스크 분석<span class="hero-arrow">›</span>
+        </button>
 
-    <div class="hero-list">
-      <!-- 메뉴 1: 고독사 리스크 분석 (대시보드로 이동) -->
-      <button type="button"
-              class="hero-item is-active"
-              data-group="top"
-              data-image="{{ url_for('static', filename='image/c1.jpg') }}"
-              data-target="{{ url_for('web.dashboard') }}">
-        고독사 리스크 분석<span class="hero-arrow">›</span>
-      </button>
-
-      <!-- 메뉴 2: 아직 기능 없음, 일단 자리만 -->
-      <button type="button"
-              class="hero-item"
-              data-group="top"
-              data-image="{{ url_for('static', filename='image/c2.jpg') }}">
-        메뉴 2<span class="hero-arrow">›</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- ② 위-오른쪽: 메뉴1/2 이미지 영역 -->
-  <div class="hero-cell hero-image hero-image-top"
-       style="background-image: url('{{ url_for('static', filename='image/c1.jpg') }}');">
-  </div>
-
-  <!-- ③ 아래-왼쪽: 메뉴3/4 이미지 영역 -->
-  <div class="hero-cell hero-image hero-image-bottom"
-       style="background-image: url('{{ url_for('static', filename='image/c3.jpg') }}');">
-  </div>
-
-  <!-- ④ 아래-오른쪽: 메뉴3, 메뉴4 -->
-  <div class="hero-cell hero-menu hero-menu-bottom">
-    <div class="hero-list hero-list-bottom">
-      <button type="button"
-              class="hero-item"
-              data-group="bottom"
-              data-image="{{ url_for('static', filename='image/c3.jpg') }}">
-        <span class="hero-arrow"><</span>메뉴 3
-      </button>
-
-      <button type="button"
-              class="hero-item"
-              data-group="bottom"
-              data-image="{{ url_for('static', filename='image/c1.jpg') }}">
-        <span class="hero-arrow"><</span>메뉴 4
-      </button>
-    </div>
-  </div>
-
-</section>
-
-<!-- 3. 아래 카드 2개 (소개용) -->
-<section class="container py-5">
-  <div class="row g-4">
-    <div class="col-12 col-md-6">
-      <div class="card h-100 shadow-sm border-0 feature-card">
-        <div class="card-body p-4">
-          <h5 class="card-title">내용1</h5>
-          <p class="card-text text-muted mb-0">
-            첫 번째 내용 설명 글이 들어갑니다.
-            (예: “서울 전체 고독사/노인 인구를 한눈에 보는 대시보드로 이동합니다.”)
-          </p>
-        </div>
+        <!-- 메뉴 2: 아직 기능 없음, 일단 자리만 -->
+        <button type="button"
+                class="hero-item"
+                data-group="top"
+                data-image="{{ url_for('static', filename='image/c2.jpg') }}">
+          메뉴 2<span class="hero-arrow">›</span>
+        </button>
       </div>
     </div>
 
-    <div class="col-12 col-md-6">
-      <div class="card h-100 shadow-sm border-0 feature-card">
-        <div class="card-body p-4">
-          <h5 class="card-title">내용2</h5>
-          <p class="card-text text-muted mb-0">
-            두 번째 내용 설명 글이 들어갑니다.
-            (예: “관심 구를 선택해 2035년까지의 고독사 위험 예측을 확인해보세요.”)
-          </p>
+    <!-- ② 위-오른쪽: 메뉴1/2 이미지 영역 -->
+    <div class="hero-cell hero-image hero-image-top"
+         style="background-image: url('{{ url_for('static', filename='image/c1.jpg') }}');">
+    </div>
+
+    <!-- ③ 아래-왼쪽: 메뉴3/4 이미지 영역 -->
+    <div class="hero-cell hero-image hero-image-bottom"
+         style="background-image: url('{{ url_for('static', filename='image/c3.jpg') }}');">
+    </div>
+
+    <!-- ④ 아래-오른쪽: 메뉴3, 메뉴4 -->
+    <div class="hero-cell hero-menu hero-menu-bottom">
+      <div class="hero-list hero-list-bottom">
+        <button type="button"
+                class="hero-item"
+                data-group="bottom"
+                data-image="{{ url_for('static', filename='image/c3.jpg') }}">
+          <span class="hero-arrow"><</span>메뉴 3
+        </button>
+
+        <button type="button"
+                class="hero-item"
+                data-group="bottom"
+                data-image="{{ url_for('static', filename='image/c1.jpg') }}">
+          <span class="hero-arrow"><</span>메뉴 4
+        </button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- 3. 아래 카드 2개 (소개용) -->
+  <section class="container py-5">
+    <div class="row g-4">
+      <div class="col-12 col-md-6">
+        <div class="card h-100 shadow-sm border-0 feature-card">
+          <div class="card-body p-4">
+            <h5 class="card-title">내용1</h5>
+            <p class="card-text text-muted mb-0">
+              첫 번째 내용 설명 글이 들어갑니다.
+              (예: “서울 전체 고독사/노인 인구를 한눈에 보는 대시보드로 이동합니다.”)
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <div class="card h-100 shadow-sm border-0 feature-card">
+          <div class="card-body p-4">
+            <h5 class="card-title">내용2</h5>
+            <p class="card-text text-muted mb-0">
+              두 번째 내용 설명 글이 들어갑니다.
+              (예: “관심 구를 선택해 2035년까지의 고독사 위험 예측을 확인해보세요.”)
+            </p>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
-
+  </section>
+</div>
 {% endblock %}
 
 {% block scripts %}
