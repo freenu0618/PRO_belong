@@ -5,6 +5,12 @@ from belong.repositories.prediction_repo import PredictionRepository
 from belong.ml.model_loader import load_model
 from belong.extensions import logger
 
+SOURCE_PRIORITIES = [
+    "ml_linear_rate_v0_3",
+    "ml_catboost_rate_v1_0",
+    "model",
+    "rule_based",
+]
 
 class PredictionService:
     """
@@ -144,36 +150,37 @@ class PredictionService:
             if not region_name:
                 continue
 
-            # 2) 이미 해당 연도 예측이 있는지 확인
-            existing = self.prediction_repo.get_predictions(
-                region=region_name,
-                start_year=year,
-                end_year=year,
-                source="model",
-            )
+            existing = None
 
-            if not existing:
+            # 1) 우선순위대로 기존 예측 찾기
+            for src in SOURCE_PRIORITIES:
                 existing = self.prediction_repo.get_predictions(
                     region=region_name,
                     start_year=year,
                     end_year=year,
-                    source="rule_based",
+                    source=src,
                 )
+                if existing:
+                    # 첫 번째로 찾은 예측을 사용하고 loop 탈출
+                    break
 
+            # 2) 그래도 없으면 새로 예측해서 저장
             if existing:
-                # get_predictions가 [{"year":..., "value":...}, ...] 형식이라고 가정
                 prediction_value = float(existing[0]["value"])
                 logger.info(
-                    f"[PredictionService] 이미 존재하는 예측 사용: region={region_name}, year={year}, value={prediction_value}"
+                    f"[PredictionService] 이미 존재하는 예측 사용: "
+                    f"region={region_name}, year={year}, value={prediction_value}"
                 )
             else:
-                logger.info(f"[PredictionService] 예측 생성: region={region_name}, year={year}")
+                logger.info(
+                    f"[PredictionService] 예측 생성: region={region_name}, year={year}"
+                )
                 result = self.predict_and_store(region_name, year)
                 if result is None:
                     logger.warning(
-                        f"[PredictionService] 예측 실패: region={region_name}, year={year} → 결과를 건너뜁니다."
+                        f"[PredictionService] 예측 실패: region={region_name}, year={year} → 건너뜀"
                     )
-                    continue  # 이 구는 map에 안 넣고 건너뛰기
+                    continue
 
                 prediction_value = float(result["prediction"])
 

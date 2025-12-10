@@ -10,6 +10,3 @@ db = SQLAlchemy()
 
 # Flask-Migrate (Alembic 래퍼)
 migrate = Migrate()
-
-# 로거 (이미 있으면 그거 사용)
-logger = logging.getLogger(__name__)

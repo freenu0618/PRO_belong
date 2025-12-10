@@ -36,7 +36,7 @@ from belong.models.elderly_history import ElderlyHistory
 ACTUAL_LAST_YEAR = 2023          # ELDERLY_STATS 실측 마지막 연도
 FORECAST_START_YEAR = 2024
 FORECAST_LAST_YEAR = 2030        # 예측 마지막 연도
-TRAIN_START_YEAR = 2019          # 학습 데이터 시작 연도 (필요시 2020으로 조정 가능)
+TRAIN_START_YEAR = 2017          # 학습 데이터 시작 연도 (필요시 2020으로 조정 가능)
 
 ML_SOURCE = "ml_linear_rate_v0_3"
 
@@ -246,8 +246,8 @@ def load_latest_stats_per_region() -> pd.DataFrame:
             ElderlyStats.elderly_population.label("elderly_population"),
             ElderlyStats.aging_index.label("aging_index"),
             ElderlyStats.single_household_ratio.label("single_household_ratio"),
-            # ElderlyStats.low_inc_65_79_ratio.label("low_inc_65_79_ratio"),
-            # ElderlyStats.low_inc_80_plus_ratio.label("low_inc_80_plus_ratio"),
+            ElderlyStats.low_income_elderly_65_79_ratio.label("LOW_INC_65_79_RATIO"),
+            ElderlyStats.low_income_elderly_80_over_ratio.label("LOW_INC_80_PLUS_RATIO"),
             ElderlyStats.cpi_index.label("cpi_index"),
             ElderlyStats.target_value.label("target_value"),
         )

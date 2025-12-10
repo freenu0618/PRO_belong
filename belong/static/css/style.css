@@ -8,7 +8,7 @@ html, body {
 
 body {
   background-color: #ffffff;
-  color: #111827;
+  color: #948975;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -97,7 +97,6 @@ main {
   padding-bottom: 0.6rem;
   background: transparent;    /* 실제 배경색은 site-header가 담당 */
   border-radius: 1.5rem;
-  overflow: hidden;
 }
 
 /* 로고 텍스트 조금 더 깔끔하게 */
@@ -114,7 +113,7 @@ main {
 
 /* hover 색상 */
 .nav-link.nav-link-lg:hover {
-  color: rgba(255, 0, 0, 0.5);
+  color: rgba(255, 0, 0, 0.8);
 }
 
 /* 모바일 토글 아이콘 */
@@ -264,8 +263,8 @@ main {
   inset: 0;
   background: radial-gradient(
       circle at top left,
-      rgba(15, 23, 42, 0.9),
-      rgba(15, 23, 42, 0.6)
+      rgba(15, 23, 42, 0.5),
+      rgba(15, 23, 42, 0.5)
   );
 }
 
@@ -347,19 +346,31 @@ footer {
    6. 반응형 (모바일)
    =============================== */
 
-@media (max-width: 991.98px) {
-  .hero-row {
-    min-height: auto;
+/* 반응형 (태블릿/모바일) */
+@media (max-width: 1199.98px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;     /* 한 줄 레이아웃 */
   }
 
-  .hero-left-inner {
-    padding: 2.5rem 1.75rem;
+  .dashboard-controls {
+    max-width: 480px;
+    margin: 0 auto 1.5rem;          /* 🔹 가운데 정렬 + 아래 여백 */
   }
 
-  .hero-image {
-    min-height: 260px;
+  .dashboard-graphs-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .graph-divider,
+  .graph-gutter {
+    display: none;
+  }
+
+  .graph-column {
+    padding: 0 0 1rem;
   }
 }
+
 /* ===============================
    Dashboard 레이아웃 (3 : 13)
    =============================== */
