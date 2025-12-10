@@ -137,6 +137,7 @@ main {
 .hero-cell {
   position: relative;
   overflow: hidden;
+  border-radius: 25px;
 }
 
 /* 텍스트 있는 칸 */

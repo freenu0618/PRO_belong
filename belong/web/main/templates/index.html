@@ -58,7 +58,7 @@
     <div class="hero-cell hero-menu hero-menu-top">
       <p class="hero-kicker">
         Belong은<br>
-        이런 데이터를 다룹니다:
+        독거노인들의 리스크 분석을 합니다.
       </p>
 
       <div class="hero-list">
@@ -75,8 +75,9 @@
         <button type="button"
                 class="hero-item"
                 data-group="top"
-                data-image="{{ url_for('static', filename='image/c2.jpg') }}">
-          메뉴 2<span class="hero-arrow">›</span>
+                data-image="{{ url_for('static', filename='image/c2.jpg') }}"
+                data-target="{{ url_for('web.ai_tool') }}">
+          AI 서비스<span class="hero-arrow">›</span>
         </button>
       </div>
     </div>
