@@ -76,7 +76,7 @@ def api_ai_sentiment():
 # 미니2: 개체(객체) 분석
 # POST /api/ai/entities
 # ===========================
-@api_bp.post("/api/ai/entities")
+@api_bp.post("/ai/entities")
 def api_ai_entities():
     text, options = _parse_request()
 
