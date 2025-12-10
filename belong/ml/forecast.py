@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 ALONE_POPULATION_PATH = BASE_DIR / "dataset/raw_data" / "alone_person.csv" #추가된 PATH임
 # 2007년~ 2023년도 독거노인 인구수 데이터 추가해서 넣어놨음
 DATA_PATH = BASE_DIR / "dataset" / "merged_sum.csv"
-MODEL_PATH = Path(__file__).resolve().parent / "forecast_v1.pkl"
+MODEL_PATH = Path(__file__).resolve().parent / "forecast_model.pkl"
 
 TARGET_COLUMN = "value"
 
