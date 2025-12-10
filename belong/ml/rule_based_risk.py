@@ -54,7 +54,7 @@ def compute_risk_score(region_name: str, features: ElderlyRiskFeatures) -> float
         risk = 1.0
     return risk
 
-
+# 추가적으로 risk기능을 추가할때 사용가능
 def to_risk_level(score: float) -> RiskLevel:
     if score >= 0.7:
         return "HIGH"
