@@ -9,3 +9,4 @@ from . import elderly_routes  # noqa: F401
 from . import lonely_routes   # noqa: F401
 from . import auth_routes     # noqa: F401
 from . import routes          # 기존 공통 API가 있으면 유지
+from . import ai_route
