@@ -2,9 +2,9 @@ from flask import jsonify, request
 from . import api_bp
 
 from belong.services.ai_service import AIService
-
+from belong.services.chat_service import ChatService
 ai_service = AIService()
-
+chat_service = ChatService()
 
 def _parse_request():
     """
@@ -127,3 +127,52 @@ def api_ai_qa():
         ok=True,
         mode="mock",
     ), 200
+
+# ===========================
+# 챗봇: 프롬프트 + DB 저장 + 히스토리
+# ===========================
+
+@api_bp.post("/chat/ask")
+def api_chat_ask():
+    """
+    body 예시:
+    {
+      "user_id": 1,
+      "service": "qa",            # "sentiment" / "entities" / "qa"
+      "text": "내 이름은 상엽이야",
+      "options": {}               # qa일 때 context 직접 넘기고 싶으면 여기
+    }
+    """
+    data = request.get_json(silent=True) or {}
+    user_id = data.get("user_id")
+    service = (data.get("service") or "qa").strip()
+    text = (data.get("text") or "").strip()
+    options = data.get("options") or {}
+
+    if not user_id or not text:
+        return jsonify(
+            {
+                "ok": False,
+                "service": service,
+                "input": {"text": text},
+                "result": {"error": "user_id와 text는 필수입니다."},
+                "debug": {"mode": "mock"},
+            }
+        ), 400
+
+    resp = chat_service.process(
+        user_id=int(user_id),
+        service=service,
+        text=text,
+        options=options,
+    )
+    return jsonify(resp), 200
+
+
+@api_bp.get("/chat/history/<int:user_id>")
+def api_chat_history(user_id: int):
+    """
+    특정 user_id의 최근 대화 히스토리 조회
+    """
+    resp = chat_service.get_history(user_id=user_id, limit=20)
+    return jsonify(resp), 200

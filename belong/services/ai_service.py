@@ -13,6 +13,7 @@ class AIService:
     - 감정 분석
     - 개체명 인식
     - 질의응답
+    - (추가) 챗봇 대화
     """
 
     def __init__(self, device: Optional[int] = None) -> None:
@@ -51,6 +52,16 @@ class AIService:
                 task="question-answering",
                 model=qa_model,
                 tokenizer=qa_model,
+                device=self.device,
+            )
+
+            # 4) (추가) 챗봇: 한국어 대화형 텍스트 생성 모델
+            # 필요하면 여기 모델명만 나중에 교체하면 됨.
+            chat_model = "beomi/KoAlpaca-Polyglot-5.8B"
+            self.chat_pipe = pipeline(
+                task="text-generation",
+                model=chat_model,
+                tokenizer=chat_model,
                 device=self.device,
             )
 
@@ -95,6 +106,15 @@ class AIService:
     # 질의응답
     # -----------------------
     def answer_question(self, question: str, context: str) -> Dict[str, Any]:
+        # context가 비어 있으면 모델 호출 대신 안전하게 빈 답변 반환
+        if not context:
+            return {
+                "answer": "",
+                "score": 0.0,
+                "start": 0,
+                "end": 0,
+            }
+
         raw = self.qa_pipe({"question": question, "context": context})
         return {
             "answer": str(raw.get("answer", "")),
@@ -102,3 +122,24 @@ class AIService:
             "start": int(raw.get("start", 0)),
             "end": int(raw.get("end", 0)),
         }
+
+    # -----------------------
+    # (추가) 챗봇 대화
+    # -----------------------
+    def chat(self, text: str, max_new_tokens: int = 128) -> Dict[str, Any]:
+        """
+        사용자의 입력 텍스트에 대해 대화형 응답을 생성.
+        history를 쓰고 싶으면 나중에 프롬프트에 같이 붙이는 방식으로 확장하면 됨.
+        """
+        outputs = self.chat_pipe(
+            text,
+            max_new_tokens=max_new_tokens,
+            do_sample=True,
+            temperature=0.7,
+            top_p=0.9,
+        )
+        if not outputs:
+            return {"answer": ""}
+
+        generated = outputs[0].get("generated_text", "")
+        return {"answer": str(generated)}
