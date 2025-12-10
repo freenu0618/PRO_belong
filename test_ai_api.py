@@ -38,7 +38,48 @@ def test_qa():
     print("status:", resp.status_code)
     print("body:", resp.json())
 
+def test_chat():
+    print("\n### /api/chat/ask 1 (이름 알려주기)")
+    url = f"{BASE}/api/chat/ask"
+    payload = {
+        "user_id": 1,
+        "service": "chat",
+        "text": "내 이름은 상엽이야",
+        "options": {}
+    }
+    resp = requests.post(url, json=payload)
+    print("status:", resp.status_code)
+    try:
+        print("body:", resp.json())
+    except Exception:
+        print("raw text:", resp.text)
+
+    print("\n### /api/chat/ask 2 (다시 물어보기)")
+    payload = {
+        "user_id": 2,
+        "service": "qa",
+        "text": "내가 누구라고?",
+        "options": {}
+    }
+    resp = requests.post(url, json=payload)
+    print("status:", resp.status_code)
+    try:
+        print("body:", resp.json())
+    except Exception:
+        print("raw text:", resp.text)
+
+def test_chat_history():
+    print("\n### /api/chat/history/1")
+    url = f"{BASE}/api/chat/history/1"
+    resp = requests.get(url)
+    print("status:", resp.status_code)
+    print("body:", resp.json())
+
+
 if __name__ == "__main__":
     test_sentiment()
     test_entities()
     test_qa()
+    test_chat()
+    test_chat_history()
+

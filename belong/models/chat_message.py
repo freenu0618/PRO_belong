@@ -23,7 +23,7 @@ class ChatMessage(db.Model):
 
     user_id = db.Column(
         db.Integer,
-        db.ForeignKey("user.id"),
+        db.ForeignKey("USER.id"),
         nullable=False,
     )
 
