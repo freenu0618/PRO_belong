@@ -63,3 +63,17 @@ def signup():
 def logout():
     # UI 기준: JS에서 localStorage 제거 후 메인으로 이동
     return redirect(url_for("web.index"))
+
+@web_bp.get("/ai")
+def ai_home():
+    """
+    AI 서비스 허브 페이지
+    - ai_tool.html을 사용해서
+    - 내부에서 감정분석/개체분석/요약/QA 등을 선택하게 만들 예정
+    """
+    return render_template(
+        "ai_tool.html",   # 실제 경로에 맞게 수정: "ai/ai_tool.html" 일 수도 있음
+        page_title="AI 서비스",
+        heading="AI 서비스 허브",
+        description="번역, 감정 분석, 개체 분석, 텍스트 요약, 질의응답 AI 도구를 한 곳에서 사용할 수 있습니다.",
+    )

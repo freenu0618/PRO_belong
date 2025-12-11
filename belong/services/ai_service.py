@@ -45,14 +45,14 @@ class AIService:
                 device=self.device,
             )
 
-            # 3) QA: monologg/koelectra-base-v3-finetuned-korquad
-            qa_model = "monologg/koelectra-base-v3-finetuned-korquad"
-            self.qa_pipe = pipeline(
-                task="question-answering",
-                model=qa_model,
-                tokenizer=qa_model,
-                device=self.device,
-            )
+            # # 3) QA: monologg/koelectra-base-v3-finetuned-korquad
+            # qa_model = "monologg/koelectra-base-v3-finetuned-korquad"
+            # self.qa_pipe = pipeline(
+            #     task="question-answering",
+            #     model=qa_model,
+            #     tokenizer=qa_model,
+            #     device=self.device,
+            # )
 
             logger.info("AIService pipelines initialized successfully.")
 

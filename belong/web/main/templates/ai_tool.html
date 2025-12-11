@@ -1,39 +1,62 @@
 {# templates/ai/ai_tool.html #}
 {% extends "base.html" %}
-{% block title %}{{ page_title }} - Belong{% endblock %}
+{% block title %}{{ page_title or "AI 서비스" }} - Belong{% endblock %}
 
 {% block content %}
 <div class="container py-5">
-
   <div class="row justify-content-center">
-    <div class="col-lg-8">
+    <div class="col-lg-9">
 
-      <h1 class="mb-2">{{ heading }}</h1>
-      <p class="text-muted mb-4">{{ description }}</p>
+      <h1 class="mb-2">{{ heading or "AI 서비스 허브" }}</h1>
+      <p class="text-muted mb-4">
+        {{ description or "감정 분석, 개체 분석, 질의응답 등 AI 도구를 하나의 화면에서 사용할 수 있습니다." }}
+      </p>
 
       <div class="card shadow-sm">
         <div class="card-body">
 
+          <!-- 1) 서비스 선택 -->
           <div class="mb-3">
-            <label class="form-label">입력 텍스트</label>
-            <textarea id="ai-input-text"
-                      class="form-control"
-                      rows="6"
-                      placeholder="분석하거나 번역할 문장을 입력해주세요."></textarea>
+            <label for="ai-service-select" class="form-label fw-semibold">AI 기능 선택</label>
+            <select id="ai-service-select" class="form-select">
+              <option value="sentiment">감정 분석</option>
+              <option value="entities">개체 분석</option>
+              <option value="qa">질의 응답</option>
+            </select>
+            <div id="ai-service-help" class="form-text text-muted mt-1">
+              감정 분석: 문장의 감정(긍정/부정 등)을 분석합니다.
+            </div>
           </div>
 
-          <button id="ai-run-btn"
-                  class="btn btn-primary"
-                  data-service="{{ service_name }}">
-            실행
-          </button>
+          <!-- 2) 입력 영역 -->
+          <div class="mb-3">
+            <label for="ai-input-text" class="form-label fw-semibold">입력 텍스트</label>
+            <textarea
+              id="ai-input-text"
+              class="form-control"
+              rows="4"
+              placeholder="분석하거나 질문할 문장을 입력하세요."></textarea>
+          </div>
 
-          <hr>
+          <!-- 3) 버튼들 -->
+          <div class="d-flex gap-2 mb-3">
+            <button id="ai-run-btn" class="btn btn-primary" type="button">
+              실행
+            </button>
+            <button id="ai-clear-btn" class="btn btn-outline-secondary" type="button">
+              초기화
+            </button>
+          </div>
 
-          <h6 class="text-muted">결과</h6>
-          <pre id="ai-result"
-               class="small border rounded p-2"
-               style="min-height: 80px; white-space: pre-wrap; word-break: break-word;"></pre>
+          <!-- 4) 대화/결과 영역 -->
+          <div
+            id="ai-chat-box"
+            class="border rounded p-3"
+            style="min-height: 140px; max-height: 400px; overflow-y: auto;">
+            <div class="text-muted small">
+              아직 대화 내역이 없습니다. 텍스트를 입력하고 <strong>실행</strong>을 눌러보세요.
+            </div>
+          </div>
 
         </div>
       </div>
