@@ -1,192 +1,299 @@
+{# templates/index.html #}
 {% extends "base.html" %}
-{% block title %}Belong - Home{% endblock %}
+
+{% block title %}Belong - 데이터 기반 케어 플랫폼{% endblock %}
+
+{% block page_id %}home{% endblock %}
+{% block body_class %}home-page{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+{% endblock %}
 
 {% block content %}
 
-<!-- 1. Fullscreen Carousel -->
-<div id="mainCarousel" class="carousel slide hero-carousel" data-bs-ride="carousel">
+<!-- HERO -->
+<section class="hero-section">
+  <div class="page-container">
+    <div class="hero-grid">
 
-  <div class="carousel-inner">
-    <!-- 1번 슬라이드: c1 -->
-    <div class="carousel-item active">
-      <div class="main-slide"
-           style="background-image: url({{ url_for('static', filename='image/c1.jpg') }});">
-        <div class="overlay"></div>
-        <div class="carousel-content">
-          <h1>서울 25개 구 독거노인 리스크 예측</h1>
-          <p>데이터 기반 통합 분석 서비스</p>
+      <!-- Left -->
+      <div>
+        <span class="hero-eyebrow">BELONG PLATFORM</span>
+
+        <h1 class="hero-title">
+          대시보드와 AI로<br class="d-none d-md-block">
+          더 빠르게, 더 정확하게.
+        </h1>
+
+        <p class="hero-subtitle">
+          Belong은 <strong>대시보드</strong>와 <strong>AI 챗봇 서비스(5기능)</strong>를 중심으로 운영됩니다.
+          <br class="d-none d-md-block">
+          <strong>AI Agent</strong>와 <strong>Agentic AI</strong>는 확장을 위한 UI 구조만 먼저 준비해둡니다.
+        </p>
+
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-primary btn-lg rounded-4 px-4" href="{{ url_for('web.dashboard') }}">
+            대시보드 시작
+          </a>
+
+          <a class="btn btn-outline-primary btn-lg rounded-4 px-4" href="{{ url_for('web.ai_home') }}">
+            AI 챗봇 열기
+          </a>
+
+          <button class="btn btn-outline-secondary btn-lg rounded-4 px-4" data-coming-soon="agent">
+            AI Agent
+          </button>
+
+          <button class="btn btn-outline-secondary btn-lg rounded-4 px-4" data-coming-soon="agentic">
+            Agentic AI
+          </button>
+        </div>
+
+        <div class="hero-meta">
+          빠른 이동:
+          <a href="#features">주요 기능</a>
+          ·
+          <a href="#how">사용 방법</a>
+          ·
+          <a href="#roadmap">확장 로드맵</a>
         </div>
       </div>
-    </div>
 
-    <!-- 2번 슬라이드: c2 -->
-    <div class="carousel-item">
-      <div class="main-slide"
-           style="background-image: url({{ url_for('static', filename='image/c2.jpg') }});">
-        <div class="overlay"></div>
-        <div class="carousel-content">
-          <h1>구별 상세 분석</h1>
-          <p>각 구의 고령 인구 추세를 시각적으로 분석</p>
+      <!-- Right -->
+      <div class="hero-visual">
+        <div class="card hero-visual-card border-0">
+          <div class="hero-visual-media">
+            <img
+              class="hero-image"
+              src="{{ url_for('static', filename='image/region.jpg') }}"
+              alt="Belong Visual"
+            >
+          </div>
+
+          <div class="hero-visual-text">
+            <div class="hero-visual-title">현재 구현된 핵심</div>
+            <div class="hero-visual-desc">
+              ① 대시보드(데이터 탐색) · ② AI 챗봇(번역/감정/요약/Q&A/객체)
+              <br>
+              → UI 구조를 먼저 안정화하고, 이후 AI Agent 확장을 수용합니다.
+            </div>
+
+            <hr class="my-3">
+
+            <div class="d-grid gap-2">
+              <a class="btn btn-outline-primary rounded-4" href="{{ url_for('web.dashboard') }}">
+                대시보드로 이동
+              </a>
+              <a class="btn btn-outline-primary rounded-4" href="{{ url_for('web.ai_home') }}">
+                AI 챗봇으로 이동
+              </a>
+              <button class="btn btn-light rounded-4" disabled>
+                AI Agent (준비중)
+              </button>
+              <button class="btn btn-light rounded-4" disabled>
+                Agentic AI (준비중)
+              </button>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+              <a class="btn btn-light w-50 rounded-4" href="{{ url_for('web.login') }}">
+                로그인
+              </a>
+              <a class="btn btn-light w-50 rounded-4" href="{{ url_for('web.signup') }}">
+                회원가입
+              </a>
+            </div>
+
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 3번 슬라이드: c3 -->
-    <div class="carousel-item">
-      <div class="main-slide"
-           style="background-image: url({{ url_for('static', filename='image/c3.jpg') }});">
-        <div class="overlay"></div>
-        <div class="carousel-content">
-          <h1>상관관계 분석</h1>
-          <p>주거, 연령, 경제 지표 기반 데이터 인사이트 제공</p>
-        </div>
-      </div>
     </div>
   </div>
+</section>
 
-  <button class="carousel-control-prev" type="button" data-bs-target="#mainCarousel" data-bs-slide="prev">
-    <span class="carousel-control-prev-icon"></span>
-  </button>
-  <button class="carousel-control-next" type="button" data-bs-target="#mainCarousel" data-bs-slide="next">
-    <span class="carousel-control-next-icon"></span>
-  </button>
-</div>
-<div class="page-gradient py-4">
-  <section class="hero-grid">
-
-    <!-- ① 위-왼쪽: 메뉴1, 메뉴2 -->
-    <div class="hero-cell hero-menu hero-menu-top">
-      <p class="hero-kicker">
-        Belong은<br>
-        독거노인들의 리스크 분석을 합니다.
+<!-- FEATURES -->
+<section id="features" class="services-section">
+  <div class="page-container">
+    <div class="mb-4">
+      <h2 class="fw-bold mb-2">주요 기능</h2>
+      <p class="text-muted mb-0">
+        홈/네비게이션은 <strong>4개의 제품 기능</strong> 기준으로 통일합니다.
       </p>
-
-      <div class="hero-list">
-        <!-- 메뉴 1: 고독사 리스크 분석 (대시보드로 이동) -->
-        <button type="button"
-                class="hero-item is-active"
-                data-group="top"
-                data-image="{{ url_for('static', filename='image/c1.jpg') }}"
-                data-target="{{ url_for('web.dashboard') }}">
-          고독사 리스크 분석<span class="hero-arrow">›</span>
-        </button>
-
-        <!-- 메뉴 2: 아직 기능 없음, 일단 자리만 -->
-        <button type="button"
-                class="hero-item"
-                data-group="top"
-                data-image="{{ url_for('static', filename='image/c2.jpg') }}"
-                data-target="{{ url_for('web.ai_home') }}">
-          AI 서비스<span class="hero-arrow">›</span>
-        </button>
-      </div>
     </div>
 
-    <!-- ② 위-오른쪽: 메뉴1/2 이미지 영역 -->
-    <div class="hero-cell hero-image hero-image-top"
-         style="background-image: url('{{ url_for('static', filename='image/c1.jpg') }}');">
-    </div>
+    <div class="row g-3">
 
-    <!-- ③ 아래-왼쪽: 메뉴3/4 이미지 영역 -->
-    <div class="hero-cell hero-image hero-image-bottom"
-         style="background-image: url('{{ url_for('static', filename='image/c3.jpg') }}');">
-    </div>
-
-    <!-- ④ 아래-오른쪽: 메뉴3, 메뉴4 -->
-    <div class="hero-cell hero-menu hero-menu-bottom">
-      <div class="hero-list hero-list-bottom">
-        <button type="button"
-                class="hero-item"
-                data-group="bottom"
-                data-image="{{ url_for('static', filename='image/c3.jpg') }}">
-          <span class="hero-arrow"><</span>메뉴 3
-        </button>
-
-        <button type="button"
-                class="hero-item"
-                data-group="bottom"
-                data-image="{{ url_for('static', filename='image/c1.jpg') }}">
-          <span class="hero-arrow"><</span>메뉴 4
-        </button>
-      </div>
-    </div>
-
-  </section>
-
-  <!-- 3. 아래 카드 2개 (소개용) -->
-  <section class="container py-5">
-    <div class="row g-4">
-      <div class="col-12 col-md-6">
-        <div class="card h-100 shadow-sm border-0 feature-card">
-          <div class="card-body p-4">
-            <h5 class="card-title">내용1</h5>
-            <p class="card-text text-muted mb-0">
-              첫 번째 내용 설명 글이 들어갑니다.
-              (예: “서울 전체 고독사/노인 인구를 한눈에 보는 대시보드로 이동합니다.”)
+      <!-- Dashboard -->
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="card h-100 rounded-4 shadow-sm border-0">
+          <div class="card-body p-4 d-flex flex-column">
+            <h5 class="feature-card-title">대시보드</h5>
+            <p class="feature-card-desc">
+              데이터 흐름을 빠르게 파악하고, 비교/추세 중심으로 탐색합니다.
             </p>
+            <div class="mt-auto">
+              <a class="btn btn-primary rounded-4" href="{{ url_for('web.dashboard') }}">
+                이동
+              </a>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="col-12 col-md-6">
-        <div class="card h-100 shadow-sm border-0 feature-card">
-          <div class="card-body p-4">
-            <h5 class="card-title">내용2</h5>
-            <p class="card-text text-muted mb-0">
-              두 번째 내용 설명 글이 들어갑니다.
-              (예: “관심 구를 선택해 2035년까지의 고독사 위험 예측을 확인해보세요.”)
+      <!-- AI Chatbot -->
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="card h-100 rounded-4 shadow-sm border-0">
+          <div class="card-body p-4 d-flex flex-column">
+            <h5 class="feature-card-title">AI 챗봇 서비스</h5>
+            <p class="feature-card-desc">
+              번역 / 감정분석 / 요약 / 질의응답 / 객체분석 등 5가지 기능을 한 곳에서 제공합니다.
             </p>
+            <div class="mt-auto">
+              <a class="btn btn-outline-primary rounded-4" href="{{ url_for('web.ai_home') }}">
+                이동
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Agent -->
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="card h-100 rounded-4 shadow-sm border-0">
+          <div class="card-body p-4 d-flex flex-column">
+            <div class="d-flex align-items-center justify-content-between">
+              <h5 class="feature-card-title mb-0">AI Agent</h5>
+              <span class="badge text-bg-secondary">준비중</span>
+            </div>
+            <p class="feature-card-desc mt-2">
+              목표 중심으로 작업을 분해하고, 필요한 도구를 호출해 결과를 만들어내는 에이전트 기능.
+            </p>
+            <div class="mt-auto">
+              <button class="btn btn-outline-secondary rounded-4 w-100" data-coming-soon="agent">
+                준비중
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agentic AI -->
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="card h-100 rounded-4 shadow-sm border-0">
+          <div class="card-body p-4 d-flex flex-column">
+            <div class="d-flex align-items-center justify-content-between">
+              <h5 class="feature-card-title mb-0">Agentic AI</h5>
+              <span class="badge text-bg-secondary">준비중</span>
+            </div>
+            <p class="feature-card-desc mt-2">
+              멀티 에이전트/워크플로우 기반으로 장기 목표를 수행하는 형태의 기능.
+            </p>
+            <div class="mt-auto">
+              <button class="btn btn-outline-secondary rounded-4 w-100" data-coming-soon="agentic">
+                준비중
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- HOW TO -->
+<section id="how" class="how-section">
+  <div class="page-container">
+    <div class="mb-4">
+      <h2 class="fw-bold mb-2">사용 방법</h2>
+      <p class="text-muted mb-0">현재 구현된 기능 기준으로, 가장 자연스러운 사용 흐름입니다.</p>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-12 col-lg-6">
+        <div class="card h-100 rounded-4 border-0 shadow-sm">
+          <div class="card-body p-4">
+            <div class="how-card-title">1) 대시보드로 데이터 흐름 파악</div>
+            <div class="how-card-desc">
+              연도/지역을 선택하고 그래프/비교를 통해 전체 흐름을 확인합니다.
+            </div>
+            <div class="mt-3">
+              <a href="{{ url_for('web.dashboard') }}">대시보드 열기 →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-6">
+        <div class="card h-100 rounded-4 border-0 shadow-sm">
+          <div class="card-body p-4">
+            <div class="how-card-title">2) AI 챗봇으로 해석/보조 작업 수행</div>
+            <div class="how-card-desc">
+              번역/감정/요약/Q&A/객체분석 등 필요한 AI 기능을 선택해 빠르게 처리합니다.
+            </div>
+            <div class="mt-3">
+              <a href="{{ url_for('web.ai_home') }}">AI 챗봇 열기 →</a>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </section>
-</div>
-{% endblock %}
 
-{% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  const heroItems = document.querySelectorAll('.hero-item');
-  const topImage  = document.querySelector('.hero-image-top');
-  const bottomImage = document.querySelector('.hero-image-bottom');
+    <div class="mt-4 small text-muted">
+      * AI Agent / Agentic AI는 “준비중” 상태로 UI에만 노출되며, 구현 완료 시 이 흐름에 자연스럽게 확장됩니다.
+    </div>
+  </div>
+</section>
 
-  if (!heroItems.length) return;
+<!-- ROADMAP -->
+<section id="roadmap" class="roadmap-section">
+  <div class="page-container">
+    <div class="mb-4">
+      <h2 class="fw-bold mb-2">확장 로드맵(UI 관점)</h2>
+      <p class="text-muted mb-0">
+        지금은 구현된 기능(대시보드/AI챗봇)을 안정화하고, 확장 기능을 “붙일 수 있는 구조”를 유지합니다.
+      </p>
+    </div>
 
-  heroItems.forEach(item => {
-    const group = item.dataset.group;      // "top" 또는 "bottom"
-    const img   = item.dataset.image;
-    const target = item.dataset.target;    // 메뉴1에만 있음
+    <div class="row g-3">
+      <div class="col-12 col-lg-4">
+        <div class="card h-100 rounded-4 border-0 shadow-sm">
+          <div class="card-body p-4">
+            <div class="roadmap-title">Phase 1: UI 구조 안정화</div>
+            <div class="roadmap-desc">
+              공통 컴포넌트(네비/레이아웃) 단일화, 전역/페이지 CSS 분리,
+              참조(엔드포인트/ID/클래스) 규칙 고정.
+            </div>
+          </div>
+        </div>
+      </div>
 
-    // hover / focus 시 이미지 교체 + 텍스트 강조
-    const activate = () => {
-      // 같은 그룹 안에서만 is-active 처리
-      heroItems.forEach(i => {
-        if (i.dataset.group === group) {
-          i.classList.remove('is-active');
-        }
-      });
-      item.classList.add('is-active');
+      <div class="col-12 col-lg-4">
+        <div class="card h-100 rounded-4 border-0 shadow-sm">
+          <div class="card-body p-4">
+            <div class="roadmap-title">Phase 2: AI Agent UI 스켈레톤</div>
+            <div class="roadmap-desc">
+              “준비중” 탭에 실제 페이지를 연결하고, 상태/로그/결과를 보여주는 레이아웃부터 확정.
+            </div>
+          </div>
+        </div>
+      </div>
 
-      if (img) {
-        if (group === 'top' && topImage) {
-          topImage.style.backgroundImage = `url('${img}')`;
-        } else if (group === 'bottom' && bottomImage) {
-          bottomImage.style.backgroundImage = `url('${img}')`;
-        }
-      }
-    };
+      <div class="col-12 col-lg-4">
+        <div class="card h-100 rounded-4 border-0 shadow-sm">
+          <div class="card-body p-4">
+            <div class="roadmap-title">Phase 3: Agentic AI 확장</div>
+            <div class="roadmap-desc">
+              워크플로우/멀티에이전트 시각화(실행흐름, 도구 호출, 결과물)를 대시보드와 연결할 수 있는 구조로 확장.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    item.addEventListener('mouseenter', activate);
-    item.addEventListener('focus', activate);
+  </div>
+</section>
 
-    // data-target 있으면 클릭 시 해당 페이지로 이동 (고독사 리스크 분석)
-    if (target) {
-      item.addEventListener('click', () => {
-        window.location.href = target;
-      });
-    }
-  });
-});
-</script>
 {% endblock %}

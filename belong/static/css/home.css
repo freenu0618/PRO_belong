@@ -1,0 +1,147 @@
+/* static/css/home.css */
+/* PAGE ONLY: Home (index) */
+
+.home-page .hero-section{
+  padding: 28px 0 18px;
+}
+
+.home-page .hero-grid{
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 992px){
+  .home-page .hero-grid{
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: 22px;
+    align-items: stretch;
+  }
+}
+
+.home-page .hero-eyebrow{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: .06em;
+  font-weight: 700;
+  color: rgba(29, 78, 216, 0.95);
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+}
+
+.home-page .hero-title{
+  margin: 14px 0 10px;
+  font-weight: 800;
+  line-height: 1.15;
+  font-size: clamp(28px, 3.4vw, 44px);
+  color: var(--color-text-main);
+}
+
+.home-page .hero-subtitle{
+  margin: 0 0 14px;
+  color: var(--color-text-sub);
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.home-page .hero-meta{
+  margin-top: 10px;
+  font-size: 13px;
+  color: rgba(15, 23, 42, 0.62);
+}
+
+.home-page .hero-meta a{
+  color: rgba(29, 78, 216, 0.95);
+}
+
+.home-page .hero-visual{
+  min-height: 100%;
+}
+
+.home-page .hero-visual-card{
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 14px 34px var(--color-shadow);
+}
+
+.home-page .hero-visual-media{
+  aspect-ratio: 16 / 9;
+  background: #111827;
+}
+
+.home-page .hero-image{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.95;
+}
+
+.home-page .hero-visual-text{
+  padding: 16px 18px 18px;
+  background: var(--color-bg-card);
+}
+
+.home-page .hero-visual-title{
+  font-weight: 800;
+  color: var(--color-text-main);
+  margin-bottom: 6px;
+}
+
+.home-page .hero-visual-desc{
+  color: var(--color-text-sub);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+/* Features section */
+.home-page .services-section{
+  padding: 18px 0 26px;
+}
+
+.home-page .feature-card-title{
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.home-page .feature-card-desc{
+  color: var(--color-text-sub);
+  line-height: 1.7;
+  margin-bottom: 14px;
+}
+
+/* How-to section (배경/여백만 전용 처리) */
+.home-page .how-section{
+  padding: 44px 0;
+  background: #f8fafc;
+}
+
+.home-page .how-card-title{
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.home-page .how-card-desc{
+  color: var(--color-text-sub);
+  line-height: 1.7;
+}
+
+/* Roadmap section */
+.home-page .roadmap-section{
+  padding: 44px 0 52px;
+}
+
+.home-page .roadmap-title{
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.home-page .roadmap-desc{
+  color: var(--color-text-sub);
+  line-height: 1.7;
+}

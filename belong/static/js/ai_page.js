@@ -27,31 +27,48 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // 서비스 바뀔 때 번역 옵션 표시/숨기기 + 설명 업데이트
-  serviceSelect.addEventListener("change", () => {
+  function updateTranslateOptions() {
     const svc = serviceSelect.value;
-
     if (translateOpts) {
       translateOpts.style.display = (svc === "translate") ? "block" : "none";
     }
+  }
 
+  // 서비스 바뀔 때 옵션 표시/숨기기 + 설명 업데이트
+  serviceSelect.addEventListener("change", () => {
+    updateTranslateOptions();
     updateServiceHelp();
   });
 
   // 초기 상태 반영
   updateServiceHelp();
-  if (translateOpts) {
-    translateOpts.style.display =
-      serviceSelect.value === "translate" ? "block" : "none";
-  }
+  updateTranslateOptions();
+
+  // ✅ 빠른 선택 카드(템플릿 인라인 JS 제거 → 여기서 처리)
+  document.querySelectorAll(".ai-quick-select").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const v = btn.getAttribute("data-ai-service");
+      if (!v) return;
+
+      serviceSelect.value = v;
+      serviceSelect.dispatchEvent(new Event("change", { bubbles: true }));
+
+      // 사용자가 바로 입력할 수 있게 포커스
+      inputEl.focus();
+
+      // 콘솔로 스크롤(부드럽게)
+      const consoleEl = document.getElementById("ai-console");
+      if (consoleEl) {
+        consoleEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  });
 
   // ---- 채팅 말풍선 추가 함수 ----
   function appendMessage(role, text) {
     const wrap = document.createElement("div");
     wrap.classList.add("mb-2", "d-flex");
-    wrap.classList.add(
-      role === "user" ? "justify-content-end" : "justify-content-start"
-    );
+    wrap.classList.add(role === "user" ? "justify-content-end" : "justify-content-start");
 
     const bubble = document.createElement("div");
     bubble.classList.add("px-3", "py-2", "rounded-3", "small");
@@ -65,69 +82,38 @@ document.addEventListener("DOMContentLoaded", () => {
     bubble.textContent = text;
     wrap.appendChild(bubble);
     chatBox.appendChild(wrap);
-
-    // 스크롤 아래로
     chatBox.scrollTop = chatBox.scrollHeight;
   }
 
   // ---- 결과 포맷터: 서비스별로 보기 좋게 변환 ----
   function formatResult(service, result) {
-    if (result == null) {
-      return "결과가 비어 있습니다.";
-    }
+    if (result == null) return "결과가 비어 있습니다.";
 
-    // 1) 감정 분석
     if (service === "sentiment") {
-      // 우리가 백엔드에서 보내는 형태: { label, score }
       if (typeof result === "object" && !Array.isArray(result)) {
         const label = result.label || "라벨 미상";
-        const score =
-          typeof result.score === "number"
-            ? (result.score * 100).toFixed(1) + "%"
-            : "";
-        if (score) {
-          return `감정 분석 결과: ${label} (${score})`;
-        }
-        return `감정 분석 결과: ${label}`;
+        const score = typeof result.score === "number" ? (result.score * 100).toFixed(1) + "%" : "";
+        return score ? `감정 분석 결과: ${label} (${score})` : `감정 분석 결과: ${label}`;
       }
-
-      // 혹시 배열로 올 경우까지 대비
       if (Array.isArray(result)) {
         if (result.length === 0) return "감정 분석 결과가 없습니다.";
         const lines = result.map((item, idx) => {
-          const label =
-            item.label || item.class || item.prediction || "라벨 미상";
-          const score =
-            typeof item.score === "number"
-              ? (item.score * 100).toFixed(1) + "%"
-              : "";
+          const label = item.label || item.class || item.prediction || "라벨 미상";
+          const score = typeof item.score === "number" ? (item.score * 100).toFixed(1) + "%" : "";
           const prefix = result.length > 1 ? `${idx + 1}. ` : "- ";
-          if (score) {
-            return `${prefix}${label} (${score})`;
-          }
-          return `${prefix}${label}`;
+          return score ? `${prefix}${label} (${score})` : `${prefix}${label}`;
         });
         return "감정 분석 결과:\n" + lines.join("\n");
       }
-
-      return typeof result === "string"
-        ? result
-        : JSON.stringify(result, null, 2);
+      return typeof result === "string" ? result : JSON.stringify(result, null, 2);
     }
 
-    // 2) 개체 분석
     if (service === "entities") {
       let entities = [];
+      if (Array.isArray(result)) entities = result;
+      else if (result && Array.isArray(result.entities)) entities = result.entities;
 
-      if (Array.isArray(result)) {
-        entities = result;
-      } else if (result && Array.isArray(result.entities)) {
-        entities = result.entities;
-      }
-
-      if (entities.length === 0) {
-        return "인식된 개체가 없습니다.";
-      }
+      if (entities.length === 0) return "인식된 개체가 없습니다.";
 
       function mapEntityType(t) {
         if (!t) return "타입 미상";
@@ -142,72 +128,54 @@ document.addEventListener("DOMContentLoaded", () => {
       const lines = entities.map((ent, idx) => {
         const word  = ent.text || ent.word || ent.token || "";
         const type  = mapEntityType(ent.entity || ent.entity_group || ent.label);
-        const score = typeof ent.score === "number"
-          ? (ent.score * 100).toFixed(1) + "%"
-          : "";
-
+        const score = typeof ent.score === "number" ? (ent.score * 100).toFixed(1) + "%" : "";
         let base = `${idx + 1}. "${word}"`;
         const meta = [];
         if (type)  meta.push(`타입: ${type}`);
         if (score) meta.push(`신뢰도: ${score}`);
-        if (meta.length > 0) {
-          base += ` (${meta.join(", ")})`;
-        }
+        if (meta.length > 0) base += ` (${meta.join(", ")})`;
         return base;
       });
 
       return "인식된 개체들:\n" + lines.join("\n");
     }
 
-    // 3) 질의응답
     if (service === "qa") {
       if (result && typeof result === "object") {
         if (result.answer) {
-          const score =
-            typeof result.score === "number"
-              ? (result.score * 100).toFixed(1) + "%"
-              : null;
-          if (score) {
-            return `답변: ${result.answer}\n(신뢰도: ${score})`;
-          }
-          return `답변: ${result.answer}`;
+          const score = typeof result.score === "number" ? (result.score * 100).toFixed(1) + "%" : null;
+          return score ? `답변: ${result.answer}\n(신뢰도: ${score})` : `답변: ${result.answer}`;
         }
         return JSON.stringify(result, null, 2);
       }
-      return typeof result === "string"
-        ? result
-        : JSON.stringify(result, null, 2);
+      return typeof result === "string" ? result : JSON.stringify(result, null, 2);
     }
 
-    // 4) 문장 요약
     if (service === "summary") {
-      if (result && typeof result === "object" && result.summary) {
-        return `요약:\n${result.summary}`;
-      }
-      return typeof result === "string"
-        ? result
-        : JSON.stringify(result, null, 2);
+      if (result && typeof result === "object" && result.summary) return `요약:\n${result.summary}`;
+      return typeof result === "string" ? result : JSON.stringify(result, null, 2);
     }
 
-    // 5) 번역
     if (service === "translate") {
       if (result && typeof result === "object" && result.translation) {
         const dir = result.direction === "en-ko" ? "영어 → 한국어" : "한국어 → 영어";
         return `번역(${dir}):\n${result.translation}`;
       }
-      return typeof result === "string"
-        ? result
-        : JSON.stringify(result, null, 2);
+      return typeof result === "string" ? result : JSON.stringify(result, null, 2);
     }
 
-    // 기타 서비스 fallback
-    if (typeof result === "string") {
-      return result;
-    }
-    return JSON.stringify(result, null, 2);
+    return typeof result === "string" ? result : JSON.stringify(result, null, 2);
   }
 
-  // ---- 실행 버튼 클릭 ----
+  // ✅ 서비스 → API 엔드포인트 맵 (if-else 제거: 실수↓)
+  const ENDPOINTS = {
+    sentiment: "/api/ai/sentiment",
+    entities:  "/api/ai/entities",
+    qa:        "/api/ai/qa",
+    summary:   "/api/ai/summary",
+    translate: "/api/ai/translate",
+  };
+
   runBtn.addEventListener("click", async () => {
     const text = (inputEl.value || "").trim();
     if (!text) {
@@ -216,45 +184,27 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const service = serviceSelect.value;
+    const url = ENDPOINTS[service];
 
-    // 1) 사용자 메시지 채팅창에 추가
-    appendMessage("user", text);
-    inputEl.value = "";
-
-    // 2) 서비스별 URL & options 구성
-    let url = "";
-    const options = {};
-
-    if (service === "sentiment") {
-      url = "/api/ai/sentiment";
-    } else if (service === "entities") {
-      url = "/api/ai/entities";
-    } else if (service === "qa") {
-      url = "/api/ai/qa";
-    } else if (service === "summary") {
-      url = "/api/ai/summary";
-      // 필요하면 나중에 options.max_length 등 추가 가능
-    } else if (service === "translate") {
-      url = "/api/ai/translate";
-      if (directionEl) {
-        options.direction = directionEl.value; // "ko-en" or "en-ko"
-      }
-    } else {
+    if (!url) {
       appendMessage("assistant", `알 수 없는 서비스: ${service}`);
       return;
     }
 
-    const payload = {
-      text,
-      options,
-    };
+    appendMessage("user", text);
+    inputEl.value = "";
+
+    const options = {};
+    if (service === "translate" && directionEl) {
+      options.direction = directionEl.value; // "ko-en" or "en-ko"
+    }
+
+    const payload = { text, options };
 
     try {
       const res = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
@@ -274,11 +224,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // ---- 초기화 버튼 ----
   if (clearBtn) {
     clearBtn.addEventListener("click", () => {
-      chatBox.innerHTML =
-        '<div class="text-muted small">대화 내역이 초기화되었습니다.</div>';
+      chatBox.innerHTML = '<div class="text-muted small">대화 내역이 초기화되었습니다.</div>';
     });
   }
 });

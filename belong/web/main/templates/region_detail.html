@@ -1,125 +1,238 @@
 {% extends "base.html" %}
-{% block title %}{{ region }} 예측 결과{% endblock %}
 
-{# 🔹 지역별 예측 전용 헤더 배경 (navbar 뒤에 사진만 깔림) #}
-{% block header_class %}header-region{% endblock %}
+{% block page_id %}region-detail{% endblock %}
+{% block body_class %}page page--region-detail{% endblock %}
 
-{% block content %}
-
-<div class="container mt-4">
-
-    <!-- 제목 -->
-    <h2 class="fw-bold">{{ region }} 예측 결과</h2>
-    <p class="text-muted">예측 연도: {{ year }}</p>
-
-    <!-- 로딩 -->
-    <div id="loading" class="text-center my-5" style="display:none;">
-        <div class="spinner-border text-primary"></div>
-        <p class="mt-2 fw-bold">데이터 불러오는 중...</p>
-    </div>
-
-    <!-- 오류 메시지 -->
-    <div id="error-message" class="alert alert-danger" style="display:none;"></div>
-
-    <!-- 예측 요약 카드 -->
-    <div id="summary-section" style="display:none;">
-        <div class="row g-3">
-
-            <div class="col-md-4">
-                <div class="card shadow-sm p-3">
-                    <small class="text-muted">최신 노인 인구</small>
-                    <h3 id="latest-pop" class="fw-bold mb-0">-</h3>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="card shadow-sm p-3">
-                    <small class="text-muted">예측값 ({{ year }})</small>
-                    <h3 id="predicted-pop" class="fw-bold mb-0">-</h3>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="card shadow-sm p-3">
-                    <small class="text-muted">증가율</small>
-                    <h3 id="growth-rate" class="fw-bold mb-0">-</h3>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- 예측 재실행 폼 -->
-    <div class="card mt-4 p-3">
-        <form id="predict-form" class="row g-2 align-items-end">
-            <div class="col-auto">
-                <label for="predict-year" class="form-label mb-1">예측 연도 재선택</label>
-                <input type="number"
-                       class="form-control"
-                       id="predict-year"
-                       min="2018"
-                       max="2050"
-                       value="{{ year }}">
-            </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-primary">
-                    예측 실행
-                </button>
-            </div>
-            <div class="col">
-                <small class="text-muted">
-                    예측을 다시 실행하면 카드와 차트가 선택한 연도로 갱신됩니다.
-                </small>
-            </div>
-        </form>
-    </div>
-
-    <!-- 차트 표시 버튼 -->
-    <div class="text-center mt-4" id="chart-btn-section" style="display:none;">
-        <button class="btn btn-info btn-lg" data-bs-toggle="modal" data-bs-target="#forecastModal">
-            예측 차트 보기
-        </button>
-    </div>
-
-    <!-- 예측 이력 차트 섹션 -->
-    <div id="history-section" class="card mt-4 p-3" style="display:none;">
-        <h5 class="fw-bold mb-2">{{ region }} 예측 이력</h5>
-        <small class="text-muted mb-3">
-            저장된 예측 결과를 연도별로 확인할 수 있습니다.
-        </small>
-        <div style="height:220px;">
-            <canvas id="prediction-history-chart"></canvas>
-        </div>
-    </div>
-
-</div>
-
-
-<!-- 예측 차트 팝업 Modal -->
-<div class="modal fade" id="forecastModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-
-      <div class="modal-header">
-        <h5 class="modal-title">{{ region }} 예측 차트</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-
-      <div class="modal-body" style="height:260px;">
-          <canvas id="forecast-chart"></canvas>
-      </div>
-
-    </div>
-  </div>
-</div>
-
+{% block title %}
+  {{ region_name|default("지역") }} 상세 리스크 - Belong
 {% endblock %}
 
-{% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{{ url_for('static', filename='charts/region_predict.js') }}"></script>
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/region_detail.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="section region-page">
+  <div class="page-container">
+
+    <!-- 상단 헤더: 지역명 + 핵심 요약 -->
+    <div class="region-detail-header">
+      <div class="region-detail-header-left">
+        <h1 class="region-title">
+          {{ region_name|default("지역(구)") }}
+          <span class="region-title-sub">
+            {{ year|default("연도") }}
+          </span>
+        </h1>
+        <p class="region-subtitle">
+          특정 지역을 깊게 분석하여 변화 흐름과 주요 요인을 한눈에 확인합니다.
+        </p>
+      </div>
+
+      {# 리스크 배지 색상 분기 #}
+      {% set _risk_level = (risk_level|default("none"))|lower %}
+      {% if _risk_level in ["low", "낮음", "low-risk"] %}
+        {% set badge_cls = "risk-badge-low" %}
+        {% set badge_txt = "LOW" %}
+      {% elif _risk_level in ["medium", "mid", "보통", "medium-risk"] %}
+        {% set badge_cls = "risk-badge-medium" %}
+        {% set badge_txt = "MEDIUM" %}
+      {% elif _risk_level in ["high", "높음", "high-risk"] %}
+        {% set badge_cls = "risk-badge-high" %}
+        {% set badge_txt = "HIGH" %}
+      {% else %}
+        {% set badge_cls = "risk-badge-none" %}
+        {% set badge_txt = "N/A" %}
+      {% endif %}
+
+      <aside class="region-risk-summary">
+        <div class="risk-badge">
+          <div class="risk-badge-label">Risk level</div>
+          <div id="risk-level" class="risk-badge-value {{ badge_cls }}">
+            {{ badge_txt }}
+          </div>
+        </div>
+
+        <div class="risk-meta">
+          <p class="risk-meta-line">
+            <strong>예측값:</strong>
+            {{ risk_score|default("-") }}
+          </p>
+          <p class="risk-meta-line">
+            <strong>전년 대비:</strong>
+            {{ yoy_change|default("-") }}
+          </p>
+          <p class="risk-meta-source">
+            <span>Data:</span> {{ data_source|default("DB/모델 결과") }}
+          </p>
+        </div>
+      </aside>
+    </div>
+
+    <!-- 본문 그리드: 좌측(필터/노트) + 우측(차트/스토리) -->
+    <div class="region-detail-grid">
+
+      <!-- 좌측 사이드바 -->
+      <aside class="region-detail-sidebar">
+        <div class="region-filter-card">
+          <div class="sidebar-title">필터</div>
+
+          <form method="get" class="d-grid gap-3">
+            <div>
+              <label class="form-label mb-1" for="regionSelect">구 선택</label>
+              <select class="form-select" id="regionSelect" name="region">
+                {% if regions %}
+                  {% for r in regions %}
+                    <option value="{{ r }}"
+                      {% if r == region_name %}selected{% endif %}>
+                      {{ r }}
+                    </option>
+                  {% endfor %}
+                {% else %}
+                  <option value="{{ region_name|default('') }}" selected>
+                    {{ region_name|default("구 목록을 전달하면 여기에 표시됩니다") }}
+                  </option>
+                {% endif %}
+              </select>
+            </div>
+
+            <div>
+              <label class="form-label mb-1" for="yearSelect">연도 선택</label>
+              <select class="form-select" id="yearSelect" name="year">
+                {% if years %}
+                  {% for y in years %}
+                    <option value="{{ y }}"
+                      {% if y == year %}selected{% endif %}>
+                      {{ y }}
+                    </option>
+                  {% endfor %}
+                {% else %}
+                  <option value="{{ year|default('') }}" selected>
+                    {{ year|default("연도 목록을 전달하면 여기에 표시됩니다") }}
+                  </option>
+                {% endif %}
+              </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              적용
+            </button>
+
+            <small class="text-muted">
+              * 필터는 GET 파라미터로 전달됩니다. (예: ?region=강남구&year=2023)
+            </small>
+          </form>
+        </div>
+
+        <div class="region-note-card">
+          <div class="sidebar-subtitle">해석 가이드</div>
+          <ul class="sidebar-note-list">
+            <li>리스크 레벨은 “상대적” 지표로 해석하세요.</li>
+            <li>단기 변동은 일시 요인(표본/집계)일 수 있습니다.</li>
+            <li>추세(Trend) + 요인(Drivers)을 함께 보세요.</li>
+          </ul>
+        </div>
+      </aside>
+
+      <!-- 우측 메인 -->
+      <main class="region-detail-main">
+
+        <!-- 1) 추세 -->
+        <section class="region-section">
+          <header class="region-section-header">
+            <h2>추세(Trend)</h2>
+            <p>최근 연도 흐름을 통해 위험이 증가/감소하는지 확인합니다.</p>
+          </header>
+
+          <div class="chart-card">
+            <canvas id="riskTimelineChart" aria-label="리스크 타임라인 차트"></canvas>
+              (차트 자리) 연도별 예측/실측 추세 라인 차트<br>
+              - 프론트: Chart.js/Plotly 등 연결 가능<br>
+              - 백엔드: trend_series 데이터 전달 시 렌더링
+          </div>
+        </section>
+
+        <!-- 2) 주요 요인 -->
+        <section class="region-section">
+          <header class="region-section-header">
+            <h2>주요 요인(Drivers)</h2>
+            <p>리스크에 기여하는 핵심 지표를 요약합니다.</p>
+          </header>
+
+          <div class="dash-two-column">
+            <div class="chart-card">
+              <canvas id="riskRadarChart" aria-label="리스크 레이더 차트"></canvas>
+                (차트 자리) Top 변수 막대 차트<br>
+                - feature_importance / shap_summary 등
+            </div>
+            <div class="chart-card">
+              <div class="chart-placeholder">
+                (차트 자리) 인구/1인가구/취약계층 등 지표 카드/스파크라인
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3) 비교 -->
+        <section class="region-section">
+          <header class="region-section-header">
+            <h2>다른 지역과 비교(Compare)</h2>
+            <p>선택한 연도 기준으로 타 구와 상대 위치를 확인합니다.</p>
+          </header>
+
+          <div class="chart-card">
+            <div class="chart-placeholder">
+              (차트 자리) 서울 25개 구 중 순위/분포(박스플롯/히스토그램/랭킹)
+            </div>
+          </div>
+        </section>
+
+        <!-- 4) 권장 액션 -->
+        <section class="region-section">
+          <header class="region-section-header">
+            <h2>권장 액션(Action)</h2>
+            <p>리스크 레벨에 따라 우선순위를 정해볼 수 있습니다.</p>
+          </header>
+
+          <ul class="mb-0">
+            <li><strong>HIGH:</strong> 집중 모니터링, 취약계층 대상 지원 연계 강화</li>
+            <li><strong>MEDIUM:</strong> 추세 악화 여부 점검, 관련 지표(1인가구/복지/주거) 보강</li>
+            <li><strong>LOW:</strong> 유지 관리, 변동 원인 기록 및 데이터 품질 점검</li>
+          </ul>
+        </section>
+
+        <!-- 5) CTA -->
+        <section class="region-section region-cta">
+          <div class="region-cta-inner">
+            <div>
+              <h2>다음 단계로 이동</h2>
+              <p>전체 대시보드에서 넓게 보고, 여기서는 깊게 보는 흐름을 추천합니다.</p>
+            </div>
+            <div class="region-cta-actions">
+              <div class="btn-row">
+                <a class="btn btn-outline-primary" href="{{ url_for('main.index') if false else '#' }}">
+                  홈
+                </a>
+                <a class="btn btn-primary" href="{{ url_for('dashboard.index') if false else '#' }}">
+                  대시보드
+                </a>
+              </div>
+              <small class="text-muted d-block mt-2">
+                * 위 링크는 엔드포인트에 맞게 바꿔주세요.
+              </small>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- body에 region-detail-page 클래스 부여 (배경/전용 스타일용) -->
 <script>
-    // 페이지 초기화: JS에서 폼 이벤트 + 예측/이력 로딩까지 처리
-    initRegionDetail("{{ region }}", "{{ year }}");
+  document.addEventListener("DOMContentLoaded", function () {
+    document.body.classList.add("region-detail-page");
+  });
 </script>
 {% endblock %}

@@ -1,8 +1,8 @@
 # web/api/routes.py
-from flask import jsonify
+from flask import jsonify, request, current_app
 from . import api_bp
 import math
-
+from belong.services.forecast_service import ACTUAL_LAST_YEAR
 # -----------------------------
 # 공통 유틸 함수들
 # -----------------------------
@@ -100,3 +100,66 @@ def health():
     서비스 헬스 체크용 엔드포인트
     """
     return jsonify({"status": "ok"})
+
+# 리스크 맵용 스냅샷 (구별 노인 인구/지표)
+
+@api_bp.get("/dashboard/risk-map")
+def dashboard_risk_map():
+    year = request.args.get("year", type=int) or ACTUAL_LAST_YEAR
+
+    ok, err = _validate_year(year)
+    if not ok:
+        return api_error(400, err["code"], err["message"], detail=err)
+
+    services = current_app.config.get("services", {})
+    elderly_service = services.get("elderly_service")
+
+    if elderly_service is None:
+        return api_error(
+            500,
+            "service_not_configured",
+            "elderly_service is not registered in app.services",
+        )
+
+    # {year, items: [...] }
+    snapshot = elderly_service.get_region_snapshot(year)
+    return jsonify(_clean_nan(snapshot))
+
+# 특정 구의 연도별 추세
+
+@api_bp.get("/dashboard/region-trend")
+def dashboard_region_trend():
+    region = request.args.get("region", type=str)
+    if not region:
+        return api_error(400, "missing_region", "query parameter 'region' is required")
+
+    start_year = request.args.get("start_year", type=int, default=MIN_YEAR)
+    end_year = request.args.get("end_year", type=int, default=ACTUAL_LAST_YEAR)
+
+    ok, err = _validate_year_range(start_year, end_year)
+    if not ok:
+        return api_error(400, err["code"], err["message"], detail=err)
+
+    services = current_app.config.get("services", {})
+    feature_stats_service = services.get("feature_stats_service")
+
+    if feature_stats_service is None:
+        return api_error(
+            500,
+            "service_not_configured",
+            "feature_stats_service is not registered in app.services",
+        )
+
+    series = feature_stats_service.get_time_series(
+        region_code=region,
+        start_year=start_year,
+        end_year=end_year,
+    )
+
+    payload = {
+        "region": region,
+        "start_year": start_year,
+        "end_year": end_year,
+        "items": series,
+    }
+    return jsonify(_clean_nan(payload))
