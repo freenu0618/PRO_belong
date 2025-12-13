@@ -30,3 +30,4 @@ data/
 *.json
 /migrations/
 probelong.cmd
+ui_dump.py

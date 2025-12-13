@@ -1,147 +1,309 @@
 /* static/css/home.css */
 /* PAGE ONLY: Home (index) */
 
-.home-page .hero-section{
-  padding: 28px 0 18px;
+.home-page .section{
+  padding: 28px 0;
 }
 
+/* Hero */
 .home-page .hero-grid{
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 1fr;
+  gap: 18px;
   align-items: start;
 }
 
 @media (min-width: 992px){
   .home-page .hero-grid{
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-    gap: 22px;
-    align-items: stretch;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 28px;
   }
 }
 
-.home-page .hero-eyebrow{
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  letter-spacing: .06em;
+.home-page .hero-kicker{
   font-weight: 700;
-  color: rgba(29, 78, 216, 0.95);
-  background: rgba(59, 130, 246, 0.12);
-  border: 1px solid rgba(59, 130, 246, 0.22);
+  letter-spacing: 0.06em;
+  font-size: 12px;
+  color: var(--color-text-sub);
 }
 
 .home-page .hero-title{
-  margin: 14px 0 10px;
+  margin: 10px 0 10px;
   font-weight: 800;
   line-height: 1.15;
-  font-size: clamp(28px, 3.4vw, 44px);
+  font-size: clamp(28px, 3.2vw, 44px);
   color: var(--color-text-main);
 }
 
 .home-page .hero-subtitle{
-  margin: 0 0 14px;
+  margin: 0;
   color: var(--color-text-sub);
   font-size: 15px;
-  line-height: 1.75;
+  line-height: 1.7;
 }
 
-.home-page .hero-meta{
+.home-page .hero-cta{
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.home-page .hero-links{
   margin-top: 10px;
   font-size: 13px;
-  color: rgba(15, 23, 42, 0.62);
+  color: var(--color-text-sub);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.home-page .hero-meta a{
-  color: rgba(29, 78, 216, 0.95);
+.home-page .hero-links a{
+  color: var(--color-primary);
+  font-weight: 700;
 }
 
-.home-page .hero-visual{
-  min-height: 100%;
+.home-page .hero-links .dot{
+  opacity: .6;
 }
 
-.home-page .hero-visual-card{
-  border-radius: var(--radius-xl);
+/* Right cards */
+.home-page .hero-visual,
+.home-page .hero-actions{
+  border-radius: var(--radius-md);
+}
+
+.home-page .hero-image-wrap{
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-soft-1);
   overflow: hidden;
-  border: 1px solid var(--color-border);
-  box-shadow: 0 14px 34px var(--color-shadow);
 }
 
-.home-page .hero-visual-media{
-  aspect-ratio: 16 / 9;
-  background: #111827;
-}
-
-.home-page .hero-image{
+.home-page .hero-image-wrap img{
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.95;
+  height: auto;
+  display: block;
 }
 
-.home-page .hero-visual-text{
-  padding: 16px 18px 18px;
-  background: var(--color-bg-card);
+.home-page .hero-visual-body{
+  padding: 14px 14px 12px;
 }
 
 .home-page .hero-visual-title{
   font-weight: 800;
   color: var(--color-text-main);
-  margin-bottom: 6px;
+  font-size: 14px;
 }
 
 .home-page .hero-visual-desc{
+  margin-top: 6px;
   color: var(--color-text-sub);
   font-size: 13px;
-  line-height: 1.65;
-}
-
-/* Features section */
-.home-page .services-section{
-  padding: 18px 0 26px;
-}
-
-.home-page .feature-card-title{
-  font-weight: 800;
-  margin-bottom: 8px;
-}
-
-.home-page .feature-card-desc{
-  color: var(--color-text-sub);
-  line-height: 1.7;
-  margin-bottom: 14px;
-}
-
-/* How-to section (배경/여백만 전용 처리) */
-.home-page .how-section{
-  padding: 44px 0;
-  background: #f8fafc;
-}
-
-.home-page .how-card-title{
-  font-weight: 800;
-  margin-bottom: 8px;
-}
-
-.home-page .how-card-desc{
-  color: var(--color-text-sub);
   line-height: 1.7;
 }
 
-/* Roadmap section */
-.home-page .roadmap-section{
-  padding: 44px 0 52px;
+.home-page .hero-actions{
+  padding: 12px;
+  background: var(--color-bg-card);
+}
+
+/* 링크 리스트 느낌 */
+.home-page .action-row{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  color: var(--color-text-main);
+  font-weight: 700;
+  transition: transform 180ms cubic-bezier(0.2,0.8,0.2,1),
+              border-color 180ms cubic-bezier(0.2,0.8,0.2,1);
+}
+
+.home-page .action-row + .action-row{
+  margin-top: 8px;
+}
+.home-page .action-row::after{
+  content: "→";
+  color: var(--color-text-sub);
+  font-weight: 800;
+}
+.home-page .action-row:hover{
+  transform: translateY(-3px); /* 여기선 -9px까지 가면 과해져서 리스트는 -3 추천 */
+  border-color: rgba(37,99,235,0.30);
+  color: var(--color-primary);
+}
+.home-page .action-split{
+  height: 1px;
+  background: var(--color-border);
+  margin: 12px 0;
+}
+
+.home-page .auth-row{
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.home-page .action-row.is-coming-soon::after{
+  content: "";
+}
+/* Section titles */
+.home-page .section-title{
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--color-text-main);
+}
+
+.home-page .section-subtitle{
+  margin: 0 0 16px;
+  color: var(--color-text-sub);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* Feature grid */
+.home-page .feature-grid{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 992px){
+  .home-page .feature-grid{
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.home-page .feature-card{
+  padding: 16px;
+}
+
+.home-page .feature-title{
+  font-weight: 800;
+  color: var(--color-text-main);
+  font-size: 15px;
+}
+
+.home-page .feature-desc{
+  margin-top: 8px;
+  color: var(--color-text-sub);
+  font-size: 13px;
+  line-height: 1.7;
+  min-height: 60px;
+}
+
+.home-page .feature-footer{
+  margin-top: 14px;
+}
+
+/* How grid */
+.home-page .how-grid{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 992px){
+  .home-page .how-grid{
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.home-page .how-card{
+  padding: 16px;
+}
+
+.home-page .how-num{
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: var(--color-text-main);
+  background: var(--color-bg-soft-1);
+  font-size: 13px;
+}
+
+.home-page .how-title{
+  margin-top: 10px;
+  font-weight: 800;
+  color: var(--color-text-main);
+  font-size: 14px;
+}
+
+.home-page .how-desc{
+  margin-top: 8px;
+  color: var(--color-text-sub);
+  font-size: 13px;
+  line-height: 1.7;
+  min-height: 56px;
+}
+
+.home-page .how-link{
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--color-primary);
+  font-weight: 800;
+  font-size: 13px;
+}
+
+/* Roadmap */
+.home-page .roadmap-grid{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 992px){
+  .home-page .roadmap-grid{
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.home-page .roadmap-card{
+  padding: 16px;
+  border-radius: var(--radius-md);
+}
+
+.home-page .roadmap-phase{
+  font-weight: 800;
+  color: var(--color-primary);
+  font-size: 12px;
+  letter-spacing: .02em;
 }
 
 .home-page .roadmap-title{
+  margin-top: 8px;
   font-weight: 800;
-  margin-bottom: 8px;
+  color: var(--color-text-main);
+  font-size: 14px;
 }
 
 .home-page .roadmap-desc{
+  margin-top: 8px;
   color: var(--color-text-sub);
+  font-size: 13px;
   line-height: 1.7;
+}
+/* hero image: 고정 높이 + cover로 깔끔하게 */
+.home-page .hero-image-wrap{
+  height: 260px;                  /* 레퍼런스 느낌: 넉넉한 이미지 높이 */
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-soft-2);
+  overflow: hidden;
+}
+
+.home-page .hero-image-wrap img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;              /* 가장 중요 */
+  object-position: center;
+  display: block;
 }

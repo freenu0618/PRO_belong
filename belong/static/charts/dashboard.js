@@ -1,542 +1,587 @@
-// static/charts/dashboard.js
-// =======================================
-// Belong 대시보드 v2 (+ 구×연도 그리드)
-// - 좌측: 연도 / 지역 선택 (최대 2개)
-// - 우측: 각 지역별 4개 그래프
-//   1) 독거노인(노인 인구) 추세
-//   2) 고독사 추세
-//   3) 독거노인(노인 인구) 5년 예측
-//   4) 고독사 5년 예측
-// - 추가: 선택된 "구 × 연도"를 보여주는 그리드
-// - URL 상태 동기화: ?from=2017&to=2023&r=강남구,종로구
-// =======================================
+/* belong/static/charts/dashboard.js
+   Dashboard UI logic (Apple/Notion-ish UX)
+   - Year range select
+   - Region chips (max 2)
+   - Seoul aggregate (sum across 25 gu) with toggle
+   - Chart.js render for 2 slots x 4 charts
+*/
 
-// ----- 설정 -----
-const YEAR_MIN = 2017;
-const YEAR_MAX = 2035;
+(() => {
+  // -----------------------------
+  // 0) DOM helpers / constants
+  // -----------------------------
+  const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
-// 서울 25개 구
-const SEOUL_GU_LIST = [
-  "강남구","강동구","강북구","강서구","관악구","광진구","구로구","금천구","노원구","도봉구",
-  "동대문구","동작구","마포구","서대문구","서초구","성동구","성북구","송파구","양천구","영등포구",
-  "용산구","은평구","종로구","중구","중랑구",
-];
+  const SEOUL_LABEL = "서울시 전체";
 
-// 슬롯별 기본 컬러(원래 코드 스타일 유지)
-const SLOT_COLORS = {
-  1: {
-    elderlyTrend: "#2563EB",
-    lonelyTrend: "#E11D48",
-    elderlyForecast: "#60A5FA",
-    lonelyForecast: "#FB7185",
-  },
-  2: {
-    elderlyTrend: "#16A34A",
-    lonelyTrend: "#F59E0B",
-    elderlyForecast: "#86EFAC",
-    lonelyForecast: "#FCD34D",
-  },
-};
+  // DOM ids from your dashboard.html
+  const elYearStart = $("#year-start");
+  const elYearEnd = $("#year-end");
+  const elRegionBox = $("#control-region-checkboxes");
+  const elApplyBtn = $("#btn-apply-dashboard");
+  const elToggleSeoul = $("#toggle-seoul"); // optional
+  const elTitle1 = $("#region-title-1");
+  const elTitle2 = $("#region-title-2");
+  const elCol2 = $("#graph-column-2"); // slot2 column wrapper
 
-// ----- 상태 -----
-let selectedStartYear = 2017;
-let selectedEndYear = 2023;
-let selectedRegions = ["강남구", "종로구"];
+  // Canvas IDs
+  const CANVAS = {
+    s1: {
+      trendE: "trend-elderly-1",
+      trendL: "trend-lonely-1",
+      foreE: "forecast-elderly-1",
+      foreL: "forecast-lonely-1",
+    },
+    s2: {
+      trendE: "trend-elderly-2",
+      trendL: "trend-lonely-2",
+      foreE: "forecast-elderly-2",
+      foreL: "forecast-lonely-2",
+    },
+  };
 
-// 차트 인스턴스 저장(캔버스 id별)
-const chartStore = {};
-
-// ------------------------------
-// 유틸
-// ------------------------------
-function clampYear(y) {
-  if (!Number.isFinite(y)) return YEAR_MIN;
-  return Math.min(YEAR_MAX, Math.max(YEAR_MIN, y));
-}
-
-function readDashboardStateFromUrl() {
-  const qs = new URLSearchParams(location.search);
-
-  const from = parseInt(qs.get("from"), 10);
-  const to = parseInt(qs.get("to"), 10);
-  const r = qs.get("r"); // "강남구,종로구"
-
-  if (!Number.isNaN(from)) selectedStartYear = clampYear(from);
-  if (!Number.isNaN(to)) selectedEndYear = clampYear(to);
-
-  if (r) {
-    const arr = r
-      .split(",")
-      .map((s) => decodeURIComponent(s.trim()))
-      .filter(Boolean);
-
-    // 최대 2개까지만
-    if (arr.length >= 1) selectedRegions = arr.slice(0, 2);
-  }
-}
-
-function writeDashboardStateToUrl() {
-  const qs = new URLSearchParams();
-  qs.set("from", String(selectedStartYear));
-  qs.set("to", String(selectedEndYear));
-  qs.set("r", selectedRegions.map(encodeURIComponent).join(","));
-  history.replaceState(null, "", `${location.pathname}?${qs.toString()}`);
-}
-
-async function fetchJson(url) {
-  const res = await fetch(url);
-  let json;
-  try {
-    json = await res.json();
-  } catch (e) {
-    console.error("JSON 파싱 실패:", url, e);
-    throw new Error("서버 응답을 해석할 수 없습니다.");
-  }
-  if (!res.ok || (json.status && String(json.status).toLowerCase() === "error")) {
-    const msg = json.message || `요청 실패 (${res.status})`;
-    throw new Error(msg);
-  }
-  return json;
-}
-
-function extractYear(row) {
-  const y = Number(row?.year);
-  return Number.isFinite(y) ? y : null;
-}
-
-function extractValue(row) {
-  if (!row || typeof row !== "object") return 0;
-
-  const keys = [
-    "value",
-    "elderly_population",
-    "lonely_death",
-    "lonely_deaths",
-    "count",
-    "population",
-    "predicted_value",
-    "y",
+  // 기본 지역 리스트(서울 25개 구)
+  const GU_LIST = [
+    "강남구","강동구","강북구","강서구","관악구","광진구","구로구","금천구","노원구","도봉구",
+    "동대문구","동작구","마포구","서대문구","서초구","성동구","성북구","송파구","양천구","영등포구",
+    "용산구","은평구","종로구","중구","중랑구"
   ];
 
-  for (const k of keys) {
-    if (row[k] === 0) return 0;
-    if (row[k] != null && row[k] !== "") {
-      const n = Number(row[k]);
-      if (Number.isFinite(n)) return n;
+  const DEFAULT_STATE = {
+    ys: 2017,
+    ye: 2023,
+    regions: ["강남구", "종로구"], // 기본 2개
+    includeSeoul: false,
+  };
+
+  // Chart.js guard
+  if (!window.Chart) {
+    console.error("[dashboard.js] Chart.js not found. Ensure Chart.js is loaded before dashboard.js");
+  }
+
+  // -----------------------------
+  // 1) URL state (shareable)
+  // -----------------------------
+  function parseStateFromUrl() {
+    const sp = new URLSearchParams(window.location.search);
+
+    const ys = toInt(sp.get("ys"), DEFAULT_STATE.ys);
+    const ye = toInt(sp.get("ye"), DEFAULT_STATE.ye);
+
+    // r=강남구,종로구  or r=서울시 전체,강남구
+    const r = sp.get("r");
+    let regions = DEFAULT_STATE.regions.slice();
+    if (r) {
+      regions = r.split(",").map(x => decodeURIComponent(x.trim())).filter(Boolean);
+      // sanitize: max 2
+      regions = regions.slice(0, 2);
+    }
+
+    // includeSeoul is derived by selection
+    const includeSeoul = regions.includes(SEOUL_LABEL);
+
+    return {
+      ys,
+      ye,
+      regions,
+      includeSeoul,
+    };
+  }
+
+
+
+  function writeStateToUrl(state) {
+    const sp = new URLSearchParams(window.location.search);
+
+    sp.set("ys", String(state.ys));
+    sp.set("ye", String(state.ye));
+    sp.set("r", state.regions.map(x => encodeURIComponent(x)).join(","));
+
+    const newUrl = `${window.location.pathname}?${sp.toString()}`;
+    window.history.replaceState({}, "", newUrl);
+  }
+
+  function toInt(v, fallback) {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  // -----------------------------
+  // 2) Year selects
+  // -----------------------------
+  // 실제 데이터에서 year 범위를 동적으로 뽑는 게 최선이지만,
+  // 초기 UX를 위해 기본 범위를 먼저 채워두고(2014~2028),
+  // 이후 데이터 응답 기반으로 보정해도 됨.
+  function initYearSelects(state) {
+    if (!elYearStart || !elYearEnd) return;
+
+    const minY = 2014;
+    const maxY = 2028; // forecast 고려
+    elYearStart.innerHTML = "";
+    elYearEnd.innerHTML = "";
+
+    for (let y = minY; y <= maxY; y++) {
+      const opt1 = document.createElement("option");
+      opt1.value = String(y);
+      opt1.textContent = String(y);
+      elYearStart.appendChild(opt1);
+
+      const opt2 = document.createElement("option");
+      opt2.value = String(y);
+      opt2.textContent = String(y);
+      elYearEnd.appendChild(opt2);
+    }
+
+    elYearStart.value = String(state.ys);
+    elYearEnd.value = String(state.ye);
+
+    // UX: start > end 방지
+    elYearStart.addEventListener("change", () => {
+      const ys = Number(elYearStart.value);
+      const ye = Number(elYearEnd.value);
+      if (ys > ye) elYearEnd.value = String(ys);
+    });
+    elYearEnd.addEventListener("change", () => {
+      const ys = Number(elYearStart.value);
+      const ye = Number(elYearEnd.value);
+      if (ye < ys) elYearStart.value = String(ye);
+    });
+  }
+
+  // -----------------------------
+  // 3) Region chips (with Seoul toggle)
+  // -----------------------------
+  function renderRegionChips(state) {
+    if (!elRegionBox) return;
+
+    elRegionBox.innerHTML = "";
+
+    const items = [SEOUL_LABEL, ...GU_LIST];
+
+    items.forEach((name) => {
+      const label = document.createElement("label");
+      label.className = "region-chip";
+
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = name;
+
+      if (state.regions.includes(name)) input.checked = true;
+
+      const span = document.createElement("span");
+      span.textContent = name;
+
+      label.appendChild(input);
+      label.appendChild(span);
+      elRegionBox.appendChild(label);
+
+      input.addEventListener("change", () => {
+        // 토글 ON 상태에서 서울 해제 방지
+        if (elToggleSeoul?.checked && name === SEOUL_LABEL && !input.checked) {
+          input.checked = true;
+          return;
+        }
+
+        // max 2
+        const checked = getCheckedRegions();
+        if (checked.length > 2) {
+          input.checked = false;
+          return;
+        }
+
+        // 서울 포함 토글 상태 동기화
+        if (name === SEOUL_LABEL && elToggleSeoul) {
+          elToggleSeoul.checked = input.checked;
+        }
+      });
+    });
+
+    // Toggle behavior
+    if (elToggleSeoul) {
+      elToggleSeoul.checked = state.regions.includes(SEOUL_LABEL);
+
+      elToggleSeoul.addEventListener("change", () => {
+        const seoulInput = elRegionBox.querySelector(`input[type="checkbox"][value="${SEOUL_LABEL}"]`);
+        if (!seoulInput) return;
+
+        if (elToggleSeoul.checked) {
+          seoulInput.checked = true;
+
+          // 서울 포함 시: 나머지는 최대 1개만 유지
+          const checked = getCheckedRegions();
+          if (checked.length > 2) {
+            const nonSeoul = checked.filter(x => x !== SEOUL_LABEL);
+            while (nonSeoul.length > 1) {
+              // 초과분 해제
+              const last = nonSeoul.pop();
+              const inp = elRegionBox.querySelector(`input[type="checkbox"][value="${cssEscape(last)}"]`);
+              if (inp) inp.checked = false;
+            }
+          }
+        } else {
+          seoulInput.checked = false;
+        }
+      });
     }
   }
-  return 0;
-}
 
-// ------------------------------
-// 차트 생성(라인 차트)
-// ------------------------------
-function createLineChart(canvasId, labels, data, color, label, dashed = false, fill = false) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-
-  if (typeof Chart === "undefined") {
-    console.error("[dashboard] Chart.js가 로드되지 않았습니다.");
-    return;
+  function getCheckedRegions() {
+    if (!elRegionBox) return [];
+    return $$(`#control-region-checkboxes input[type="checkbox"]:checked`).map(x => x.value);
   }
 
-  const ctx = canvas.getContext("2d");
-
-  if (chartStore[canvasId]) {
-    chartStore[canvasId].destroy();
+  // CSS.escape polyfill-ish
+  function cssEscape(s) {
+    return s.replace(/"/g, '\\"');
   }
 
-  chartStore[canvasId] = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {
-          label,
+  // -----------------------------
+  // 4) API fetch + cache + Seoul aggregate
+  // -----------------------------
+  // Elderly endpoint: /api/elderly/forecast/<region>
+  // Response:
+  // { status:"success", data:{ region, history:[{year,value}], forecast:[{year,value}], message } }
+
+  // Lonely endpoint assumed:
+  // /api/lonely/forecast?region=<region>
+  // (동일한 data.history / data.forecast 구조라고 가정)
+  // 만약 다르면 extractLonelyHistory/Forecast만 바꾸면 됨.
+
+  const cache = {
+    elderlyRaw: new Map(), // key: region => json
+    lonelyRaw: new Map(),  // key: region => json
+    // 서울 집계는 계산 결과 캐시
+    elderlySeoul: null, // { history:[], forecast:[] }
+    lonelySeoul: null,
+  };
+
+  async function fetchJson(url) {
+    const res = await fetch(url, { headers: { "Accept": "application/json" } });
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${url}`);
+    return await res.json();
+  }
+
+  async function fetchElderlyRaw(region) {
+    if (cache.elderlyRaw.has(region)) return cache.elderlyRaw.get(region);
+    const json = await fetchJson(`/api/elderly/forecast/${encodeURIComponent(region)}`);
+    cache.elderlyRaw.set(region, json);
+    return json;
+  }
+
+  async function fetchLonelyRaw(region) {
+    if (cache.lonelyRaw.has(region)) return cache.lonelyRaw.get(region);
+    const json = await fetchJson(`/api/lonely/forecast?region=${encodeURIComponent(region)}`);
+    cache.lonelyRaw.set(region, json);
+    return json;
+  }
+
+  function extractHistory(json) {
+    return (json?.data?.history || []).map(p => ({ year: Number(p.year), value: Number(p.value) || 0 }));
+  }
+
+  function extractForecast(json) {
+    return (json?.data?.forecast || []).map(p => ({ year: Number(p.year), value: Number(p.value) || 0 }));
+  }
+
+  function sumSeriesByYear(seriesList) {
+    const map = new Map(); // year -> sum
+    for (const series of seriesList) {
+      for (const p of series) {
+        const y = Number(p.year);
+        const v = Number(p.value) || 0;
+        map.set(y, (map.get(y) || 0) + v);
+      }
+    }
+    return Array.from(map.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([year, value]) => ({ year, value }));
+  }
+
+  async function buildSeoulAgg(fetchRawFn) {
+    // 25개 구 전체 fetch → history/forecast 각각 합산
+    const jsonList = await Promise.all(GU_LIST.map(r => fetchRawFn(r)));
+    const histList = jsonList.map(extractHistory);
+    const foreList = jsonList.map(extractForecast);
+    return {
+      history: sumSeriesByYear(histList),
+      forecast: sumSeriesByYear(foreList),
+    };
+  }
+
+  async function getElderlySeries(region) {
+    if (region === SEOUL_LABEL) {
+      if (!cache.elderlySeoul) cache.elderlySeoul = await buildSeoulAgg(fetchElderlyRaw);
+      return cache.elderlySeoul;
+    }
+    const raw = await fetchElderlyRaw(region);
+    return { history: extractHistory(raw), forecast: extractForecast(raw) };
+  }
+
+  async function getLonelySeries(region) {
+    if (region === SEOUL_LABEL) {
+      if (!cache.lonelySeoul) cache.lonelySeoul = await buildSeoulAgg(fetchLonelyRaw);
+      return cache.lonelySeoul;
+    }
+    const raw = await fetchLonelyRaw(region);
+    return { history: extractHistory(raw), forecast: extractForecast(raw) };
+  }
+
+  // -----------------------------
+  // 5) Chart rendering (Chart.js)
+  // -----------------------------
+  const charts = new Map(); // canvasId -> Chart instance
+
+  function getCssVar(name, fallback) {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+  }
+
+  function setCanvasLoading(canvasId, isLoading) {
+    const el = document.getElementById(canvasId);
+    if (!el) return;
+    const wrap = el.closest(".chart-wrapper");
+    if (!wrap) return;
+    wrap.dataset.loading = isLoading ? "true" : "false";
+    wrap.style.opacity = isLoading ? "0.55" : "1";
+    wrap.style.pointerEvents = isLoading ? "none" : "auto";
+  }
+
+  function destroyChart(canvasId) {
+    const c = charts.get(canvasId);
+    if (c) {
+      c.destroy();
+      charts.delete(canvasId);
+    }
+  }
+
+  function renderLineChart(canvasId, title, points, opts = {}) {
+    const el = document.getElementById(canvasId);
+    if (!el || !window.Chart) return;
+
+    const primary = getCssVar("--color-primary", "#2563eb");
+    const textSub = getCssVar("--color-text-sub", "rgba(15,23,42,0.68)");
+    const border = getCssVar("--color-border", "rgba(15,23,42,0.14)");
+
+    const labels = points.map(p => String(p.year));
+    const data = points.map(p => Number(p.value));
+
+    destroyChart(canvasId);
+
+    const ctx = el.getContext("2d");
+    const chart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: title,
           data,
-          borderColor: color,
-          backgroundColor: fill ? `${color}33` : `${color}22`,
+          tension: 0.25,
+          fill: false,
           borderWidth: 2,
-          fill: fill,
-          tension: 0.35,
-          pointRadius: 3,
-          pointHoverRadius: 4,
-          spanGaps: true,
-          borderDash: dashed ? [6, 6] : [],
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true },
-        tooltip: { mode: "index", intersect: false },
+          borderColor: primary,
+          pointRadius: 1.5,
+          pointHoverRadius: 3,
+          ...(opts.dashed ? { borderDash: [6, 4] } : {}),
+        }]
       },
-      interaction: { mode: "index", intersect: false },
-      scales: {
-        x: {
-          ticks: {
-            maxTicksLimit: 6,
-          },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { enabled: true },
         },
-        y: {
-          ticks: {
-            maxTicksLimit: 5,
+        scales: {
+          x: {
+            grid: { color: border },
+            ticks: { color: textSub },
           },
-        },
-      },
-    },
-  });
-}
-
-// ------------------------------
-// 구 × 연도 그리드 렌더
-// ------------------------------
-function renderYearRegionGrid() {
-  const container = document.getElementById("year-region-grid");
-  if (!container) return;
-
-  container.innerHTML = "";
-
-  const years = [];
-  for (let y = selectedStartYear; y <= selectedEndYear; y++) years.push(y);
-
-  // 테이블 생성
-  const table = document.createElement("table");
-  table.className = "table table-sm table-bordered align-middle mb-0";
-
-  // 헤더
-  const thead = document.createElement("thead");
-  const trh = document.createElement("tr");
-  const th0 = document.createElement("th");
-  th0.textContent = "연도\\지역";
-  trh.appendChild(th0);
-
-  selectedRegions.forEach((region) => {
-    const th = document.createElement("th");
-    th.textContent = region;
-    trh.appendChild(th);
-  });
-
-  thead.appendChild(trh);
-  table.appendChild(thead);
-
-  // 바디
-  const tbody = document.createElement("tbody");
-  years.forEach((year) => {
-    const tr = document.createElement("tr");
-
-    const tdYear = document.createElement("td");
-    tdYear.textContent = year;
-    tr.appendChild(tdYear);
-
-    selectedRegions.forEach((region) => {
-      const td = document.createElement("td");
-      td.textContent = "●";
-      td.title = `${region} - ${year}`;
-      td.className = "year-region-grid-cell";
-      tr.appendChild(td);
+          y: {
+            grid: { color: border },
+            ticks: { color: textSub },
+          }
+        }
+      }
     });
 
-    tbody.appendChild(tr);
-  });
-
-  table.appendChild(tbody);
-  container.appendChild(table);
-}
-
-// ------------------------------
-// 초기화
-// ------------------------------
-document.addEventListener("DOMContentLoaded", () => {
-  // ✅ URL 상태 먼저 반영
-  readDashboardStateFromUrl();
-
-  initYearSelects();
-  initRegionCheckboxes();
-
-  document.getElementById("btn-apply-dashboard")?.addEventListener("click", () => {
-    onApplyDashboard();
-  });
-
-  // 최초 진입 시 자동 로딩
-  onApplyDashboard();
-});
-
-// 연도 선택 셀렉트 채우기
-function initYearSelects() {
-  const startSel = document.getElementById("year-start");
-  const endSel = document.getElementById("year-end");
-  if (!startSel || !endSel) return;
-
-  startSel.innerHTML = "";
-  endSel.innerHTML = "";
-
-  for (let y = YEAR_MIN; y <= YEAR_MAX; y++) {
-    const opt1 = document.createElement("option");
-    opt1.value = y;
-    opt1.textContent = y;
-    startSel.appendChild(opt1);
-
-    const opt2 = document.createElement("option");
-    opt2.value = y;
-    opt2.textContent = y;
-    endSel.appendChild(opt2);
+    charts.set(canvasId, chart);
   }
 
-  // URL/상태 반영
-  startSel.value = String(selectedStartYear);
-  endSel.value = String(selectedEndYear);
-}
+  // -----------------------------
+  // 6) Apply + render
+  // -----------------------------
+  function getStateFromUi(prev) {
+    const ys = elYearStart ? Number(elYearStart.value) : prev.ys;
+    const ye = elYearEnd ? Number(elYearEnd.value) : prev.ye;
 
-// 지역 체크박스 생성
-function initRegionCheckboxes() {
-  const box = document.getElementById("control-region-checkboxes");
-  if (!box) return;
+    let regions = getCheckedRegions();
+    // fallback: if none checked, use previous or default
+    if (regions.length === 0) regions = prev.regions.length ? prev.regions : DEFAULT_STATE.regions.slice();
 
-  box.innerHTML = "";
+    // max 2 sanitize
+    regions = regions.slice(0, 2);
 
-  SEOUL_GU_LIST.forEach((gu) => {
-    const id = `chk-${gu}`;
-
-    const wrap = document.createElement("div");
-    wrap.className = "form-check";
-
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.className = "form-check-input";
-    input.id = id;
-    input.value = gu;
-
-    if (selectedRegions.includes(gu)) input.checked = true;
-
-    input.addEventListener("change", onRegionCheckboxChange);
-
-    const label = document.createElement("label");
-    label.className = "form-check-label";
-    label.setAttribute("for", id);
-    label.textContent = gu;
-
-    wrap.appendChild(input);
-    wrap.appendChild(label);
-    box.appendChild(wrap);
-  });
-
-  // 2개 초과 선택 방지 UI 반영
-  enforceMaxTwoSelection();
-}
-
-function onRegionCheckboxChange(e) {
-  const gu = e.target.value;
-
-  if (e.target.checked) {
-    if (selectedRegions.length >= 2) {
-      e.target.checked = false;
-      alert("지역은 최대 2개까지만 선택할 수 있습니다.");
-      return;
+    // if toggle is ON but seoul not in list, force it
+    if (elToggleSeoul?.checked && !regions.includes(SEOUL_LABEL)) {
+      // keep at most 1 other
+      const other = regions.filter(x => x !== SEOUL_LABEL).slice(0, 1);
+      regions = [SEOUL_LABEL, ...other].slice(0, 2);
+      // reflect in UI checkboxes
+      syncRegionChecks(regions);
     }
-    selectedRegions.push(gu);
-  } else {
-    selectedRegions = selectedRegions.filter((r) => r !== gu);
+
+    return { ys, ye, regions, includeSeoul: regions.includes(SEOUL_LABEL) };
   }
 
-  // 최소 1개는 유지(대시보드 UX)
-  if (selectedRegions.length === 0) {
-    selectedRegions = ["강남구"];
-    // 체크박스 다시 맞춤
-    document.querySelectorAll("#control-region-checkboxes input[type='checkbox']").forEach((chk) => {
-      chk.checked = chk.value === "강남구";
+  function syncRegionChecks(regions) {
+    if (!elRegionBox) return;
+    $$(`#control-region-checkboxes input[type="checkbox"]`).forEach(inp => {
+      inp.checked = regions.includes(inp.value);
     });
+    if (elToggleSeoul) elToggleSeoul.checked = regions.includes(SEOUL_LABEL);
   }
 
-  enforceMaxTwoSelection();
-}
+  function filterHistoryByYear(history, ys, ye) {
+    return history.filter(p => p.year >= ys && p.year <= ye);
+  }
 
-function enforceMaxTwoSelection() {
-  const checkboxes = document.querySelectorAll("#control-region-checkboxes input[type='checkbox']");
-  const disableOthers = selectedRegions.length >= 2;
+  async function renderSlot(slotIndex, region, ys, ye) {
+    // slotIndex 1 or 2
+    const isSlot2 = slotIndex === 2;
 
-  checkboxes.forEach((chk) => {
-    if (!chk.checked) {
-      chk.disabled = disableOthers;
-    } else {
-      chk.disabled = false;
+    const titleEl = isSlot2 ? elTitle2 : elTitle1;
+    if (titleEl) titleEl.textContent = region;
+
+    const ids = isSlot2 ? CANVAS.s2 : CANVAS.s1;
+
+    // show loading
+    setCanvasLoading(ids.trendE, true);
+    setCanvasLoading(ids.trendL, true);
+    setCanvasLoading(ids.foreE, true);
+    setCanvasLoading(ids.foreL, true);
+
+    try {
+      const [elderly, lonely] = await Promise.all([
+        getElderlySeries(region),
+        getLonelySeries(region),
+      ]);
+
+      const histE = filterHistoryByYear(elderly.history, ys, ye);
+      const histL = filterHistoryByYear(lonely.history, ys, ye);
+
+      // forecast는 5년 예측 그대로 표시(연도범위와 별개)
+      const foreE = elderly.forecast;
+      const foreL = lonely.forecast;
+
+      renderLineChart(ids.trendE, "독거노인 추세", histE, { dashed: false });
+      renderLineChart(ids.trendL, "고독사 추세", histL, { dashed: false });
+      renderLineChart(ids.foreE, "독거노인 5년 예측", foreE, { dashed: true });
+      renderLineChart(ids.foreL, "고독사 5년 예측", foreL, { dashed: true });
+
+    } catch (e) {
+      console.error("[dashboard] renderSlot error:", e);
+      // 빈 차트 대신 destroy
+      destroyChart(ids.trendE);
+      destroyChart(ids.trendL);
+      destroyChart(ids.foreE);
+      destroyChart(ids.foreL);
+    } finally {
+      setCanvasLoading(ids.trendE, false);
+      setCanvasLoading(ids.trendL, false);
+      setCanvasLoading(ids.foreE, false);
+      setCanvasLoading(ids.foreL, false);
     }
+  }
+
+  async function renderAll(state) {
+    // slot 1 always
+    const r1 = state.regions[0] || DEFAULT_STATE.regions[0];
+    const r2 = state.regions[1] || null;
+
+    await renderSlot(1, r1, state.ys, state.ye);
+
+    if (r2) {
+      if (elCol2) elCol2.style.display = "";
+      await renderSlot(2, r2, state.ys, state.ye);
+    } else {
+      // slot2 숨김
+      if (elCol2) elCol2.style.display = "none";
+      // 기존 차트 파괴
+      destroyChart(CANVAS.s2.trendE);
+      destroyChart(CANVAS.s2.trendL);
+      destroyChart(CANVAS.s2.foreE);
+      destroyChart(CANVAS.s2.foreL);
+    }
+  }
+
+  // -----------------------------
+  // 7) Boot
+  // -----------------------------
+  async function main() {
+    // 1) initial state
+    let state = parseStateFromUrl();
+    async function resolveDefaultYearRange(state) {
+      // URL에 ys/ye가 명시되어 있으면 그대로 사용
+      const sp = new URLSearchParams(window.location.search);
+      const hasYs = sp.has("ys");
+      const hasYe = sp.has("ye");
+      if (hasYs && hasYe) return state;
+
+      try {
+        // 기본 지역 하나로 history를 가져와서 최근 연도 자동 계산
+        // (서울시 전체를 켠 경우 서울 집계는 비용이 크니까 기본 구로 먼저 잡자)
+        const baseRegion = (state.regions && state.regions.length)
+          ? state.regions.find(r => r !== "서울시 전체") || "강남구"
+          : "강남구";
+
+        const raw = await fetchElderlyRaw(baseRegion); // 기존 함수 사용
+        const hist = extractHistory(raw);              // [{year,value}...]
+
+        if (hist.length) {
+          const years = hist.map(p => p.year).filter(Number.isFinite);
+          const minY = Math.min(...years);
+          const maxY = Math.max(...years);
+
+          // 최근 7년 기본 (데이터가 7년 미만이면 min~max)
+          const ye = maxY;
+          const ys = Math.max(minY, maxY - 6);
+
+          return { ...state, ys, ye };
+        }
+      } catch (e) {
+        // ignore: 아래 fallback으로 감
+      }
+
+      // fallback
+      return { ...state, ys: 2017, ye: 2023 };
+    }
+    state = await resolveDefaultYearRange(state);
+    // 2) init UI
+    initYearSelects(state);
+    renderRegionChips(state);
+    syncRegionChecks(state.regions);
+
+    // 3) apply button
+    if (elApplyBtn) {
+      elApplyBtn.addEventListener("click", async () => {
+        const next = getStateFromUi(state);
+        writeStateToUrl(next);
+        await renderAll(next);
+      });
+    }
+
+    // 4) initial render
+    // URL에 아무것도 없고 체크도 없으면 default를 체크로 반영
+    if (!getCheckedRegions().length) {
+      syncRegionChecks(state.regions);
+    }
+    await renderAll(state);
+  }
+
+  // DOM ready
+  document.addEventListener("DOMContentLoaded", () => {
+    main().catch(err => console.error("[dashboard] init error:", err));
   });
-}
 
-// ------------------------------
-// 적용 버튼 로직
-// ------------------------------
-async function onApplyDashboard() {
-  const startSel = document.getElementById("year-start");
-  const endSel = document.getElementById("year-end");
-  if (!startSel || !endSel) return;
-
-  const btn = document.getElementById("btn-apply-dashboard");
-  const oldText = btn?.textContent;
-
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = "로딩 중...";
-  }
-
-  try {
-    selectedStartYear = clampYear(parseInt(startSel.value, 10) || YEAR_MIN);
-    selectedEndYear = clampYear(parseInt(endSel.value, 10) || YEAR_MAX);
-
-    if (selectedStartYear > selectedEndYear) {
-      const tmp = selectedStartYear;
-      selectedStartYear = selectedEndYear;
-      selectedEndYear = tmp;
-      startSel.value = String(selectedStartYear);
-      endSel.value = String(selectedEndYear);
-    }
-
-    // ✅ URL 상태 저장
-    writeDashboardStateToUrl();
-
-    // 구 × 연도 그리드 업데이트
-    renderYearRegionGrid();
-
-    // 첫 번째 슬롯
-    await loadRegionSlot(1, selectedRegions[0]);
-
-    // 두 번째 슬롯: 선택된 지역이 2개일 때만
-    if (selectedRegions.length === 2) {
-      await loadRegionSlot(2, selectedRegions[1]);
-      document.getElementById("graph-column-2")?.classList.remove("d-none");
-    } else {
-      document.getElementById("graph-column-2")?.classList.add("d-none");
-    }
-  } catch (err) {
-    console.error("[dashboard] onApplyDashboard error:", err);
-    alert(`대시보드를 불러오지 못했습니다.\n${err.message}`);
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = oldText || "선택 완료";
-    }
-  }
-}
-
-// ------------------------------
-// 슬롯 로딩(지역 1개에 대해 4개 차트 갱신)
-// ------------------------------
-async function loadRegionSlot(slot, region) {
-  const titleEl = document.getElementById(`region-title-${slot}`);
-  if (titleEl) titleEl.textContent = region;
-
-  try {
-    const [elderlyRes, lonelyRes] = await Promise.all([
-      fetchJson(`/api/elderly/forecast/${encodeURIComponent(region)}`),
-      fetchJson(`/api/lonely/forecast?region=${encodeURIComponent(region)}`),
-    ]);
-
-    // elderly/lonely는 {"status":"success","data":{history,forecast}} 형태
-    const elderlyData = elderlyRes.data || elderlyRes;
-    const lonelyData = lonelyRes.data || lonelyRes;
-
-    renderRegionCharts(slot, region, elderlyData, lonelyData);
-  } catch (err) {
-    console.error("슬롯 로딩 실패:", slot, region, err);
-    alert(`[${region}] 데이터를 불러오지 못했습니다.\n${err.message}`);
-  }
-}
-
-// ------------------------------
-// 차트 렌더(슬롯별)
-// ------------------------------
-function renderRegionCharts(slot, region, elderlyData, lonelyData) {
-  const colors = SLOT_COLORS[slot];
-
-  // ----- 노인 인구: history / forecast -----
-  const eHistory = (elderlyData.history || [])
-    .map((row) => ({ year: extractYear(row), v: extractValue(row) }))
-    .filter((row) => row.year != null && row.year >= selectedStartYear && row.year <= selectedEndYear)
-    .sort((a, b) => a.year - b.year);
-
-  const eForecastAll = (elderlyData.forecast || [])
-    .map((row) => ({ year: extractYear(row), v: extractValue(row) }))
-    .filter((row) => row.year != null)
-    .sort((a, b) => a.year - b.year);
-
-  // 추세 그래프용 forecast: 연도 범위로 필터링
-  const eForecastTrend = eForecastAll.filter(
-    (row) => row.year >= selectedStartYear && row.year <= selectedEndYear
-  );
-
-  // 추세(선택 구간) = (history + forecastTrend) 정렬
-  const eTrendMerged = [...eHistory, ...eForecastTrend].sort((a, b) => a.year - b.year);
-  const eTrendYears = eTrendMerged.map((r) => r.year);
-  const eTrendValues = eTrendMerged.map((r) => r.v);
-
-  createLineChart(
-    `trend-elderly-${slot}`,
-    eTrendYears,
-    eTrendValues,
-    colors.elderlyTrend,
-    `${region} 노인 인구 추세`,
-    false,
-    false
-  );
-
-  // 5년 예측(전체 forecast 기준 상위 5개)
-  const eForecast5 = eForecastAll.slice(0, 5);
-  const eForecastYears = eForecast5.map((r) => r.year);
-  const eForecastValues = eForecast5.map((r) => r.v);
-
-  createLineChart(
-    `forecast-elderly-${slot}`,
-    eForecastYears,
-    eForecastValues,
-    colors.elderlyForecast,
-    `${region} 노인 인구 5년 예측`,
-    false,
-    true
-  );
-
-  // ----- 고독사: history / forecast -----
-  const lHistory = (lonelyData.history || [])
-    .map((row) => ({ year: extractYear(row), v: extractValue(row) }))
-    .filter((row) => row.year != null && row.year >= selectedStartYear && row.year <= selectedEndYear)
-    .sort((a, b) => a.year - b.year);
-
-  const lForecastAll = (lonelyData.forecast || [])
-    .map((row) => ({ year: extractYear(row), v: extractValue(row) }))
-    .filter((row) => row.year != null)
-    .sort((a, b) => a.year - b.year);
-
-  const lForecastTrend = lForecastAll.filter(
-    (row) => row.year >= selectedStartYear && row.year <= selectedEndYear
-  );
-
-  const lTrendMerged = [...lHistory, ...lForecastTrend].sort((a, b) => a.year - b.year);
-  const lTrendYears = lTrendMerged.map((r) => r.year);
-  const lTrendValues = lTrendMerged.map((r) => r.v);
-
-  createLineChart(
-    `trend-lonely-${slot}`,
-    lTrendYears,
-    lTrendValues,
-    colors.lonelyTrend,
-    `${region} 고독사 추세`,
-    false,
-    false
-  );
-
-  const lForecast5 = lForecastAll.slice(0, 5);
-  const lForecastYears = lForecast5.map((r) => r.year);
-  const lForecastValues = lForecast5.map((r) => r.v);
-
-  createLineChart(
-    `forecast-lonely-${slot}`,
-    lForecastYears,
-    lForecastValues,
-    colors.lonelyForecast,
-    `${region} 고독사 5년 예측`,
-    false,
-    true
-  );
-}
+})();

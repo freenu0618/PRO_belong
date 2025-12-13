@@ -19,7 +19,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block extra_css %}{% endblock %}
   </head>
-  <body>
+
+  <body class="{% block body_class %}{% endblock %}" data-page="{% block page_id %}{% endblock %}">
     <div class="page-grid">
 
       <!-- 헤더 -->
@@ -80,6 +81,9 @@
 
     <!-- ✅ 전역 JS (준비중 링크를 모달로 연결) -->
     <script src="{{ url_for('static', filename='js/app_ui.js') }}"></script>
+
+    <!-- ✅ 전역 JS (navbar active / 로그인 UI 토글) -->
+    <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
 
     {% block extra_js %}{% endblock %}
   </body>

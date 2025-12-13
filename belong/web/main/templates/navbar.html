@@ -1,5 +1,5 @@
 {# templates/navbar.html #}
-<nav class="navbar navbar-expand-lg navbar-dark" data-component="navbar">
+<nav class="navbar navbar-expand-lg navbar-light" data-component="navbar">
   <div class="container">
 
     <!-- 브랜드: 홈 -->
@@ -13,13 +13,9 @@
     </a>
 
     <!-- 모바일 토글 -->
-    <button class="navbar-toggler"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#navbarNav"
-            aria-controls="navbarNav"
-            aria-expanded="false"
-            aria-label="Toggle navigation">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+            data-bs-target="#navbarNav" aria-controls="navbarNav"
+            aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
 
@@ -32,10 +28,11 @@
           <a class="nav-link" href="{{ url_for('web.dashboard') }}">대시보드</a>
         </li>
 
-        <!-- 2) AI 챗봇(5기능 허브로 이동) -->
+        <!-- 2) AI 챗봇 -->
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('web.ai_home') }}">AI 챗봇</a>
         </li>
+
         <!-- 3) AI Agent (준비중) -->
         <li class="nav-item">
           <a class="nav-link is-coming-soon"
@@ -44,6 +41,7 @@
             AI Agent <span class="badge text-bg-secondary ms-1">준비중</span>
           </a>
         </li>
+
         <!-- 4) Agentic AI (준비중) -->
         <li class="nav-item">
           <a class="nav-link is-coming-soon"
@@ -52,13 +50,14 @@
             Agentic AI <span class="badge text-bg-secondary ms-1">준비중</span>
           </a>
         </li>
-        <!-- 로그인/회원가입/유저 -->
+
+        <!-- Auth -->
         <li class="nav-item" id="nav-login">
-          <a class="nav-link" href="{{ url_for('web.login') }}">로그인</a>
+          <a class="btn btn-sm btn-outline-primary rounded-pill px-3" href="{{ url_for('web.login') }}">로그인</a>
         </li>
 
         <li class="nav-item" id="nav-signup">
-          <a class="nav-link" href="{{ url_for('web.signup') }}">회원가입</a>
+          <a class="btn btn-sm btn-primary rounded-pill px-3" href="{{ url_for('web.signup') }}">회원가입</a>
         </li>
 
         <li class="nav-item dropdown d-none" id="nav-user">
