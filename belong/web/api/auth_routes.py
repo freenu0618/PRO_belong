@@ -1,10 +1,11 @@
-# web/api/auth_routes.py
-from flask import jsonify, request
+# belong/web/api/auth_routes.py
+from flask import jsonify, request, g
 from . import api_bp
 
 from belong.services.auth_service import AuthService
+from .jwt_utils import create_access_token, jwt_required
 
-auth_service = AuthService()  # 전역으로 한 번 생성
+auth_service = AuthService()
 
 
 @api_bp.post("/auth/signup")
@@ -14,7 +15,6 @@ def api_signup():
     email = data.get("email")
     password = data.get("password")
 
-    # (필수값 체크는 route에서 해도 OK)
     if not username or not email or not password:
         return jsonify({
             "status": "error",
@@ -22,18 +22,25 @@ def api_signup():
         }), 400
 
     ok, msg, user = auth_service.signup(username, email, password)
-
     if not ok:
-        # 중복, 비밀번호 규칙 위반 등
         return jsonify({"status": "error", "message": msg}), 400
+
+    token = create_access_token({
+        "sub": str(user.id),
+        "username": user.username,
+        "email": user.email,
+    })
 
     return jsonify({
         "status": "success",
         "message": msg,
         "data": {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
+            "access_token": token,
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+            }
         }
     }), 201
 
@@ -51,27 +58,49 @@ def api_login():
         }), 400
 
     ok, msg, user = auth_service.login(username, password)
-
     if not ok:
         return jsonify({"status": "error", "message": msg}), 401
+
+    token = create_access_token({
+        "sub": str(user.id),
+        "username": user.username,
+        "email": user.email,
+    })
 
     return jsonify({
         "status": "success",
         "message": msg,
         "data": {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
+            "access_token": token,
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+            }
         }
     }), 200
 
+
+@api_bp.get("/auth/me")
+@jwt_required
+def api_me():
+    payload = getattr(g, "jwt_payload", {}) or {}
+    return jsonify({
+        "status": "success",
+        "data": {
+            "user": {
+                "id": payload.get("sub"),
+                "username": payload.get("username"),
+                "email": payload.get("email"),
+            }
+        }
+    }), 200
+
+
 @api_bp.post("/auth/logout")
 def api_logout():
-    """
-    POST /api/auth/logout
-    - 서버 세션을 안 쓰고 있으니, 그냥 성공 응답만 주면 됨.
-    - 프론트에서는 localStorage.removeItem('belong_user') 같은 식으로 처리.
-    """
+    # JWT는 서버 세션이 아니라 토큰이므로,
+    # 기본 로그아웃은 프론트에서 토큰 삭제로 처리.
     return jsonify({
         "status": "success",
         "message": "로그아웃 되었습니다."

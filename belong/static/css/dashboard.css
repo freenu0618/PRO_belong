@@ -1,0 +1,146 @@
+/* static/css/dashboard.css */
+/* =========================================
+   Belong Dashboard Styles (Dark Neon)
+   Theme: Future & Safe
+========================================= */
+
+.dashboard-section {
+  --bd-surface: var(--color-bg-card);
+  --bd-border: var(--color-border);
+  --bd-text: var(--color-text-main);
+  --bd-muted: var(--color-text-sub);
+  --bd-radius: var(--radius-md);
+
+  /* Use global dark background */
+  background: transparent;
+  min-height: calc(100vh - var(--header-height));
+}
+
+/* =========================
+   Controls / Sidebar
+========================================= */
+.dashboard-sidebar .card-soft {
+  background: var(--bd-surface);
+  border: 1px solid var(--bd-border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Region Checkbox List */
+.region-checkbox-list {
+  border: 1px solid var(--bd-border);
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.5);
+  /* Darker inner bg */
+  padding: 10px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.region-checkbox-list .form-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s;
+  color: var(--bd-text);
+}
+
+.region-checkbox-list .form-check:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Custom Checkbox Color */
+.form-check-input {
+  background-color: var(--color-bg-input);
+  border-color: var(--bd-border);
+}
+
+.form-check-input:checked {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* =========================
+   Grid Table (Year x Region)
+========================================= */
+#year-region-grid {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.year-region-grid-wrap {
+  border: 1px solid var(--bd-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bd-surface);
+}
+
+.year-region-grid-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.year-region-grid-wrap thead th {
+  background: rgba(30, 41, 59, 0.9);
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 10px;
+  text-align: center;
+  border-bottom: 1px solid var(--bd-border);
+  white-space: nowrap;
+}
+
+.year-region-grid-wrap tbody td {
+  padding: 8px;
+  font-size: 0.85rem;
+  color: var(--bd-text);
+  text-align: center;
+  border-bottom: 1px solid var(--bd-border);
+}
+
+.year-region-grid-wrap tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.year-region-grid-cell:hover {
+  background: rgba(6, 182, 212, 0.1);
+  color: var(--color-primary);
+  cursor: default;
+}
+
+/* =========================
+   Chart Layout
+========================================= */
+.slot-header {
+  border-bottom: 1px solid var(--bd-border);
+}
+
+.slot-title {
+  color: var(--color-secondary);
+  /* Purple for Regions */
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+}
+
+.chart-title {
+  color: var(--bd-text);
+}
+
+/* Bullet point */
+.chart-title::before {
+  background: var(--color-primary);
+  box-shadow: 0 0 8px var(--color-primary);
+}
+
+.chart-wrapper {
+  background: var(--bd-surface);
+  border: 1px solid var(--bd-border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Loading State Overlay (Dark) */
+.chart-wrapper[data-loading="true"]::after {
+  background: rgba(15, 23, 42, 0.8);
+  color: var(--color-primary);
+}

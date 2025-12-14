@@ -1,142 +1,83 @@
-<nav class="navbar navbar-expand-lg navbar-dark">
-    <div class="container">
+{# templates/navbar.html #}
+<nav class="navbar navbar-expand-lg navbar-light" data-component="navbar">
+  <div class="container">
 
-        <!-- 브랜드 로고 + 이름 (항상 홈으로 이동) -->
-        <a class="navbar-brand d-flex align-items-center fw-bold" href="{{ url_for('web.index') }}">
-            <img src="{{ url_for('static', filename='image/logo.png') }}"
-                 alt="Belong Logo"
-                 style="height:40px; border-radius:8px; margin-right:10px;">
-            <span style="font-size:22px;">Belong</span>
-        </a>
+    <!-- 브랜드: 홈 -->
+    <a class="navbar-brand d-flex align-items-center fw-bold" href="{{ url_for('web.index') }}">
+      <img
+        src="{{ url_for('static', filename='image/logo.png') }}"
+        alt="Belong Logo"
+        style="height:40px; border-radius:8px; margin-right:10px;"
+      >
+      <span style="font-size:22px;">Belong</span>
+    </a>
 
-        <!-- 모바일 햄버거 버튼 -->
-        <button class="navbar-toggler"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#navbarNav"
-                aria-controls="navbarNav"
-                aria-expanded="false"
-                aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+    <!-- 모바일 토글 -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+            data-bs-target="#navbarNav" aria-controls="navbarNav"
+            aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
 
-        <!-- 메뉴 -->
-        <div class="collapse navbar-collapse" id="navbarNav">
+    <!-- 메뉴 -->
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
 
-            <!-- 가운데 메뉴 -->
-            <ul class="navbar-nav mx-auto">
+        <!-- 1) 대시보드 -->
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('web.dashboard') }}">대시보드</a>
+        </li>
 
-                <!-- 홈 -->
-                <li class="nav-item">
-                    <a class="nav-link nav-link-lg" href="{{ url_for('web.index') }}">홈</a>
-                </li>
+        <!-- 2) AI 챗봇 -->
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('web.ai_home') }}">AI 챗봇</a>
+        </li>
 
-                <!-- 대시보드 / 지역별 예측 / 상관관계 분석을 하나로 묶은 드롭다운 -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link nav-link-lg dropdown-toggle"
-                       href="#"
-                       id="navAnalysisDropdown"
-                       role="button"
-                       data-bs-toggle="dropdown"
-                       aria-expanded="false">
-                        고독사 리스크 서비스
-                    </a>
-                    <ul class="dropdown-menu" aria-labelledby="navAnalysisDropdown">
-                        <li>
-                            <a class="dropdown-item" href="{{ url_for('web.dashboard') }}">대시보드</a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ url_for('web.region') }}">지역별 예측</a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ url_for('web.correlation') }}">상관관계 분석</a>
-                        </li>
-                    </ul>
-                </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link nav-link-lg dropdown-toggle"
-                       href="#"
-                       id="navAIDropdown"
-                       role="button"
-                       data-bs-toggle="dropdown"
-                       aria-expanded="false">
-                        AI 서비스
-                    </a>
-                    <ul class="dropdown-menu" aria-labelledby="navAIDropdown">
-                        <li>
-                            <a class="dropdown-item" href="{{ url_for('web.ai_translate') }}">번역</a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ url_for('web.ai_sentiment') }}">감정 분석</a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ url_for('web.ai_summarize') }}">텍스트 요약</a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ url_for('web.ai_qa') }}">질의 응답</a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ url_for('web.ai_entities') }}">개체 분석</a>
-                        </li>
-                    </ul>
-                </li>
-            </ul>
-            <!-- 오른쪽 로그인/회원가입 -->
-            <ul class="navbar-nav">
-                <!-- 비로그인 -->
-                <li class="nav-item" id="nav-login-link">
-                    <a class="nav-link nav-link-lg" href="{{ url_for('web.login') }}">로그인</a>
-                </li>
-                <li class="nav-item" id="nav-signup-link">
-                    <a class="nav-link nav-link-lg" href="{{ url_for('web.signup') }}">회원가입</a>
-                </li>
+        <!-- 3) AI Agent (준비중) -->
+        <li class="nav-item">
+          <a class="nav-link is-coming-soon"
+             href="#"
+             data-coming-soon="agent">
+            AI Agent <span class="badge text-bg-secondary ms-1">준비중</span>
+          </a>
+        </li>
 
-                <!-- 로그인 시: 사용자명 + 로그아웃 버튼 -->
-                <li class="nav-item d-none" id="nav-username">
-                    <span class="nav-link nav-link-lg text-primary fw-bold"></span>
-                </li>
+        <!-- 4) Agentic AI (준비중) -->
+        <li class="nav-item">
+          <a class="nav-link is-coming-soon"
+             href="#"
+             data-coming-soon="agentic">
+            Agentic AI <span class="badge text-bg-secondary ms-1">준비중</span>
+          </a>
+        </li>
 
-                <li class="nav-item">
-                    <button id="logoutBtn"
-                            class="btn btn-outline-primary btn-sm ms-2 d-none">
-                        로그아웃
-                    </button>
-                </li>
-            </ul>
+        <!-- Auth -->
+        <li class="nav-item" id="nav-login">
+          <a class="btn btn-sm btn-outline-primary rounded-pill px-3" href="{{ url_for('web.login') }}">로그인</a>
+        </li>
 
-        </div>
+        <li class="nav-item" id="nav-signup">
+          <a class="btn btn-sm btn-primary rounded-pill px-3" href="{{ url_for('web.signup') }}">회원가입</a>
+        </li>
+
+        <li class="nav-item dropdown d-none" id="nav-user">
+          <a class="nav-link dropdown-toggle"
+             href="#"
+             id="userDropdown"
+             role="button"
+             data-bs-toggle="dropdown"
+             aria-expanded="false">
+            <span id="nav-username">사용자</span>
+          </a>
+
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+            <li>
+              <a class="dropdown-item" href="{{ url_for('web.logout') }}" id="logout-btn">로그아웃</a>
+            </li>
+          </ul>
+        </li>
+
+      </ul>
     </div>
+  </div>
 </nav>
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-    const user = localStorage.getItem("belong_user");
-
-    const navLogin   = document.getElementById("nav-login-link");
-    const navSignup  = document.getElementById("nav-signup-link");
-    const navUser    = document.getElementById("nav-username");
-    const logoutBtn  = document.getElementById("logoutBtn");
-
-    if (user) {
-        navLogin?.classList.add("d-none");
-        navSignup?.classList.add("d-none");
-
-        if (navUser) {
-            navUser.classList.remove("d-none");
-            navUser.querySelector("span").innerText = `${user}님 환영합니다`;
-        }
-        logoutBtn?.classList.remove("d-none");
-
-        logoutBtn?.addEventListener("click", () => {
-            localStorage.removeItem("belong_user");
-            window.location.reload();
-        });
-
-    } else {
-        navLogin?.classList.remove("d-none");
-        navSignup?.classList.remove("d-none");
-        navUser?.classList.add("d-none");
-        logoutBtn?.classList.add("d-none");
-    }
-});
-</script>

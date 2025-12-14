@@ -9,7 +9,7 @@ SOURCE_PRIORITIES = [
     "ml_linear_rate_v0_3",
     "ml_catboost_rate_v1_0",
     "model",
-    "rule_based",
+    "rule_base",
 ]
 
 class PredictionService:

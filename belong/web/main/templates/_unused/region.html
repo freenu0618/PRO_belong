@@ -1,0 +1,64 @@
+{# templates/region.html #}
+{% extends "base.html" %}
+
+{% block page_id %}region{% endblock %}
+{% block body_class %}page page--region{% endblock %}
+
+{% block title %}지역 선택 - Belong{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center" style="margin-top:120px;">
+  <div class="card shadow-lg p-4" style="width: 420px; background:#e8f6ff; border-radius:18px;">
+    <h4 class="fw-bold mb-3 text-center">지역별 예측</h4>
+    <p class="text-muted text-center mb-4">예측할 구와 연도를 입력하세요.</p>
+
+    <form id="region-form" class="d-grid gap-3">
+      <div>
+        <label class="form-label fw-semibold" for="region_name">지역(구) 입력</label>
+        <input type="text" class="form-control" id="region_name" placeholder="예: 강남구">
+      </div>
+
+      <div>
+        <label class="form-label fw-semibold" for="yearInput">연도 입력</label>
+        <input type="number" class="form-control" id="yearInput" placeholder="예: 2023" value="2023" min="2017" max="2035">
+      </div>
+
+      <div id="region-error" class="alert alert-danger py-2" style="display:none;"></div>
+
+      <button type="submit" class="btn btn-primary w-100">예측 보기</button>
+    </form>
+
+    <small class="text-muted mt-3 d-block" style="line-height:1.6;">
+      * 상세 페이지로 이동합니다. (현재 라우트 기준: <code>/regions/&lt;region_name&gt;</code>)
+    </small>
+  </div>
+</div>
+
+<script>
+  // 기존 region.html 내부 스크립트 유지
+  document.getElementById("region-form").addEventListener("submit", function(e){
+    e.preventDefault();
+
+    const region = (document.getElementById("region_name").value || "").trim();
+    const yearInput = document.getElementById("yearInput");
+
+    let year = parseInt(yearInput.value || "2023", 10);
+    if (Number.isNaN(year)) year = 2023;
+    if (year < 2017) year = 2017;
+    if (year > 2035) year = 2035;
+    yearInput.value = year;
+
+    const errorEl = document.getElementById("region-error");
+    if (!region) {
+      errorEl.innerText = "지역명(구)을 입력해주세요.";
+      errorEl.style.display = "block";
+      return;
+    }
+    errorEl.style.display = "none";
+
+    // ✅ 현재 라우트: /regions/<region_name>
+    // 상세 페이지 연도 범위 등은 region_detail에서 처리
+    window.location.href = `/regions/${encodeURIComponent(region)}?year=${encodeURIComponent(year)}`;
+  });
+</script>
+{% endblock %}

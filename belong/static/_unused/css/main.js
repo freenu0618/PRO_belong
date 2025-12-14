@@ -47,5 +47,32 @@ async function loadDashboard() {
 
 document.addEventListener("DOMContentLoaded", () => {
   loadDashboard();
+
+  // 스토리 패널 페이드 인
+  const panels = document.querySelectorAll(".story-panel");
+  if (panels.length > 0 && "IntersectionObserver" in window) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+          }
+        });
+      },
+      { threshold: 0.35 }
+    );
+    panels.forEach((panel) => observer.observe(panel));
+  }
+});
+let next = document.querySelector(".next");
+let prev = document.querySelector(".prev");
+
+next.addEventListener("click", function () {
+  let items = document.querySelectorAll(".item");
+  document.querySelector(".slide").appendChild(items[0]);
 });
 
+prev.addEventListener("click", function () {
+  let items = document.querySelectorAll(".item");
+  document.querySelector(".slide").prepend(items[items.length - 1]);
+});

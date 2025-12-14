@@ -1,498 +1,261 @@
-/* ===============================
-   0. 기본 설정
-   =============================== */
+/* static/css/style.css */
 
-html, body {
-  height: 100%;
+/* =========================================
+   Belong Design System (Global)
+   Theme: Future & Safe (Dark Mode + Neon)
+   Base: Bootstrap 5 Overrides
+========================================= */
+
+:root {
+  /* 1. Color Palette (Dark Neon) */
+  --color-bg-main: #0f172a;
+  /* Deep Slate (Main Background) */
+  --color-bg-card: rgba(30, 41, 59, 0.7);
+  /* Slate 800 (Glass Card) */
+  --color-bg-input: #1e293b;
+  /* Input Background */
+
+  --color-text-main: #f1f5f9;
+  /* Slate 100 */
+  --color-text-sub: #94a3b8;
+  /* Slate 400 */
+
+  --color-primary: #06b6d4;
+  /* Cyan 500 (Access Point) */
+  --color-primary-hover: #22d3ee;
+  /* Cyan 400 */
+  --color-secondary: #8b5cf6;
+  /* Violet 500 */
+
+  --color-border: rgba(148, 163, 184, 0.15);
+  /* Subtle Border */
+  --color-shadow: rgba(0, 0, 0, 0.4);
+  /* Deep Shadow */
+  --color-neon-glow: rgba(6, 182, 212, 0.3);
+  /* Neon Glow */
+
+  /* 2. Metrics */
+  --header-height: 60px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
 }
 
+/* Base Stylings */
 body {
-  background-color: #ffffff;
-  color: #948975;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-color: var(--color-bg-main);
+  color: var(--color-text-main);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  line-height: 1.6;
 }
 
-/* 메인 영역 기본 높이 확보 */
-main {
-  min-height: calc(100vh - 80px);
+a {
+  text-decoration: none;
+  color: var(--color-primary);
+  transition: color 0.2s;
 }
 
-
-/* ===============================
-   1. 캐러셀 (홈 상단)
-   =============================== */
-
-.hero-carousel {
-  margin-top: 0rem;
+a:hover {
+  color: var(--color-primary-hover);
+  text-shadow: 0 0 5px var(--color-neon-glow);
 }
 
-.main-slide {
-  position: relative;
-  height: 50vh;
-  background-size: cover;
-  background-position: center;
-  text-align: center;
-  border-radius: 0rem;
-  overflow: hidden;
+/* Container */
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
 }
 
-.carousel-inner {
-  position: relative;
-  height: 50vh;
+/* Glassmorphism Card Utility */
+.card-soft,
+.card {
+  background: var(--color-bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 20px var(--color-shadow);
+  color: var(--color-text-main);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
-.carousel-item .overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to bottom right,
-    rgba(0, 0, 0, 0.55),
-    rgba(0, 0, 0, 0.25)
-  );
+/* Micro-interaction: Card Hover Glow */
+.card-soft:hover,
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(6, 182, 212, 0.1);
+  border-color: rgba(6, 182, 212, 0.3);
 }
 
-/* 글자 영역 */
-.carousel-content {
-  position: relative;
-  z-index: 1;
-  height: 100%;
-  color: #ffffff;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-
-  text-align: center;
-  padding: 1.5rem;
-}
-
-.carousel-content h1 {
-  font-size: clamp(1.6rem, 3vw, 2.4rem);
+/* Typography */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: #fff;
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  letter-spacing: -0.01em;
 }
 
-.carousel-content p {
-  font-size: clamp(0.9rem, 1.3vw, 1.05rem);
-  opacity: 0.9;
-  margin-bottom: 0;
+.text-muted {
+  color: var(--color-text-sub) !important;
 }
 
-
-/* ===============================
-   2. 헤더 / 네비게이션
-   =============================== */
-
-.site-header {
-  background-color: #0f172a;  /* 진한 남색 */
-  position: sticky;           /* 스크롤해도 상단에 고정 */
-  top: 0;
-  z-index: 1020;
-}
-
-/* 상단 네비바 전체 */
-.navbar {
-  padding-top: 0.6rem;
-  padding-bottom: 0.6rem;
-  background: transparent;    /* 실제 배경색은 site-header가 담당 */
-  border-radius: 1.5rem;
-}
-
-/* 로고 텍스트 조금 더 깔끔하게 */
-.navbar-brand span {
-  letter-spacing: 0.03em;
-}
-
-/* 가운데 메뉴들 */
-.nav-link.nav-link-lg {
-  font-size: 0.95rem;
-  padding: 0.5rem 0.9rem;
-  color: #ffffff;
-}
-
-/* hover 색상 */
-.nav-link.nav-link-lg:hover {
-  color: rgba(255, 0, 0, 0.8);
-}
-
-/* 모바일 토글 아이콘 */
-.navbar-dark .navbar-toggler {
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-
-/* ===============================
-   BAT 스타일 2×2 그리드 Hero
-   =============================== */
-
-.hero-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;   /* 가로 1/2, 1/2 */
-  grid-template-rows: 50vh 50vh;    /* 세로 1/2, 1/2 = 전체 100vh */
-  min-height: 100vh;
-}
-
-/* 각 칸 공통 스타일 */
-.hero-cell {
-  position: relative;
-  overflow: hidden;
-  border-radius: 25px;
-}
-
-/* 텍스트 있는 칸 */
-.hero-menu {
-  background-color: #ffffff;
-  display: flex;
-  flex-direction: column;   /* ✅ 세로로 쌓이게 */
-  align-items: flex-start;  /* 왼쪽 정렬 */
-  justify-content: flex-start; /* 위쪽부터 시작 */
-}
-
-.hero-menu-top {
-  padding: 3rem 5vw 2.5rem;
-}
-
-.hero-menu-bottom {
-  padding: 3rem 5vw 2.5rem;
-}
-
-
-/* 위쪽 설명 텍스트 */
-.hero-kicker {
-  font-size: 0.9rem;
-  line-height: 1.4;
-  margin-bottom: 1.8rem;  /* 살짝만 띄우기 */
-  color: #6b7280;
-}
-
-
-/* 메뉴 리스트 공통 */
-.hero-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  width: 100%;   /* ✅ 오른쪽으로 꽉 쓰기 */
-}
-
-
-/* 각 줄 (버튼처럼 보이는 텍스트) */
-.hero-item {
-  border: none;
-  background: none;
-  padding: 15px 0;
-  margin: 0;
-  text-align: left;
-  cursor: pointer;
-
-  font-size: clamp(2rem, 4vw, 3.4rem);
-  line-height: 1.05;
+/* Buttons (Neon Style) */
+.btn-primary {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #0f172a;
+  /* Dark Text on Cyan */
   font-weight: 700;
-
-  color: #d1d5db;   /* 기본 연한 회색 */
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
+  box-shadow: 0 0 10px var(--color-neon-glow);
+  transition: all 0.3s ease;
 }
 
-/* 강조 상태 */
-.hero-item.is-active {
-  color: #111827;
+.btn-primary:hover,
+.btn-primary:active,
+.btn-primary:focus {
+  background-color: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+  color: #0f172a !important;
+  box-shadow: 0 0 20px var(--color-neon-glow), 0 0 5px #fff;
+  /* Stronger Glow */
+  transform: translateY(-2px);
 }
 
-/* 호버 */
-.hero-item:hover {
-  color: #4b5563;
-}
-
-/* 화살표 */
-.hero-arrow {
-  font-size: 0.8em;
-}
-
-/* 이미지 칸 공통 */
-.hero-image {
-  background-size: cover;
-  background-position: center;
-}
-
-/* 반응형: 모바일에서는 한 줄씩 세로로 쌓기 */
-@media (max-width: 991.98px) {
-  .hero-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
-  }
-
-  .hero-cell {
-    min-height: 50vh;
-  }
-
-  .hero-menu-top,
-  .hero-menu-bottom {
-    padding: 2.5rem 1.75rem;
-  }
-}
-
-
-/* ===============================
-   3. 서브 페이지 Hero (대시보드 / 지역 / 상관관계)
-   =============================== */
-
-.page-hero {
-  position: relative;
-  margin-top: 1.5rem;
-  border-radius: 1.5rem;
-  overflow: hidden;
-  min-height: 260px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-}
-
-.page-hero-bg {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-  filter: brightness(0.5);
-  opacity: 0.7; /* 사진 투명도 느낌 */
-}
-
-.page-hero-overlay {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-      circle at top left,
-      rgba(15, 23, 42, 0.5),
-      rgba(15, 23, 42, 0.5)
-  );
-}
-
-.page-hero-content {
-  position: relative;
-  text-align: center;
-  padding: 3rem 1.5rem;
-  max-width: 900px;
-}
-
-.page-hero-eyebrow {
-  font-size: 0.85rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  margin-bottom: 0.75rem;
-  opacity: 0.8;
-}
-
-.page-hero-title {
-  font-size: clamp(2.1rem, 4vw, 3rem);
-  font-weight: 800;
-  line-height: 1.1;
-  margin-bottom: 0.75rem;
-}
-
-.page-hero-title .accent {
-  color: #facc15; /* 강조 색상 */
-}
-
-.page-hero-subtitle {
-  font-size: 0.95rem;
-  opacity: 0.9;
-}
-
-@media (max-width: 991.98px) {
-  .page-hero {
-    margin-top: 1rem;
-    border-radius: 0;
-  }
-
-  .page-hero-content {
-    padding: 2.25rem 1.25rem;
-  }
-}
-
-
-/* ===============================
-   4. 아래 카드 섹션
-   =============================== */
-
-.feature-card {
-  border-radius: 1.2rem;
-  background-color: #ffffff;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.feature-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 18px 30px rgba(15, 23, 42, 0.08);
-}
-
-.feature-card .card-title {
-  font-weight: 700;
-}
-
-
-/* ===============================
-   5. 푸터
-   =============================== */
-
-footer {
-  background-color: #0f172a;  /* 네비바와 동일 색 */
-  font-size: 0.85rem;
-  color: #ffffff;
-}
-
-
-/* ===============================
-   6. 반응형 (모바일)
-   =============================== */
-
-/* 반응형 (태블릿/모바일) */
-@media (max-width: 1199.98px) {
-  .dashboard-layout {
-    grid-template-columns: 1fr;     /* 한 줄 레이아웃 */
-  }
-
-  .dashboard-controls {
-    max-width: 480px;
-    margin: 0 auto 1.5rem;          /* 🔹 가운데 정렬 + 아래 여백 */
-  }
-
-  .dashboard-graphs-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .graph-divider,
-  .graph-gutter {
-    display: none;
-  }
-
-  .graph-column {
-    padding: 0 0 1rem;
-  }
-}
-
-/* ===============================
-   Dashboard 레이아웃 (3 : 13)
-   =============================== */
-
-.dashboard-layout {
-  display: grid;
-  grid-template-columns: 3fr 13fr;
-  gap: 1.5rem;
-  margin: 2.5rem 0 3rem;
-}
-
-/* 왼쪽 컨트롤 패널 */
-.dashboard-controls {
-  min-width: 260px;
-}
-
-.control-card {
-  border-radius: 1.25rem;
-}
-
-.region-checkbox-list {
- display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));  /* ◀ 3열 그리드 */
-  gap: 0.3rem 0.75rem;                               /* 세로/가로 간격 */
-  padding-right: 0.25rem;
-}
-
-.region-checkbox-list .form-check {
-  margin-bottom: 0;          /* 아래 여백 줄이기 */
-  display: flex;
-  align-items: center;
-}
-
-.region-checkbox-list .form-check-input {
-  margin-right: 0.35rem;
-}
-
-.year-separator {
-  font-size: 0.9rem;
-  color: #9ca3af;
-}
-
-/* 오른쪽 그래프 영역: 1 : 5 : 1 : 5 : 1 */
-.dashboard-graphs {
-  min-height: 70vh;
-}
-
-.dashboard-graphs-grid {
-  display: grid;
-  grid-template-columns: 1fr 5fr 1fr 5fr 1fr;
-  gap: 0;
-  height: 100%;
-}
-
-/* 양쪽 여백 */
-.graph-gutter {
+.btn-outline-primary {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
   background: transparent;
+  transition: all 0.3s ease;
 }
 
-/* 가운데 구분선 */
-.graph-divider {
-  border-left: 1px solid #e5e7eb;
+.btn-outline-primary:hover {
+  background-color: var(--color-primary);
+  color: #0f172a;
+  box-shadow: 0 0 15px var(--color-neon-glow);
+  transform: translateY(-2px);
 }
 
-/* 각 지역 그래프 컬럼 */
-.graph-column {
-  padding: 0 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+/* Form Inputs (Dark + Focus Anim) */
+.form-control,
+.form-select {
+  background-color: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-main);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
 }
 
-.graph-region-title {
-  font-weight: 700;
-  margin-bottom: 0.25rem;
+.form-control:focus,
+.form-select:focus {
+  background-color: #252f45;
+  /* Slightly lighter on focus */
+  border-color: var(--color-primary);
+  color: var(--color-text-main);
+  box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.2);
+  /* Expanded glow ring */
+  outline: none;
 }
 
-/* 그래프 카드 */
-.graph-card {
-  background-color: #ffffff;
-  border-radius: 1.1rem;
-  padding: 0.75rem 0.75rem 0.5rem;
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-height: 170px;
+.form-control::placeholder {
+  color: rgba(148, 163, 184, 0.5);
 }
 
-.graph-title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #6b7280;
-  margin-bottom: 0.2rem;
+/* Navbar */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
-.graph-card canvas {
-  width: 100% !important;
-  height: 120px !important;
+.navbar {
+  background: rgba(15, 23, 42, 0.95);
+  /* More opaque */
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-border);
+  transition: background 0.3s;
 }
 
-/* 반응형 (태블릿/모바일) */
-@media (max-width: 1199.98px) {
-  .dashboard-layout {
-    grid-template-columns: 1fr;
-  }
+.navbar-brand {
+  font-weight: 800;
+  color: #fff !important;
+  text-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+}
 
-  .dashboard-controls {
-    max-width: 480px;
-  }
+.nav-link {
+  color: #cbd5e1 !important;
+  /* Brighter than slate-400 */
+  font-weight: 500;
+  transition: color 0.2s, text-shadow 0.2s;
+}
 
-  .dashboard-graphs-grid {
-    grid-template-columns: 1fr;
-  }
+.nav-link.active,
+.nav-link:hover,
+.nav-link:focus {
+  color: var(--color-primary) !important;
+  text-shadow: 0 0 5px var(--color-neon-glow);
+}
 
-  .graph-divider,
-  .graph-gutter {
-    display: none;
-  }
+/* Modal (Dark Neon Theme) */
+.modal-content {
+  background-color: #1e293b;
+  /* Dark Slate */
+  border: 1px solid var(--color-border);
+  color: #f1f5f9;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
 
-  .graph-column {
-    padding: 0 0 1rem;
+.modal-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+  /* Make close button white */
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-main);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+/* Loading Spinner (Neon) */
+.loader-neon {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(6, 182, 212, 0.3);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }

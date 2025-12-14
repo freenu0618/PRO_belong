@@ -11,6 +11,7 @@ from belong.repositories.forecast_repo import ForecastRepository
 from belong.services.elderly_service import ElderlyService
 from belong.repositories.elderly_repo import SqlAlchemyElderlyHistoryRepository
 from belong.services.lonely_service import LonelyService
+from belong.services.region_risk_service import RegionRiskService
 
 
 def register_services(app):
@@ -44,6 +45,7 @@ def register_services(app):
     population_service = PopulationService()
     forecast_service = ForecastService(ForecastRepository())
     elderly_service = ElderlyService(SqlAlchemyElderlyHistoryRepository())
+    region_risk_service = RegionRiskService(prediction_service=prediction_service)
 
     # --- 서비스 컨테이너 등록 ---
     services = {
@@ -61,6 +63,7 @@ def register_services(app):
         "population_service": population_service,
         "forecast_service": forecast_service,
         "elderly_service": elderly_service,
+        "region_risk_service": region_risk_service,
     }
 
     app.config["services"] = services
