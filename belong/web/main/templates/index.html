@@ -1,206 +1,233 @@
 {# templates/index.html #}
 {% extends "base.html" %}
 
-{% block title %}Belong | 홈{% endblock %}
+{% block title %}Belong | 미래를 예측하는 힘{% endblock %}
 {% block page_id %}home{% endblock %}
 {% block body_class %}home-page{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+<!-- Landing Page Dedicated CSS -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
 {% endblock %}
 
 {% block content %}
-<section class="hero-section section">
+
+<!-- 1. HERO SECTION -->
+<section class="hero-section">
+  <div class="hero-overlay"></div>
+  <div class="hero-content page-container">
+    <div class="hero-kicker gsap-hero">AI-Powered Analytics</div>
+    <h1 class="hero-title gsap-hero">
+      데이터로 예측하는<br>
+      내일의 안전, Belong
+    </h1>
+    <p class="hero-subtitle gsap-hero">
+      1인 가구 급증과 고독사 위험, 이제 AI로 미리 보고 대응하세요.<br>
+      정확한 데이터 분석이 더 나은 사회를 만듭니다.
+    </p>
+    <div class="d-flex justify-content-center gap-3 gsap-hero">
+      <a href="{{ url_for('web.dashboard') }}" class="btn-neon">대시보드 시작하기</a>
+    </div>
+  </div>
+
+  <div class="scroll-hint">
+    <small>SCROLL DOWN</small>
+    <div class="mt-1">↓</div>
+  </div>
+</section>
+
+<!-- 2. PROBLEM SECTION -->
+<section class="problem-section" id="problem">
   <div class="page-container">
-    <div class="hero-grid">
-      <!-- LEFT -->
-      <div class="hero-left">
-        <div class="hero-kicker">BELONG PLATFORM</div>
-
-        <h1 class="hero-title">
-          대시보드와 AI로<br>
-          더 빠르게, 더 정확하게.
-        </h1>
-
-        <p class="hero-subtitle">
-          Belong은 <strong>대시보드</strong>와 <strong>AI 챗봇 서비스(5기능)</strong>를 중심으로 운영합니다.
-          <br>
-          AI Agent / Agentic AI는 확장을 위한 UI 구조를 먼저 준비합니다.
+    <div class="row section-head justify-content-center text-center">
+      <div class="col-lg-8">
+        <span class="section-label gsap-reveal">The Challenge</span>
+        <h2 class="display-5 fw-bold text-white gsap-reveal">보이지 않는 위험의 증가</h2>
+        <p class="text-muted mt-3 gsap-reveal">
+          급격한 고령화와 1인 가구 증가, 우리는 새로운 사회적 위험에 직면해 있습니다.
         </p>
+      </div>
+    </div>
 
-        <div class="hero-cta">
-          <a class="btn btn-primary rounded-pill px-4" href="{{ url_for('web.dashboard') }}">대시보드 시작</a>
-          <a class="btn btn-outline-primary rounded-pill px-4" href="{{ url_for('web.ai_home') }}">AI 챗봇 열기</a>
-
-          <a class="btn btn-light rounded-pill px-4 is-coming-soon" href="#"
-             data-coming-soon="agent">AI Agent</a>
-          <a class="btn btn-light rounded-pill px-4 is-coming-soon" href="#"
-             data-coming-soon="agentic">Agentic AI</a>
+    <div class="row g-4">
+      <!-- Pain Point 1 -->
+      <div class="col-md-4">
+        <div class="problem-card gsap-reveal">
+          <div class="problem-icon">📉</div>
+          <h3 class="h4 text-white fw-bold">데이터 파편화</h3>
+          <p class="text-muted">
+            지역별 인구 통계와 고독사 현황 데이터가 흩어져 있어,
+            종합적인 상황 파악이 어렵습니다.
+          </p>
         </div>
+      </div>
+      <!-- Pain Point 2 -->
+      <div class="col-md-4">
+        <div class="problem-card gsap-reveal" style="transition-delay: 0.1s;">
+          <div class="problem-icon">⏳</div>
+          <h3 class="h4 text-white fw-bold">늑장 대응</h3>
+          <p class="text-muted">
+            위험 징후를 사전에 포착하지 못해,
+            항상 사건이 발생한 후에야 대응하게 됩니다.
+          </p>
+        </div>
+      </div>
+      <!-- Pain Point 3 -->
+      <div class="col-md-4">
+        <div class="problem-card gsap-reveal" style="transition-delay: 0.2s;">
+          <div class="problem-icon">🧩</div>
+          <h3 class="h4 text-white fw-bold">분석의 부재</h3>
+          <p class="text-muted">
+            단순 수치 나열만으로는 미래 추세를
+            예측하고 대비하기에 역부족입니다.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
-        <div class="hero-links">
-          <span class="text-muted">빠른 이동:</span>
-          <a href="#features">주요 기능</a>
-          <span class="dot">·</span>
-          <a href="#how">사용 방법</a>
-          <span class="dot">·</span>
-          <a href="#roadmap">확장 로드맵</a>
+<!-- 3. SOLUTION SECTION -->
+<section class="solution-section" id="solution">
+  <div class="page-container">
+    <div class="row align-items-center">
+      <!-- Visual (Left) -->
+      <div class="col-lg-6 mb-5 mb-lg-0">
+        <div class="solution-visual gsap-reveal-left">
+          <img src="{{ url_for('static', filename='image/landing_solution_visual.png') }}" alt="Dashboard Tech"
+            class="img-fluid">
         </div>
       </div>
 
-      <!-- RIGHT -->
-      <div class="hero-right">
-        <div class="hero-visual card-soft">
-          <div class="hero-image-wrap">
-            <img
-              src="{{ url_for('static', filename='image/hands.jpg') }}"
-              alt="Belong Hero"
-              loading="lazy"
-            >
+      <!-- Content (Right) -->
+      <div class="col-lg-6 ps-lg-5">
+        <span class="section-label gsap-reveal-right">Our Solution</span>
+        <h2 class="display-5 fw-bold text-white mb-4 gsap-reveal-right">
+          Belong이 제시하는<br>
+          <span style="color: #22d3ee;">데이터 기반 해법</span>
+        </h2>
+
+        <div class="solution-steps mt-5">
+          <div class="solution-step active gsap-reveal-right">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h4>통합 대시보드</h4>
+              <p>흩어진 데이터를 하나로 모아 지역별/연도별 추세를 직관적으로 시각화합니다.</p>
+            </div>
           </div>
-          <div class="hero-visual-body">
-            <div class="hero-visual-title">핵심은 “빠른 비교”</div>
-            <div class="hero-visual-desc">
-              대시보드에서 <strong>연도 범위</strong> + <strong>2개 구 비교</strong>로<br>
-              추세/예측을 한 번에 확인합니다.
+
+          <div class="solution-step gsap-reveal-right">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h4>AI 예측 모델</h4>
+              <p>과거 데이터를 학습하여 미래의 독거노인 수와 고독사 위험을 미리 예측합니다.</p>
+            </div>
+          </div>
+
+          <div class="solution-step gsap-reveal-right">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <h4>지능형 챗봇</h4>
+              <p>복잡한 보고서 대신, 채팅으로 필요한 정보를 즉시 묻고 답을 얻으세요.</p>
             </div>
           </div>
         </div>
-
-        <div class="hero-actions card-soft">
-          <a class="action-row" href="{{ url_for('web.dashboard') }}">대시보드로 이동</a>
-          <a class="action-row" href="{{ url_for('web.ai_home') }}">AI 챗봇으로 이동</a>
-          <a class="action-row is-coming-soon" href="#" data-coming-soon="agent">AI Agent (준비중)</a>
-          <a class="action-row is-coming-soon" href="#" data-coming-soon="agentic">Agentic AI (준비중)</a>
-
-          <div class="action-split"></div>
-
-          <div class="auth-row">
-            <a class="btn btn-outline-primary rounded-pill px-4" href="{{ url_for('web.login') }}">로그인</a>
-            <a class="btn btn-primary rounded-pill px-4" href="{{ url_for('web.signup') }}">회원가입</a>
-          </div>
-        </div>
       </div>
     </div>
   </div>
 </section>
 
-<section id="features" class="section">
-  <div class="page-container">
-    <h2 class="section-title">주요 기능</h2>
-    <p class="section-subtitle">홈/네비게이션은 4개의 제품 기능 기준으로 통일합니다.</p>
-
-    <div class="feature-grid">
-      <div class="card-soft is-hoverable feature-card">
-        <div class="feature-title">대시보드</div>
-        <div class="feature-desc">
-          연도 범위 + 2개 구 비교로 추세/예측을 빠르게 확인합니다.
-        </div>
-        <div class="feature-footer">
-          <a class="btn btn-sm btn-primary rounded-pill px-3" href="{{ url_for('web.dashboard') }}">이동</a>
-        </div>
-      </div>
-
-      <div class="card-soft is-hoverable feature-card">
-        <div class="feature-title">AI 챗봇 서비스</div>
-        <div class="feature-desc">
-          번역/감정/요약/Q&amp;A/개체분석 등 5가지 텍스트 기능을 제공합니다.
-        </div>
-        <div class="feature-footer">
-          <a class="btn btn-sm btn-outline-primary rounded-pill px-3" href="{{ url_for('web.ai_home') }}">이동</a>
-        </div>
-      </div>
-
-      <div class="card-soft is-hoverable feature-card">
-        <div class="feature-title">
-          AI Agent <span class="badge text-bg-secondary ms-1">준비중</span>
-        </div>
-        <div class="feature-desc">
-          목표 중심으로 작업을 분해하고, 필요한 도구 호출을 자동화하는 기능(준비중).
-        </div>
-        <div class="feature-footer">
-          <a class="btn btn-sm btn-light rounded-pill px-3 is-coming-soon" href="#" data-coming-soon="agent">준비중 안내</a>
-        </div>
-      </div>
-
-      <div class="card-soft is-hoverable feature-card">
-        <div class="feature-title">
-          Agentic AI <span class="badge text-bg-secondary ms-1">준비중</span>
-        </div>
-        <div class="feature-desc">
-          멀티 에이전트/워크플로우 기반 장기 목표 수행(준비중).
-        </div>
-        <div class="feature-footer">
-          <a class="btn btn-sm btn-light rounded-pill px-3 is-coming-soon" href="#" data-coming-soon="agentic">준비중 안내</a>
-        </div>
-      </div>
+<!-- 4. CTA SECTION -->
+<section class="cta-section">
+  <div class="cta-box">
+    <h2 class="cta-title gsap-scale-up">
+      더 안전한 내일을 위한 선택,<br>
+      <span class="glow-text">지금 바로 확인하세요.</span>
+    </h2>
+    <div class="d-flex flex-column flex-sm-row justify-content-center gap-3 gsap-scale-up">
+      <a href="{{ url_for('web.dashboard') }}" class="btn-neon">대시보드 체험하기</a>
+      <a href="{{ url_for('web.ai_home') }}" class="btn btn-outline-light rounded-pill px-5 py-3 fw-bold">AI 챗봇 서비스</a>
     </div>
-  </div>
-</section>
-
-<section id="how" class="section">
-  <div class="page-container">
-    <h2 class="section-title">사용 방법</h2>
-    <p class="section-subtitle">현재 구현된 기능 기준으로 가장 자연스러운 사용 흐름입니다.</p>
-
-    <div class="how-grid">
-      <div class="card-soft is-hoverable how-card">
-        <div class="how-num">1</div>
-        <div class="how-title">대시보드로 데이터 흐름 파악</div>
-        <div class="how-desc">연도/지역을 선택하고 그래프 비교를 통해 전체 흐름을 확인합니다.</div>
-        <a class="how-link" href="{{ url_for('web.dashboard') }}">대시보드 열기 →</a>
-      </div>
-
-      <div class="card-soft is-hoverable how-card">
-        <div class="how-num">2</div>
-        <div class="how-title">AI 챗봇으로 텍스트 작업</div>
-        <div class="how-desc">번역/감정/요약/Q&amp;A/개체분석 중 필요한 기능을 선택해 빠르게 처리합니다.</div>
-        <a class="how-link" href="{{ url_for('web.ai_home') }}">AI 챗봇 열기 →</a>
-      </div>
-
-      <div class="card-soft is-hoverable how-card">
-        <div class="how-num">3</div>
-        <div class="how-title">확장 기능은 순차 연결</div>
-        <div class="how-desc">UI 구조를 먼저 안정화하고, 이후 AI Agent/Agentic AI를 자연스럽게 확장합니다.</div>
-        <a class="how-link is-coming-soon" href="#" data-coming-soon="agent">확장 구조 안내 →</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="roadmap" class="section">
-  <div class="page-container">
-    <h2 class="section-title">확장 로드맵(UI 관점)</h2>
-    <p class="section-subtitle">
-      지금은 구현된 기능(대시보드/AI챗봇)을 안정화하고, 확장 기능을 “붙일 수 있는 구조”를 유지합니다.
+    <p class="text-muted mt-4 small">
+      © 2025 Belong Project. All rights reserved.
     </p>
-
-    <div class="roadmap-grid">
-      <div class="card-soft roadmap-card">
-        <div class="roadmap-phase">Phase 1</div>
-        <div class="roadmap-title">UI 구조 안정화</div>
-        <div class="roadmap-desc">
-          공통 컴포넌트(네비/레이아웃) 단일화, 전역/페이지 CSS 분리,
-          엔드포인트/ID/클래스 규칙 고정.
-        </div>
-      </div>
-
-      <div class="card-soft roadmap-card">
-        <div class="roadmap-phase">Phase 2</div>
-        <div class="roadmap-title">AI Agent UI 스켈레톤</div>
-        <div class="roadmap-desc">
-          “준비중” 탭에 실제 페이지 연결, 상태/로그/결과를 보여주는 레이아웃부터 확장.
-        </div>
-      </div>
-
-      <div class="card-soft roadmap-card">
-        <div class="roadmap-phase">Phase 3</div>
-        <div class="roadmap-title">Agentic AI 확장</div>
-        <div class="roadmap-desc">
-          워크플로우/멀티 에이전트 시각화(실행흐름, 도구 호출, 결과물)를 대시보드와 연결.
-        </div>
-      </div>
-    </div>
   </div>
 </section>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- GSAP CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+<script>
+  // GSAP Animation Script
+  document.addEventListener("DOMContentLoaded", () => {
+    gsap.registerPlugin(ScrollTrigger);
+
+    // Hero Animations (On Load)
+    gsap.from(".gsap-hero", {
+      y: 50,
+      opacity: 0,
+      duration: 1,
+      stagger: 0.2,
+      ease: "power3.out"
+    });
+
+    // Problem Section Animations (Scroll)
+    gsap.utils.toArray(".gsap-reveal").forEach(elem => {
+      gsap.to(elem, {
+        scrollTrigger: {
+          trigger: elem,
+          start: "top 85%",
+          toggleActions: "play none none reverse"
+        },
+        y: 0,
+        opacity: 1,
+        duration: 0.8,
+        ease: "power2.out"
+      });
+    });
+
+    // Solution Section Left/Right
+    gsap.from(".gsap-reveal-left", {
+      scrollTrigger: {
+        trigger: ".solution-section",
+        start: "top 70%"
+      },
+      x: -50,
+      opacity: 0,
+      duration: 1,
+      ease: "power3.out"
+    });
+
+    gsap.utils.toArray(".gsap-reveal-right").forEach((elem, i) => {
+      gsap.from(elem, {
+        scrollTrigger: {
+          trigger: elem,
+          start: "top 90%"
+        },
+        x: 50,
+        opacity: 0,
+        duration: 0.8,
+        delay: i * 0.1,
+        ease: "power3.out"
+      });
+    });
+
+    // CTA Scale Up
+    gsap.from(".gsap-scale-up", {
+      scrollTrigger: {
+        trigger: ".cta-section",
+        start: "top 80%"
+      },
+      scale: 0.9,
+      opacity: 0,
+      duration: 0.8,
+      stagger: 0.2,
+      ease: "back.out(1.7)"
+    });
+  });
+</script>
 {% endblock %}

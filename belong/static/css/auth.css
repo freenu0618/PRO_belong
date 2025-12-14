@@ -1,136 +1,168 @@
 /* static/css/auth.css */
 
-/* 0. 공통 그라디언트 배경 (여러 페이지에서 재사용) */
+/* 0. Background Gradient (Navy -> Slate) */
 .page-gradient {
-  background: radial-gradient(circle at top left, #60a5fa, #1e293b 45%, #020617 100%);
-}
-
-/* 1. 로그인/회원가입 전체 레이아웃 */
-.auth-page {
-  min-height: 100vh;
+  background: linear-gradient(135deg, #eef2f3 0%, #8e9eab 100%);
+  /* Calm Grey/Blue gradient */
+  background: linear-gradient(135deg, var(--color-bg-main) 0%, #dcdfe6 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 15px;
+  min-height: 100vh;
+  padding: 20px;
 }
 
-/* 중앙 카드 */
+/* 1. Auth Card (Glass-like but solid for readability) */
 .auth-card {
   width: 100%;
-  max-width: 900px;
-  border-radius: 1.5rem;
+  max-width: 960px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+  /* Soft deep shadow */
   overflow: hidden;
-  background: rgba(15, 23, 42, 0.82);
-  backdrop-filter: blur(14px);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
-  border: 1px solid rgba(148, 163, 184, 0.4);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: row;
+  /* Split Layout */
 }
 
-/* 왼쪽 패널 */
+/* 2. Left Panel (Visual/Brand) */
 .auth-left {
-  background: radial-gradient(circle at top, #38bdf8, #0f172a);
-  color: #e5e7eb;
+  background: var(--color-primary);
+  /* Navy */
+  color: white;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 40px;
+}
+
+/* Decorative Circle/Overlay */
+.auth-left::before {
+  content: "";
+  position: absolute;
+  top: -50px;
+  left: -50px;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
 }
 
 .auth-left-overlay {
-  background: linear-gradient(
-    135deg,
-    rgba(15, 23, 42, 0.25),
-    rgba(15, 23, 42, 0.85)
-  );
+  z-index: 2;
 }
 
-/* 왼쪽 상단 배지 */
 .auth-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  background: rgba(15, 23, 42, 0.9);
-  color: #e5e7eb;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #fff;
 }
 
 .auth-dot {
   width: 8px;
   height: 8px;
-  border-radius: 999px;
-  background: #22c55e;
+  background: var(--color-accent);
+  border-radius: 50%;
 }
 
-/* 타이틀 / 강조 텍스트 */
 .auth-title-main {
-  font-size: 1.9rem;
+  font-size: 2rem;
   font-weight: 700;
+  margin-bottom: 1rem;
+  line-height: 1.3;
 }
 
 .auth-highlight {
-  color: #38bdf8;
+  color: var(--color-accent-soft);
 }
 
-/* 오른쪽 패널 (폼 영역) */
+/* 3. Right Panel (Form) */
 .auth-right {
-  background: rgba(15, 23, 42, 0.97);
-  color: #e5e7eb;
+  padding: 60px 50px;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
-/* 인풋/라벨 */
 .auth-input-label {
-  font-size: 0.88rem;
-  color: #9ca3af;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 8px;
 }
 
 .auth-input {
-  background-color: #020617;
-  border: 1px solid #1f2937;
-  color: #e5e7eb;
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-input);
+  font-size: 1rem;
+  transition: all 0.2s;
 }
 
 .auth-input:focus {
-  background-color: #020617;
-  border-color: #38bdf8;
-  box-shadow: 0 0 0 0.2rem rgba(56, 189, 248, 0.25);
-  color: #e5e7eb;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 4px rgba(41, 128, 185, 0.1);
+  /* Soft Blue Ring */
+  outline: none;
 }
 
-/* 버튼 */
 .auth-btn-primary {
-  background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+  width: 100%;
+  padding: 14px;
+  background: var(--color-primary);
+  color: white;
   border: none;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
 .auth-btn-primary:hover {
-  background: linear-gradient(135deg, #0ea5e9, #0369a1);
+  background: var(--color-primary-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
-/* 링크/푸터 텍스트 */
 .auth-link {
-  color: #38bdf8;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.auth-link:hover {
-  color: #7dd3fc;
-  text-decoration: underline;
+  color: var(--color-accent);
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
 .auth-footer-text {
-  font-size: 0.8rem;
-  color: #9ca3af;
+  text-align: center;
+  color: var(--color-text-sub);
+  font-size: 0.9rem;
+  margin-top: 1.5rem;
 }
 
-/* 모바일 반응형 */
-@media (max-width: 767.98px) {
+/* Mobile */
+@media (max-width: 768px) {
   .auth-card {
-    border-radius: 1.25rem;
+    flex-direction: column;
+    max-width: 400px;
   }
-  .auth-page {
-    padding: 24px 12px;
+
+  .auth-left {
+    display: none;
+    /* Mobile optimization: Hide visual panel */
+  }
+
+  .auth-right {
+    padding: 30px 20px;
   }
 }

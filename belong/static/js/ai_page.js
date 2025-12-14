@@ -1,27 +1,35 @@
 // static/js/ai_page.js
-document.addEventListener("DOMContentLoaded", () => {
-  const serviceSelect = document.getElementById("ai-service-select");
-  const inputEl = document.getElementById("ai-input-text");
-  const chatBox = document.getElementById("ai-chat-box");
-  const runBtn = document.getElementById("ai-run-btn");
-  const clearBtn = document.getElementById("ai-clear-btn");
+// jQuery Version
 
-  const directionEl = document.getElementById("ai-translate-direction");
-  const translateOpts = document.getElementById("translate-options");
+$(document).ready(function () {
+  const $serviceSelect = $("#ai-service-select");
+  const $inputEl = $("#ai-input-text");
+  const $chatBox = $("#ai-chat-box");
+  const $runBtn = $("#ai-run-btn");
+  const $clearBtn = $("#ai-clear-btn");
 
-  const qaOpts = document.getElementById("qa-options");
-  const qaContextEl = document.getElementById("ai-qa-context");
+  const $directionEl = $("#ai-translate-direction");
+  const $translateOpts = $("#translate-options");
+  const $qaOpts = $("#qa-options");
+  const $qaContextEl = $("#ai-qa-context");
+  const $serviceHelp = $("#ai-service-help");
 
-  const serviceHelp = document.getElementById("ai-service-help");
-
-  if (!serviceSelect || !inputEl || !chatBox || !runBtn) return;
+  // Quick Select Buttons
+  $(".ai-quick-select").on("click", function () {
+    const svc = $(this).data("ai-service");
+    $serviceSelect.val(svc).trigger("change");
+    // Scroll to console
+    $("html, body").animate({
+      scrollTop: $("#ai-console").offset().top - 100
+    }, 500);
+  });
 
   const helpTexts = {
     translate: "번역: 한↔영 번역(방향 선택)",
     sentiment: "감정 분석: 문장의 감정(긍정/부정 등)을 분석",
     entities: "개체 분석: 텍스트에서 사람/장소/기관 등 엔티티를 추출",
     summary: "요약: 핵심만 짧게 요약",
-    qa: "질의응답(QA): 질문 + 컨텍스트(문서)를 기반으로 답변",
+    qa: "질의응답(QA): 질문 + 지문(Context)을 기반으로 답변",
   };
 
   const endpointMap = {
@@ -37,156 +45,168 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function setLoading(isLoading) {
-    runBtn.disabled = isLoading;
-    runBtn.textContent = isLoading ? "처리중..." : "실행";
+    $runBtn.prop("disabled", isLoading);
+    $runBtn.text(isLoading ? "처리중..." : "실행");
   }
 
   function escapeHtml(s) {
-    return String(s)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
+    if (typeof s !== "string") s = String(s);
+    return s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
-  function addBubble(role, html) {
-    const wrap = document.createElement("div");
-    wrap.className = `ai-bubble ai-${role}`;
-    wrap.style.marginBottom = "10px";
-    wrap.innerHTML = html;
-    chatBox.appendChild(wrap);
-    chatBox.scrollTop = chatBox.scrollHeight;
+  function addBubble(role, htmlContent) {
+    // role: 'user' | 'assistant'
+    const bubbleClass = role === "user" ? "ai-user" : "ai-assistant";
+    const $wrap = $(`<div class="ai-bubble ${bubbleClass}"></div>`).html(htmlContent).hide();
+
+    $chatBox.append($wrap);
+    $wrap.fadeIn(300);
+
+    // Scroll to bottom
+    $chatBox.scrollTop($chatBox[0].scrollHeight);
   }
 
-  function addText(role, text) {
-    addBubble(role, `<div><strong>${role === "user" ? "나" : "AI"}</strong></div>
-      <div style="white-space:pre-wrap;">${escapeHtml(text)}</div>`);
+  function addTextBubble(role, text) {
+    const label = role === "user" ? "나" : "AI";
+    const safeText = escapeHtml(text);
+    const html = `
+      <div class="fw-bold mb-1" style="font-size:0.8rem; opacity:0.8;">${label}</div>
+      <div style="white-space:pre-wrap;">${safeText}</div>
+    `;
+    addBubble(role, html);
   }
 
-  function addJson(role, obj) {
+  function addJsonBubble(role, obj) {
+    const label = role === "user" ? "나" : "AI";
     const pretty = JSON.stringify(obj, null, 2);
-    addBubble(role, `<div><strong>${role === "user" ? "나" : "AI"}</strong></div>
-      <pre class="mb-0 mt-1 p-2 border rounded-2" style="background:#fff; white-space:pre-wrap;">${escapeHtml(pretty)}</pre>`);
+    const html = `
+      <div class="fw-bold mb-1" style="font-size:0.8rem; opacity:0.8;">${label}</div>
+      <pre>${escapeHtml(pretty)}</pre>
+    `;
+    addBubble(role, html);
   }
 
-  function setHelp() {
-    const svc = serviceSelect.value;
-    if (serviceHelp) serviceHelp.textContent = helpTexts[svc] || "";
-  }
+  function updateOptions() {
+    const svc = $serviceSelect.val();
 
-  function toggleOptions() {
-    const svc = serviceSelect.value;
-    if (translateOpts) translateOpts.style.display = svc === "translate" ? "block" : "none";
-    if (qaOpts) qaOpts.style.display = svc === "qa" ? "block" : "none";
-    setHelp();
-  }
+    // Help text
+    $serviceHelp.text(helpTexts[svc] || "");
 
-  async function callApi(service, payload) {
-    const url = endpointMap[service];
-    if (!url) throw new Error(`Unknown service: ${service}`);
-
-    const token = getToken();
-    if (!token) {
-      // AI는 로그인 필요(서버가 jwt_required로 막는 구조) :contentReference[oaicite:10]{index=10}
-      throw new Error("로그인이 필요합니다. 먼저 로그인해주세요.");
-    }
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    // 401이면 토큰 만료/미로그인
-    if (res.status === 401) {
-      // auth_ui.js도 만료 토큰이면 지우는 정책 :contentReference[oaicite:11]{index=11}
-      window.BelongAuth?.clearToken?.();
-      throw new Error("인증이 만료되었거나 로그인되지 않았습니다. 다시 로그인해주세요.");
-    }
-
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const msg = json?.message || json?.error || `HTTP ${res.status}`;
-      throw new Error(msg);
-    }
-    return json;
-  }
-
-  function buildPayload() {
-    const svc = serviceSelect.value;
-    const text = (inputEl.value || "").trim();
-
-    if (!text) throw new Error("텍스트(또는 질문)를 입력해주세요.");
-
-    // AI 라우트가 기대하는 공통 포맷: { text, options } :contentReference[oaicite:12]{index=12}
-    const payload = { text, options: {} };
-
+    // Toggle specific options with slide effect
     if (svc === "translate") {
-      payload.options.direction = (directionEl?.value || "ko-en").trim();
+      $translateOpts.slideDown(200);
+    } else {
+      $translateOpts.slideUp(200);
     }
 
     if (svc === "qa") {
-      const ctx = (qaContextEl?.value || "").trim();
-      if (!ctx) throw new Error("QA는 컨텍스트(문서/정보)가 필요합니다.");
+      $qaOpts.slideDown(200);
+    } else {
+      $qaOpts.slideUp(200);
+    }
+  }
+
+  $serviceSelect.on("change", updateOptions);
+
+  $clearBtn.on("click", function () {
+    $inputEl.val("");
+    $qaContextEl.val("");
+    $chatBox.empty().append('<div class="text-muted small">초기화되었습니다.</div>');
+    updateOptions();
+  });
+
+  $runBtn.on("click", function () {
+    const svc = $serviceSelect.val();
+    const text = $inputEl.val().trim();
+
+    if (!text) {
+      alert("텍스트를 입력해주세요.");
+      $inputEl.focus();
+      return;
+    }
+
+    setLoading(true);
+
+    // Build Payload
+    const payload = { text: text, options: {} };
+
+    if (svc === "translate") {
+      payload.options.direction = $directionEl.val();
+    }
+    if (svc === "qa") {
+      const ctx = $qaContextEl.val().trim();
+      if (!ctx) {
+        alert("지문(Context)을 입력해주세요.");
+        $qaContextEl.focus();
+        setLoading(false);
+        return;
+      }
       payload.options.context = ctx;
     }
 
-    return payload;
-  }
+    // Add User Bubble
+    addTextBubble("user", text);
 
-  function showLoginCtaIfNeeded() {
+    // AJAX Call
     const token = getToken();
-    if (token) return;
-    const next = encodeURIComponent(window.location.pathname + window.location.search);
-    addBubble(
-      "assistant",
-      `<div><strong>AI</strong></div>
-       <div class="mt-1">
-         AI 기능은 로그인이 필요합니다.
-         <a class="ms-2" href="/login?next=${next}">로그인 하러가기</a>
-       </div>`
-    );
-  }
-
-  serviceSelect.addEventListener("change", toggleOptions);
-
-  clearBtn?.addEventListener("click", () => {
-    inputEl.value = "";
-    if (qaContextEl) qaContextEl.value = "";
-    chatBox.innerHTML = "";
-    toggleOptions();
-    showLoginCtaIfNeeded();
-  });
-
-  runBtn.addEventListener("click", async () => {
-    try {
-      setLoading(true);
-      const svc = serviceSelect.value;
-
-      const payload = buildPayload();
-      addText("user", payload.text);
-
-      const json = await callApi(svc, payload);
-
-      // ai_route.py 공통 응답은 { ok, result } :contentReference[oaicite:13]{index=13}
-      if (json?.ok === false) {
-        addJson("assistant", json);
-        return;
-      }
-      addJson("assistant", json?.result ?? json);
-    } catch (err) {
-      console.error(err);
-      addText("assistant", err?.message || "오류가 발생했습니다.");
-    } finally {
+    if (!token) {
+      addBubble("assistant", `
+        <div>
+          <strong>로그인 필요</strong><br>
+          AI 기능을 사용하려면 로그인이 필요합니다. 
+          <a href="/login" class="text-decoration-underline text-warning">로그인 하기</a>
+        </div>
+      `);
       setLoading(false);
+      return;
     }
+
+    $.ajax({
+      url: endpointMap[svc],
+      method: "POST",
+      contentType: "application/json",
+      headers: { "Authorization": "Bearer " + token },
+      data: JSON.stringify(payload),
+      success: function (resp) {
+        if (resp.ok === false) {
+          addJsonBubble("assistant", resp);
+        } else {
+          // 성공 시 result만 보여주거나 전체 보여주기
+          const result = resp.result !== undefined ? resp.result : resp;
+
+          if (typeof result === "object") {
+            addJsonBubble("assistant", result);
+          } else {
+            addTextBubble("assistant", result);
+          }
+        }
+      },
+      error: function (xhr, status, err) {
+        if (xhr.status === 401) {
+          addBubble("assistant", "<div>인증이 만료되었습니다. 다시 로그인해주세요.</div>");
+          window.BelongAuth?.clearToken?.();
+        } else {
+          let msg = "오류가 발생했습니다.";
+          try {
+            const json = JSON.parse(xhr.responseText);
+            if (json.message) msg = json.message;
+            else if (json.error) msg = json.error;
+          } catch (e) { }
+          addTextBubble("assistant", msg);
+        }
+      },
+      complete: function () {
+        setLoading(false);
+      }
+    });
+
   });
 
-  // 초기 상태
-  toggleOptions();
-  showLoginCtaIfNeeded();
+  // Init
+  updateOptions();
 });

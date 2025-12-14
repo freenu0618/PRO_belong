@@ -1,421 +1,198 @@
 /* static/css/dashboard.css */
 /* =========================================
-   Belong Dashboard Styles (PAGE ONLY)
-   Scope: .dashboard-section ONLY
-   - 전역(style.css / bootstrap)과 충돌 최소화
-   - "아래에 덧붙이는 패치" 없이 한 파일로 완결
+   Belong Dashboard Styles (Calm & Professional)
+   - Extends global style.css
+   - Uses global variables for consistency
 ========================================= */
 
-.dashboard-section{
-  /* ✅ 페이지 전용 토큰 (전역 :root 금지) */
-  --bd-surface: #ffffff;
-  --bd-surface-2: #f7f9fc;
-  --bd-border: rgba(15, 23, 42, 0.12);
-  --bd-text: #0f172a;
-  --bd-muted: rgba(15, 23, 42, 0.65);
-  --bd-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-  --bd-radius: 18px;
+.dashboard-section {
+  /* Local mapping to Global Variables */
+  --bd-surface: var(--color-bg-card);
+  --bd-border: var(--color-border);
+  --bd-text: var(--color-text-main);
+  --bd-muted: var(--color-text-sub);
+  --bd-radius: var(--radius-md);
 
-  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 60%);
-  min-height: calc(100vh - 160px);
+  /* Use global main background, no extra gradient needed if global is good.
+     But for dashboard separate feel, maybe a subtle shift. */
+  background: transparent;
+  min-height: calc(100vh - var(--header-height));
 }
 
 /* =========================
-   카드(soft) - 대시보드에서만 보정
-========================= */
-.dashboard-section .card-soft{
+   Controls / Sidebar
+========================================= */
+.dashboard-sidebar .card-soft {
+  background: var(--bd-surface);
   border: 1px solid var(--bd-border);
   border-radius: var(--bd-radius);
-  background: var(--bd-surface);
-  box-shadow: var(--bd-shadow);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s;
 }
 
-/* =========================
-   레이아웃 안정화
-   - 좁은 화면에서 요소가 튀는 문제 방지
-========================= */
-
-/* 좌측 컨트롤 카드 내부 overflow로 튐 방지 */
-.dashboard-section .dashboard-sidebar .card-body{
-  overflow: hidden;
-}
-
-/* 데스크탑에서 사이드바 sticky (UX 향상 + 레이아웃 안정) */
-@media (min-width: 992px){
-  .dashboard-section .dashboard-sidebar{
+/* Sticky Sidebar Desktop */
+@media (min-width: 992px) {
+  .dashboard-sidebar {
     position: sticky;
-    top: 84px; /* 네비 높이에 맞춰 필요 시 조정 */
+    top: calc(var(--header-height) + 20px);
     align-self: start;
+    z-index: 10;
   }
 }
 
-/* 모바일에서 사이드바 padding 축소 */
-@media (max-width: 991.98px){
-  .dashboard-section .dashboard-sidebar .card-body{
-    padding: 16px;
-  }
-}
-
-/* =========================
-   좌측 컨트롤(체크박스 리스트)
-========================= */
-.dashboard-section .region-checkbox-list{
+/* Region Checkbox List */
+.region-checkbox-list {
   border: 1px solid var(--bd-border);
-  border-radius: 14px;
-  background: var(--bd-surface-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-main);
+  /* Slightly contrast to card */
   padding: 10px;
   max-height: 260px;
   overflow: auto;
 }
 
-.dashboard-section .region-checkbox-list .form-check{
+.region-checkbox-list .form-check {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px;
-  border-radius: 10px;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s;
 }
 
-.dashboard-section .region-checkbox-list .form-check:hover{
-  background: rgba(37, 99, 235, 0.06);
+.region-checkbox-list .form-check:hover {
+  background: rgba(0, 0, 0, 0.03);
 }
 
-.dashboard-section .region-checkbox-list .form-check-label{
-  font-size: 0.93rem;
+.region-checkbox-list .form-check-label {
+  font-size: 0.95rem;
   color: var(--bd-text);
-}
-
-.dashboard-section #btn-apply-dashboard{
-  border-radius: 14px;
-  font-weight: 700;
+  cursor: pointer;
 }
 
 /* =========================
-   구×연도 그리드 (튐/깨짐 해결 핵심)
-========================= */
-.dashboard-section #year-region-grid{
+   Grid Table (Year x Region)
+========================================= */
+#year-region-grid {
   width: 100%;
   overflow-x: auto;
-  overflow-y: hidden;
 }
 
-.dashboard-section .year-region-grid-wrap{
+.year-region-grid-wrap {
   border: 1px solid var(--bd-border);
-  border-radius: 14px;
-  overflow: hidden; /* 기본은 숨김 */
-  background: #fff;
-}
-
-/* 좁은 화면에서는 표 가로 스크롤 허용 */
-@media (max-width: 575.98px){
-  .dashboard-section .year-region-grid-wrap{
-    overflow-x: auto;
-  }
-}
-
-.dashboard-section .year-region-grid-wrap table{
-  margin: 0;
-  width: 100%;
-}
-
-/* 너무 좁아지면 열이 깨지므로 최소폭 + fixed */
-@media (max-width: 575.98px){
-  .dashboard-section .year-region-grid-wrap table{
-    min-width: 520px;
-  }
-}
-
-.dashboard-section .year-region-grid-wrap thead th{
-  background: #f1f6ff;
-  color: var(--bd-text);
-  font-weight: 700;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-
-.dashboard-section .year-region-grid-wrap tbody td{
-  font-size: 0.85rem;
-  color: var(--bd-text);
-  vertical-align: middle;
-}
-
-.dashboard-section .year-region-grid-cell{
-  text-align: center;
-  color: rgba(15, 23, 42, 0.45);
-  user-select: none;
-  white-space: nowrap;
+  border-radius: var(--radius-sm);
   overflow: hidden;
-  text-overflow: ellipsis;
+  background: var(--bd-surface);
 }
 
-.dashboard-section .year-region-grid-cell:hover{
-  background: rgba(37, 99, 235, 0.06);
-  color: rgba(37, 99, 235, 0.95);
-}
-
-/* =========================
-   우측 차트 영역 (높이 균일화 + 타이틀 정렬 준비)
-========================= */
-
-/* 슬롯(지역 카드) 내부 제목줄 정렬 */
-.dashboard-section .slot-header{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.dashboard-section .slot-title{
-  font-weight: 800;
-  margin: 0;
-}
-
-/* 차트 타이틀(소제목) 높이 균일화: 2줄까지 고정 */
-.dashboard-section .chart-title{
-  min-height: 34px;      /* 두 줄 정도 공간 확보 */
-  display: flex;
-  align-items: flex-end;
-  font-size: 0.9rem;
-  font-size: 0.9rem;
-  font-weight: 700;
-  margin-bottom: 6px;
-}
-
-/* 차트 박스: 모든 차트 동일 높이 */
-.dashboard-section .chart-wrapper{
-  position: relative;
-  height: 240px;         /* ✅ 기본 높이 통일 */
-  border: 1px solid var(--bd-border);
-  background: #fff;
-  border-radius: 14px;
-  padding: 10px;
-}
-
-.dashboard-section .chart-wrapper canvas{
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* 버튼 라운드(대시보드 내부 한정) */
-.dashboard-section .btn{
-  border-radius: 12px;
-}
-
-/* =========================
-   반응형: 2열 → 1열 전환 시 여백/정렬
-========================= */
-
-/* 태블릿 이하: 차트 높이 살짝 증가 */
-@media (max-width: 991.98px){
-  .dashboard-section .region-checkbox-list{
-    max-height: 200px;
-  }
-
-  .dashboard-section .chart-wrapper{
-    height: 260px;
-  }
-}
-
-/* 모바일: 차트 높이 추가 + 타이틀 간격 정리 */
-@media (max-width: 575.98px){
-  .dashboard-section .chart-wrapper{
-    height: 280px;
-  }
-
-  .dashboard-section .chart-title{
-    min-height: 38px;
-  }
-}
-/* static/css/dashboard.css */
-/* PAGE ONLY: Dashboard */
-
-.dashboard-page .section{
-  padding: 24px 0;
-}
-
-/* 상단 타이틀 */
-.dashboard-page .dash-title{
-  font-weight: 800;
-  font-size: 22px;
-  margin: 0 0 6px;
-  color: var(--color-text-main);
-}
-
-.dashboard-page .dash-subtitle{
-  margin: 0 0 16px;
-  color: var(--color-text-sub);
-  font-size: 14px;
-  line-height: 1.7;
-}
-
-/* 레이아웃: 좌 컨트롤 / 우 차트 */
-.dashboard-page .dash-grid{
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
-  align-items: start;
-}
-
-@media (min-width: 992px){
-  .dashboard-page .dash-grid{
-    grid-template-columns: 360px 1fr; /* 좌 고정폭 */
-    gap: 18px;
-  }
-}
-
-/* 컨트롤 카드 */
-.dashboard-page .control-card{
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-none);
-  padding: 14px;
-}
-
-.dashboard-page .control-section + .control-section{
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--color-border);
-}
-
-.dashboard-page .control-label{
-  font-weight: 800;
-  font-size: 13px;
-  margin-bottom: 8px;
-  color: var(--color-text-main);
-}
-
-/* 폼: select/input */
-.dashboard-page select,
-.dashboard-page input[type="text"],
-.dashboard-page input[type="number"]{
+.year-region-grid-wrap table {
   width: 100%;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 10px 12px;
-  background: var(--color-bg-card);
-  color: var(--color-text-main);
-  outline: none;
+  border-collapse: collapse;
 }
 
-.dashboard-page select:focus,
-.dashboard-page input:focus{
-  border-color: rgba(37,99,235,0.45);
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.10);
-}
-
-/* 지역 선택: 칩(Chip) 체크박스 */
-.dashboard-page .region-chip-grid{
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-@media (min-width: 1200px){
-  .dashboard-page .region-chip-grid{
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-.dashboard-page .region-chip{
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-bg-card);
-  cursor: pointer;
-  user-select: none;
-  transition: transform 180ms cubic-bezier(0.2,0.8,0.2,1),
-              border-color 180ms cubic-bezier(0.2,0.8,0.2,1);
-}
-
-.dashboard-page .region-chip:hover{
-  transform: translateY(-3px);
-  border-color: rgba(37,99,235,0.30);
-}
-
-.dashboard-page .region-chip input{
-  width: 14px;
-  height: 14px;
-  margin: 0;
-}
-
-.dashboard-page .region-chip span{
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--color-text-main);
-}
-
-/* 선택 힌트 */
-.dashboard-page .selected-hint{
-  margin-top: 10px;
-  font-size: 13px;
-  color: var(--color-text-sub);
-}
-
-.dashboard-page .selected-hint strong{
+.year-region-grid-wrap thead th {
+  background: var(--color-bg-main);
   color: var(--color-primary);
-}
-
-/* 차트 영역 */
-/* 차트 영역 높이 통일 (데이터 공간 확보) */
-.dashboard-page .chart-wrapper{
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-card);
+  font-weight: 600;
+  font-size: 0.85rem;
   padding: 10px;
-  height: 160px;            /* 여기 조절: 220~280 추천 */
-}
-.dashboard-page .chart-wrapper canvas{
-  width: 100% !important;
-  height: 100% !important;
-}
-.dashboard-page .chart-grid{
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-
-@media (min-width: 992px){
-  .dashboard-page .chart-grid{
-    grid-template-columns: 1fr 1fr; /* 2열 */
-    gap: 14px;
-  }
-}
-
-.dashboard-page .chart-card{
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-none);
-  overflow: hidden;
-}
-
-.dashboard-page .chart-head{
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--color-border);
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.dashboard-page .chart-title{
-  font-weight: 800;
-  font-size: 13px;
-  margin: 0 0 8px;
-  color: var(--color-text-main);
-}
-
-.dashboard-page .chart-meta{
-  font-size: 12px;
-  color: var(--color-text-sub);
+  text-align: center;
+  border-bottom: 1px solid var(--bd-border);
   white-space: nowrap;
 }
 
-.dashboard-page .chart-body{
-  padding: 12px;
+.year-region-grid-wrap tbody td {
+  padding: 8px;
+  font-size: 0.85rem;
+  color: var(--bd-text);
+  text-align: center;
+  border-bottom: 1px solid var(--bd-border);
+}
+
+.year-region-grid-wrap tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.year-region-grid-cell {
+  cursor: default;
+}
+
+/* =========================
+   Chart Layout
+========================================= */
+.slot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--bd-border);
+}
+
+.slot-title {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.chart-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--bd-text);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Bullet point for chart title */
+.chart-title::before {
+  content: "";
+  display: block;
+  width: 4px;
+  height: 16px;
+  background: var(--color-accent);
+  border-radius: 2px;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 260px;
+  /* Uniform Height */
+  border: 1px solid var(--bd-border);
+  border-radius: var(--radius-sm);
+  background: var(--bd-surface);
+  padding: 15px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Responsive adjustment */
+@media (max-width: 576px) {
+  .chart-wrapper {
+    height: 220px;
+  }
+
+  .slot-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
+/* Loading State Overlay */
+.chart-wrapper[data-loading="true"]::after {
+  content: "Loading...";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  color: var(--color-text-sub);
+  z-index: 5;
 }

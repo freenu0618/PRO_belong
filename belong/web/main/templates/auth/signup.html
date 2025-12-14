@@ -3,41 +3,37 @@
 
 {% block content %}
 <div class="auth-page page-gradient">
-  <div class="auth-card row g-0">
+  <div class="auth-card">
+
     <!-- LEFT PANEL -->
-    <div class="auth-left col-md-6 d-none d-md-block position-relative">
-      <div class="auth-left-overlay position-absolute top-0 start-0 end-0 bottom-0 p-4 d-flex flex-column justify-content-between">
-        <div>
-          <div class="auth-badge mb-3">
-            <span class="auth-dot"></span>
-            <span>Belong · 함께하는 시작</span>
-          </div>
-          <h2 class="auth-title-main mb-3">
-            한 사람의 연결이,<br>
-            <span class="auth-highlight">많은 삶을 지켜냅니다.</span>
-          </h2>
-          <p class="mb-0" style="max-width: 260px; font-size: 0.9rem;">
-            지금 계정을 만들고, 지역별 고독사 위험과 노인 인구 현황을 한눈에 확인해 보세요.
-          </p>
+    <div class="auth-left">
+      <div class="auth-left-overlay">
+        <div class="auth-badge mb-3">
+          <span class="auth-dot"></span>
+          <span>Belong Project</span>
         </div>
-        <div class="auth-footer-text">
-          이미 계정이 있으신가요?
-          <br>
-          <span class="text-slate-200">로그인 후 대시보드에서 현재 상황을 바로 확인할 수 있습니다.</span>
-        </div>
+        <h2 class="auth-title-main">
+          한 사람의 연결이,<br>
+          <span class="auth-highlight">많은 삶을 지켜냅니다.</span>
+        </h2>
+        <p style="opacity: 0.9;">
+          지금 계정을 만들고, 지역별 현황을<br>
+          한눈에 확인해 보세요.
+        </p>
+      </div>
+      <div class="mt-4" style="opacity: 0.7; font-size: 0.85rem;">
+        © 2025 Belong. All rights reserved.
       </div>
     </div>
 
     <!-- RIGHT PANEL -->
-    <div class="auth-right col-md-6 p-4 p-md-5">
+    <div class="auth-right">
       <div class="mb-4 text-center text-md-start">
-        <h3 class="fw-bold mb-1">Belong 회원가입</h3>
-        <p class="mb-0 text-secondary" style="font-size: 0.9rem;">
-          기본 정보를 입력하고 계정을 생성하세요.
-        </p>
+        <h3 class="fw-bold mb-2" style="color: var(--color-primary);">회원가입</h3>
+        <p class="text-muted mb-0">기본 정보를 입력하고 계정을 생성하세요.</p>
       </div>
 
-      <div id="signup-error" class="alert alert-danger py-2 px-3" style="display:none; font-size:0.9rem;"></div>
+      <div id="signup-error" class="alert alert-danger py-2 px-3 small rounded-3" style="display:none;"></div>
 
       <form id="signup-form" novalidate>
         <div class="mb-3">
@@ -55,24 +51,17 @@
           <input type="password" class="form-control auth-input" id="password1" required autocomplete="new-password">
         </div>
 
-        <div class="mb-2">
+        <div class="mb-4">
           <label class="form-label auth-input-label">비밀번호 확인</label>
           <input type="password" class="form-control auth-input" id="password2" required autocomplete="new-password">
           <small id="pw-match-msg" class="fw-bold mt-1 d-block" style="display:none; font-size:0.8rem;"></small>
         </div>
 
-        <div class="form-check mb-4" style="font-size: 0.85rem;">
-          <input class="form-check-input" type="checkbox" id="termsCheck" required>
-          <label class="form-check-label text-secondary" for="termsCheck">
-            <a href="#" onclick="return false;" class="auth-link">개인정보 처리방침</a> 및 이용약관에 동의합니다.
-          </label>
-        </div>
-
-        <button type="submit" class="btn auth-btn-primary w-100 py-2 mb-3">
-          회원가입
+        <button type="submit" class="auth-btn-primary mb-3">
+          가입하기
         </button>
 
-        <div class="text-center auth-footer-text">
+        <div class="auth-footer-text">
           이미 계정이 있으신가요?
           <a href="{{ url_for('web.login') }}" class="auth-link ms-1">로그인</a>
         </div>
@@ -83,5 +72,5 @@
 {% endblock %}
 
 {% block extra_js %}
-  <script src="{{ url_for('static', filename='js/signup.js') }}"></script>
+<script src="{{ url_for('static', filename='js/signup.js') }}"></script>
 {% endblock %}
