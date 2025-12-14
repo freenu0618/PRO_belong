@@ -37,10 +37,22 @@ def debug_prediction():
         else:
             print("Features could not be built (no history?)")
 
-        # 2. Predict 실행 (DB 저장 없이)
+        # 2. Predict 실행 (DB 저장 없이 단순 계산 로직)
         result = prediction_service.predict(region_name, year)
-        print("\nPrediction Result:")
+        print("\nPrediction Result (Service Calc):")
         print(result)
+
+        # 3. DB 실제 저장 값 확인 (Repository 직접 조회)
+        print("\n[DB Verification] Checking 'rule_base' in PREDICTION_RESULT...")
+        from belong.repositories.prediction_repo import PredictionRepository
+        repo = PredictionRepository()
+        
+        # 2025년 rule_base 데이터 조회
+        db_rows = repo.get_predictions(region_name, year, year, source="rule_base")
+        if db_rows:
+            print(f"✅ Found in DB (rule_base): {db_rows}")
+        else:
+            print("❌ NOT Found in DB (rule_base). train_lonely_linear.py execution might have failed or not finished.")
 
 if __name__ == "__main__":
     debug_prediction()

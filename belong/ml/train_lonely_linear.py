@@ -26,9 +26,14 @@ from belong.models.prediction_result import PredictionResult
 # -------------------------------
 # 설정 값
 # -------------------------------
+
 ACTUAL_LAST_YEAR = 2023       # 실측 끝나는 연도 (ELDERLY_STATS 기준)
 FORECAST_LAST_YEAR = 2035     # 예측 마지막 연도
-ML_SOURCE = "ml_linear_v2"       # PREDICTION_RESULT.source 값
+ML_SOURCE = "rule_base"       # PREDICTION_RESULT.source 값 (사용자 요청)
+
+from belong.ml.model_loader import load_model
+
+# ... (중략) ...
 
 
 # -------------------------------
@@ -137,15 +142,12 @@ def train_and_evaluate(df: pd.DataFrame) -> Ridge:
 
     return model
 
-
-# -------------------------------
-# 4) 미래 연도(2024~2050)용 피처 생성
-# -------------------------------
 def build_future_feature_df(df: pd.DataFrame) -> pd.DataFrame:
     """
     각 구별로 마지막 실측 연도(ACTUAL_LAST_YEAR)의 피처를 가져와서
-    - year만 2024~2050으로 바꿔서
-    - 나머지 지표는 "현 수준 유지" 가정 (v0.1 시나리오)
+    - year만 2024~FORECAST_LAST_YEAR로 확장
+    - **중요**: 'elderly_population'은 forecast_model.pkl (단순회귀) 사용하여 연도별 예측값 적용
+    - 나머지 지표(비율 등)는 "현 수준 유지" 가정
     """
     base_rows: List[Dict] = []
 
@@ -155,14 +157,30 @@ def build_future_feature_df(df: pd.DataFrame) -> pd.DataFrame:
           .groupby("region_name")
           .tail(1)
     )
-
+    
+    # 노인 인구 예측 모델 로드 (dict: region -> {coef, intercept, ...})
+    pop_model = load_model()
+    
     for _, row in last_rows.iterrows():
+        r_name = row["region_name"]
+        
+        # 해당 구의 모델 파라미터 가져오기
+        pm = pop_model.get(r_name) if pop_model else None
+        
         for year in range(ACTUAL_LAST_YEAR + 1, FORECAST_LAST_YEAR + 1):
+            
+            # 1. 노인 인구 예측 (선형 회귀: y = ax + b)
+            if pm:
+                pred_pop = pm["coef"] * year + pm["intercept"]
+            else:
+                # 모델 없으면 마지막 값 유지 (fallback)
+                pred_pop = row["elderly_population"]
+                
             base_rows.append(
                 {
-                    "region_name": row["region_name"],
+                    "region_name": r_name,
                     "year": year,
-                    "elderly_population": row["elderly_population"],  # v0.1: 노인 인구 수준 유지
+                    "elderly_population": pred_pop,  # ✅ 예측된 인구수 적용
                     "aging_index": row["aging_index"],
                     "single_household_ratio": row["single_household_ratio"],
                     "low_inc_65_79": row["low_inc_65_79"],
