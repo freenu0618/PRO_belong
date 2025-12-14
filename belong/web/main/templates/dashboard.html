@@ -6,8 +6,8 @@
 {% block title %}고독사 리스크 대시보드 - Belong{% endblock %}
 
 {% block extra_css %}
-  {# 대시보드 전용 CSS #}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{# 대시보드 전용 CSS #}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -19,45 +19,47 @@
       <aside class="dashboard-sidebar col-12 col-lg-3">
         <div class="card card-soft h-100">
           <div class="card-body">
-            <h5 class="fw-bold mb-2">대시보드</h5>
-            <p class="text-muted small mb-3">
-              연도 구간과 지역(최대 2개)을 선택하면 오른쪽 그래프가 갱신됩니다.
-            </p>
+            <h5 class="fw-bold mb-3 d-flex align-items-center">
+              <span class="me-2">📊</span> 대시보드 설정
+            </h5>
 
-            <!-- 연도 범위 -->
-            <div class="mb-3">
-              <label class="form-label form-label-sm mb-1">연도 범위</label>
-              <div class="d-flex gap-2">
-                <select id="year-start" class="form-select form-select-sm"></select>
-                <select id="year-end" class="form-select form-select-sm"></select>
-              </div>
-              <div class="form-text small">
-                기본값: 2017 ~ 2023 (URL 파라미터로 변경 가능)
-              </div>
-            </div>
+            <!-- 1. 지역 선택 -->
+            <div class="mb-4">
+              <label class="form-label fw-bold text-white small mb-2">지역 선택 (최대 2개)</label>
 
-            <!-- 지역 선택 -->
-            <div class="mb-3">
-              <!-- 서울시 전체 토글 (추천 UX) -->
               <div class="form-check form-switch mb-2">
                 <input class="form-check-input" type="checkbox" id="toggle-seoul" />
-                <label class="form-check-label small" for="toggle-seoul">
+                <label class="form-check-label text-muted small" for="toggle-seoul">
                   서울시 전체 포함
                 </label>
               </div>
-              <label class="form-label form-label-sm mb-1">지역 선택 (최대 2개)</label>
-              <div id="control-region-checkboxes" class="region-chip-grid">
-                <!-- JS에서 체크박스 생성 -->
+
+              <div class="card bg-dark border-0 p-2 mb-2" style="max-height: 150px; overflow-y: auto;">
+                <div id="control-region-checkboxes" class="region-chip-grid d-flex flex-wrap gap-2">
+                  <!-- JS에서 체크박스 생성 -->
+                </div>
               </div>
-              <div class="form-text small">
-                기본값: 강남구, 종로구
+              <div class="small text-muted" style="font-size: 0.75rem;">
+                * 기본: 강남구 vs 종로구 비교
+              </div>
+            </div>
+
+            <hr class="border-secondary opacity-25 my-3">
+
+            <!-- 2. 연도 범위 -->
+            <div class="mb-4">
+              <label class="form-label fw-bold text-white small mb-2">데이터 기간</label>
+              <div class="d-flex gap-2 align-items-center">
+                <select id="year-start" class="form-select form-select-sm"></select>
+                <span class="text-muted">~</span>
+                <select id="year-end" class="form-select form-select-sm"></select>
               </div>
             </div>
 
             <!-- 적용 버튼 -->
-            <div class="d-grid mb-3">
-              <button id="btn-apply-dashboard" class="btn btn-primary btn-sm">
-                선택 완료
+            <div class="d-grid mt-auto">
+              <button id="btn-apply-dashboard" class="btn btn-primary fw-bold shadow-sm">
+                적용하기
               </button>
             </div>
           </div>
@@ -76,12 +78,8 @@
                   <h5 class="slot-title" id="region-title-1">강남구</h5>
 
                   {# ✅ 지역 상세(Region) 페이지는 현재 서비스 범위에서 제외 → 링크 제거 #}
-                  <button
-                    class="btn btn-outline-secondary btn-sm"
-                    type="button"
-                    disabled
-                    title="준비중(현재는 대시보드/AI 챗봇 중심으로 운영)"
-                  >
+                  <button class="btn btn-outline-secondary btn-sm" type="button" disabled
+                    title="준비중(현재는 대시보드/AI 챗봇 중심으로 운영)">
                     상세
                   </button>
                 </div>
@@ -127,12 +125,8 @@
                   <h5 class="slot-title" id="region-title-2">종로구</h5>
 
                   {# ✅ 지역 상세(Region) 페이지는 현재 서비스 범위에서 제외 → 링크 제거 #}
-                  <button
-                    class="btn btn-outline-secondary btn-sm"
-                    type="button"
-                    disabled
-                    title="준비중(현재는 대시보드/AI 챗봇 중심으로 운영)"
-                  >
+                  <button class="btn btn-outline-secondary btn-sm" type="button" disabled
+                    title="준비중(현재는 대시보드/AI 챗봇 중심으로 운영)">
                     상세
                   </button>
                 </div>
@@ -178,8 +172,8 @@
 {% endblock %}
 
 {% block extra_js %}
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- 대시보드 JS -->
-  <script src="{{ url_for('static', filename='charts/dashboard.js') }}"></script>
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- 대시보드 JS -->
+<script src="{{ url_for('static', filename='charts/dashboard.js') }}"></script>
 {% endblock %}

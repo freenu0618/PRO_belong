@@ -1,213 +1,120 @@
 {# templates/ai_tool.html #}
 {% extends "base.html" %}
 
-{% block title %}AI 챗봇 서비스 - Belong{% endblock %}
+{% block title %}Belong AI Chat{% endblock %}
+{% block page_id %}ai-tool{% endblock %}
 
-{% block page_id %}ai{% endblock %}
-{% block body_class %}ai-page{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ai.css') }}">
+{% endblock %}
 
 {% block content %}
-<section class="section py-4 py-lg-5">
-  <div class="page-container">
+<div class="ai-layout">
 
-    <!-- 소개 -->
-    <div class="mb-4 ai-hero">
-      <div class="text-muted small mb-2">AI Chatbot Service</div>
-      <h1 class="ai-feature-title">AI 챗봇 서비스</h1>
-      <p class="text-muted mb-0" style="line-height:1.7;">
-        번역 · 감정분석 · 텍스트 요약 · 질의응답 · 개체분석(5기능)을 한 화면에서 사용할 수 있습니다.
-      </p>
-      <div class="mt-3 small text-muted">
-        사용법: 기능 선택 → 텍스트 입력 → 실행
+  <!-- 1. Sidebar -->
+  <aside class="ai-sidebar" id="ai-sidebar">
+    <div class="ai-sidebar-header">AI Capabilities</div>
+
+    <button class="ai-nav-btn active" data-mode="translate">
+      <span class="ai-nav-icon">🌐</span>
+      <span>AI 번역 (Translate)</span>
+    </button>
+    <button class="ai-nav-btn" data-mode="sentiment">
+      <span class="ai-nav-icon">❤️</span>
+      <span>감정 분석 (Sentiment)</span>
+    </button>
+    <button class="ai-nav-btn" data-mode="entities">
+      <span class="ai-nav-icon">🏷️</span>
+      <span>개체 분석 (Entities)</span>
+    </button>
+    <button class="ai-nav-btn" data-mode="summary">
+      <span class="ai-nav-icon">📝</span>
+      <span>텍스트 요약 (Summary)</span>
+    </button>
+    <button class="ai-nav-btn" data-mode="qa">
+      <span class="ai-nav-icon">❓</span>
+      <span>질의 응답 (Q&A)</span>
+    </button>
+
+    <hr style="border-color: rgba(255,255,255,0.1); margin: 15px 0;">
+
+    <button class="ai-nav-btn" data-mode="guide">
+      <span class="ai-nav-icon">📖</span>
+      <span>사용 가이드 (Guide)</span>
+    </button>
+
+    <div class="mt-auto">
+      <button class="ai-nav-btn text-danger" id="btn-clear-chat">
+        <span class="ai-nav-icon">🗑️</span>
+        <span>대화 초기화</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- 2. Main Chat Area -->
+  <main class="ai-main">
+    <div class="ai-chat-container" id="ai-chat-container">
+      <!-- Welcome Screen -->
+      <div class="ai-welcome-screen" id="ai-welcome">
+        <div class="ai-logo-large">✨</div>
+        <h2 class="mb-3">무엇을 도와드릴까요?</h2>
+        <p>왼쪽 메뉴에서 기능을 선택하거나,<br>아래 채팅창에 바로 입력해 보세요.</p>
+        <div class="mt-4 badge bg-primary bg-opacity-10 text-primary p-2">Currently: <span id="current-mode-label">AI
+            번역</span></div>
+      </div>
+
+      <!-- Chat Buckets -->
+      <div class="ai-bubble-container" id="ai-chat-box">
+        <!-- Bubbles go here -->
       </div>
     </div>
 
-    <!-- 빠른 선택(5기능) -->
-    <div class="row g-3 mb-4 ai-feature-grid">
-      <div class="col-12 col-md-6 col-lg-4">
-        <div class="card h-100 rounded-4 border-0 shadow-sm ai-feature-card">
-          <div class="card-body p-4 ai-feature-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-              <div class="fw-bold">😊 감정 분석</div>
-              <span class="badge text-bg-light">sentiment</span>
-            </div>
-            <p class="ai-feature-desc" style="line-height:1.6;">
-              문장의 감정(긍/부정 등)을 분석합니다.
-            </p>
-            <button class="btn btn-outline-primary rounded-4 ai-quick-select"
-                    type="button"
-                    data-ai-service="sentiment">
-              이 기능으로 시작
-            </button>
-          </div>
-        </div>
-      </div>
+    <!-- 3. Bottom Input Area -->
+    <div class="ai-input-area">
+      <div class="ai-input-wrapper">
+        <!-- Plus Button (Options Toggle) -->
+        <button class="ai-btn-plus" id="btn-toggle-options" title="옵션 설정">+</button>
 
-      <div class="col-12 col-md-6 col-lg-4">
-        <div class="card h-100 rounded-4 border-0 shadow-sm ai-feature-card">
-          <div class="card-body p-4 ai-feature-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-              <div class="fw-bold">🏷️ 개체 분석</div>
-              <span class="badge text-bg-light">entities</span>
-            </div>
-            <p class="ai-feature-desc" style="line-height:1.6;">
-              문장에서 인물/기관/장소 등 핵심 엔티티를 추출합니다.
-            </p>
-            <button class="btn btn-outline-primary rounded-4 ai-quick-select"
-                    type="button"
-                    data-ai-service="entities">
-              이 기능으로 시작
-            </button>
+        <!-- Dynamic Options Menu (Popover) -->
+        <div class="ai-options-menu" id="ai-options-menu">
+          <!-- Translation Options -->
+          <div class="option-group" id="opt-translate">
+            <div class="option-label">번역 방향</div>
+            <select class="form-select form-select-sm" id="opt-trans-direction">
+              <option value="ko_en">한국어 → 영어</option>
+              <option value="en_ko">영어 → 한국어</option>
+            </select>
           </div>
-        </div>
-      </div>
 
-      <div class="col-12 col-md-6 col-lg-4">
-        <div class="card h-100 rounded-4 border-0 shadow-sm ai-feature-card">
-          <div class="card-body p-4 ai-feature-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-              <div class="fw-bold">❓ 질의 응답</div>
-              <span class="badge text-bg-light">qa</span>
-            </div>
-            <p class="ai-feature-desc" style="line-height:1.6;">
-              질문 + 지문(Context)을 입력하면 답변을 생성합니다.
-            </p>
-            <button class="btn btn-outline-primary rounded-4 ai-quick-select"
-                    type="button"
-                    data-ai-service="qa">
-              이 기능으로 시작
-            </button>
+          <!-- QA Options -->
+          <div class="option-group" id="opt-qa" style="display:none;">
+            <div class="option-label">지문 (Context)</div>
+            <textarea class="form-control form-select-sm bg-dark text-white" id="opt-qa-context" rows="3"
+              placeholder="질문의 근거가 될 텍스트를 입력하세요..."></textarea>
           </div>
-        </div>
-      </div>
 
-      <div class="col-12 col-md-6 col-lg-6">
-        <div class="card h-100 rounded-4 border-0 shadow-sm ai-feature-card">
-          <div class="card-body p-4 ai-feature-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-              <div class="fw-bold">🌐 번역</div>
-              <span class="badge text-bg-light">translate</span>
-            </div>
-            <p class="ai-feature-desc" style="line-height:1.6;">
-              한국어 ↔ 영어 번역을 지원합니다. (방향 선택)
-            </p>
-            <button class="btn btn-outline-primary rounded-4 ai-quick-select"
-                    type="button"
-                    data-ai-service="translate">
-              이 기능으로 시작
-            </button>
+          <div class="text-end mt-2">
+            <small class="text-muted">옵션을 닫으려면 + 버튼 클릭</small>
           </div>
         </div>
-      </div>
 
-      <div class="col-12 col-md-6 col-lg-6">
-        <div class="card h-100 rounded-4 border-0 shadow-sm ai-feature-card">
-          <div class="card-body p-4 ai-feature-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-              <div class="fw-bold">🧾 문장 요약</div>
-              <span class="badge text-bg-light">summary</span>
-            </div>
-            <p class="ai-feature-desc" style="line-height:1.6;">
-              긴 문장을 핵심 위주로 간단히 요약합니다.
-            </p>
-            <button class="btn btn-outline-primary rounded-4 ai-quick-select"
-                    type="button"
-                    data-ai-service="summary">
-              이 기능으로 시작
-            </button>
-          </div>
-        </div>
+        <!-- Text Input -->
+        <textarea class="ai-textarea" id="ai-input-text" rows="1" placeholder="메시지를 입력하세요..."></textarea>
+
+        <!-- Send Button -->
+        <button class="ai-btn-send" id="ai-run-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
       </div>
+      <div class="text-center mt-2 small text-muted">Belong AI can make mistakes. Check important info.</div>
     </div>
-
-    <!-- 실행 콘솔 -->
-    <div id="ai-console" class="card rounded-4 border-0 shadow-sm ai-feature-card ai-console">
-      <div class="card-body p-4 p-lg-5 ai-feature-card">
-
-        <div class="d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-3 mb-3">
-          <div>
-            <h2 class="h5 fw-bold mb-1">실행 콘솔</h2>
-            <div class="text-muted small">기능 선택 → 입력 → 실행 결과 확인</div>
-          </div>
-          <div class="text-muted small">
-            JS: <code>static/js/ai_page.js</code>
-          </div>
-        </div>
-
-        <!-- 기능 선택 -->
-        <div class="mb-3">
-          <label for="ai-service-select" class="form-label fw-semibold">AI 기능 선택</label>
-          <select id="ai-service-select" class="form-select">
-            <option value="sentiment">감정 분석</option>
-            <option value="entities">개체 분석</option>
-            <option value="qa">질의 응답</option>
-            <option value="translate">번역</option>
-            <option value="summary">문장 요약</option>
-          </select>
-
-          <div id="ai-service-help" class="form-text text-muted mt-1">
-            감정 분석: 문장의 감정(긍정/부정 등)을 분석합니다.
-          </div>
-        </div>
-
-        <!-- 번역 옵션 (기본 숨김) -->
-        <div id="translate-options" class="mb-3" style="display:none;">
-          <label for="ai-translate-direction" class="form-label me-2">번역 방향</label>
-          <select id="ai-translate-direction" class="form-select form-select-sm d-inline-block w-auto">
-            <option value="ko-en">한국어 → 영어</option>
-            <option value="en-ko">영어 → 한국어</option>
-          </select>
-          <div class="form-text text-muted">
-            * 번역 기능 선택 시에만 의미가 있습니다.
-          </div>
-        </div>
-
-        <!-- QA 옵션 (기본 숨김) -->
-        <div id="qa-options" class="mb-3" style="display:none;">
-          <label for="ai-qa-context" class="form-label fw-semibold">지문(Context)</label>
-          <textarea id="ai-qa-context"
-                    class="form-control"
-                    rows="4"
-                    placeholder="질의응답(qa)은 지문이 필수입니다. 여기에 지문을 입력하세요."></textarea>
-          <div class="form-text text-muted">
-            * qa 선택 시: text(질문) + options.context(지문)이 모두 필요합니다.
-          </div>
-        </div>
-
-        <!-- 입력 -->
-        <div class="mb-3">
-          <label for="ai-input-text" class="form-label fw-semibold">입력 텍스트</label>
-          <textarea id="ai-input-text"
-                    class="form-control"
-                    rows="4"
-                    placeholder="분석하거나 질문할 문장을 입력하세요."></textarea>
-        </div>
-
-        <!-- 버튼 -->
-        <div class="d-flex flex-wrap gap-2 mb-3">
-          <button id="ai-run-btn" class="btn btn-primary rounded-4 px-4" type="button">실행</button>
-          <button id="ai-clear-btn" class="btn btn-outline-secondary rounded-4 px-4" type="button">초기화</button>
-        </div>
-
-        <!-- 결과 -->
-        <div id="ai-chat-box"
-             class="border rounded-4 p-3 ai-chat-box"
-             style="min-height:160px; max-height:420px; overflow-y:auto;">
-          <div class="text-muted small">
-            아직 결과가 없습니다. 텍스트를 입력하고 <strong>실행</strong>을 눌러보세요.
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-  </div>
-</section>
+  </main>
+</div>
 {% endblock %}
 
 {% block extra_js %}
-  <script src="{{ url_for('static', filename='js/ai_page.js') }}"></script>
-{% endblock %}
-{% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ai.css') }}">
+<script src="{{ url_for('static', filename='js/ai_page.js') }}"></script>
 {% endblock %}

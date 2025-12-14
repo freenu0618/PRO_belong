@@ -43,9 +43,9 @@
 
   // 기본 지역 리스트(서울 25개 구)
   const GU_LIST = [
-    "강남구","강동구","강북구","강서구","관악구","광진구","구로구","금천구","노원구","도봉구",
-    "동대문구","동작구","마포구","서대문구","서초구","성동구","성북구","송파구","양천구","영등포구",
-    "용산구","은평구","종로구","중구","중랑구"
+    "강남구", "강동구", "강북구", "강서구", "관악구", "광진구", "구로구", "금천구", "노원구", "도봉구",
+    "동대문구", "동작구", "마포구", "서대문구", "서초구", "성동구", "성북구", "송파구", "양천구", "영등포구",
+    "용산구", "은평구", "종로구", "중구", "중랑구"
   ];
 
   const DEFAULT_STATE = {
@@ -359,9 +359,9 @@
     const el = document.getElementById(canvasId);
     if (!el || !window.Chart) return;
 
-    const primary = getCssVar("--color-primary", "#2563eb");
-    const textSub = getCssVar("--color-text-sub", "rgba(15,23,42,0.68)");
-    const border = getCssVar("--color-border", "rgba(15,23,42,0.14)");
+    const primary = getCssVar("--color-primary", "#22d3ee");
+    const textSub = getCssVar("--color-text-sub", "#94a3b8");
+    const border = "rgba(255, 255, 255, 0.1)";
 
     const labels = points.map(p => String(p.year));
     const data = points.map(p => Number(p.value));
@@ -389,8 +389,46 @@
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
-          tooltip: { enabled: true },
+          legend: {
+            display: true, // Show legend for interaction
+            labels: {
+              color: textSub,
+              font: { size: 11, family: "Pretendard" },
+              boxWidth: 10,
+              usePointStyle: true,
+            },
+            onClick: function (e, legendItem, legend) {
+              const index = legendItem.datasetIndex;
+              const ci = legend.chart;
+              if (ci.isDatasetVisible(index)) {
+                ci.hide(index);
+                legendItem.hidden = true;
+              } else {
+                ci.show(index);
+                legendItem.hidden = false;
+              }
+            }
+          },
+          tooltip: {
+            enabled: true,
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            titleColor: '#06b6d4', // Cyan
+            bodyColor: '#f1f5f9',
+            borderColor: 'rgba(6, 182, 212, 0.3)',
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 8,
+            displayColors: false, // Cleaner look
+            callbacks: {
+              label: function (context) {
+                return ` ${context.dataset.label}: ${context.parsed.y}`;
+              }
+            }
+          },
+        },
+        interaction: {
+          mode: 'index',
+          intersect: false,
         },
         scales: {
           x: {
@@ -401,6 +439,10 @@
             grid: { color: border },
             ticks: { color: textSub },
           }
+        },
+        animation: {
+          duration: 2000,
+          easing: 'easeOutQuart'
         }
       }
     });

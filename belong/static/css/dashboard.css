@@ -1,20 +1,17 @@
 /* static/css/dashboard.css */
 /* =========================================
-   Belong Dashboard Styles (Calm & Professional)
-   - Extends global style.css
-   - Uses global variables for consistency
+   Belong Dashboard Styles (Dark Neon)
+   Theme: Future & Safe
 ========================================= */
 
 .dashboard-section {
-  /* Local mapping to Global Variables */
   --bd-surface: var(--color-bg-card);
   --bd-border: var(--color-border);
   --bd-text: var(--color-text-main);
   --bd-muted: var(--color-text-sub);
   --bd-radius: var(--radius-md);
 
-  /* Use global main background, no extra gradient needed if global is good.
-     But for dashboard separate feel, maybe a subtle shift. */
+  /* Use global dark background */
   background: transparent;
   min-height: calc(100vh - var(--header-height));
 }
@@ -25,27 +22,15 @@
 .dashboard-sidebar .card-soft {
   background: var(--bd-surface);
   border: 1px solid var(--bd-border);
-  border-radius: var(--bd-radius);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.2s;
-}
-
-/* Sticky Sidebar Desktop */
-@media (min-width: 992px) {
-  .dashboard-sidebar {
-    position: sticky;
-    top: calc(var(--header-height) + 20px);
-    align-self: start;
-    z-index: 10;
-  }
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 /* Region Checkbox List */
 .region-checkbox-list {
   border: 1px solid var(--bd-border);
   border-radius: var(--radius-sm);
-  background: var(--color-bg-main);
-  /* Slightly contrast to card */
+  background: rgba(15, 23, 42, 0.5);
+  /* Darker inner bg */
   padding: 10px;
   max-height: 260px;
   overflow: auto;
@@ -58,16 +43,22 @@
   padding: 8px;
   border-radius: var(--radius-sm);
   transition: background 0.2s;
+  color: var(--bd-text);
 }
 
 .region-checkbox-list .form-check:hover {
-  background: rgba(0, 0, 0, 0.03);
+  background: rgba(255, 255, 255, 0.05);
 }
 
-.region-checkbox-list .form-check-label {
-  font-size: 0.95rem;
-  color: var(--bd-text);
-  cursor: pointer;
+/* Custom Checkbox Color */
+.form-check-input {
+  background-color: var(--color-bg-input);
+  border-color: var(--bd-border);
+}
+
+.form-check-input:checked {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 /* =========================
@@ -91,7 +82,7 @@
 }
 
 .year-region-grid-wrap thead th {
-  background: var(--color-bg-main);
+  background: rgba(30, 41, 59, 0.9);
   color: var(--color-primary);
   font-weight: 600;
   font-size: 0.85rem;
@@ -113,7 +104,9 @@
   border-bottom: none;
 }
 
-.year-region-grid-cell {
+.year-region-grid-cell:hover {
+  background: rgba(6, 182, 212, 0.1);
+  color: var(--color-primary);
   cursor: default;
 }
 
@@ -121,78 +114,33 @@
    Chart Layout
 ========================================= */
 .slot-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-  padding-bottom: 10px;
   border-bottom: 1px solid var(--bd-border);
 }
 
 .slot-title {
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: var(--color-primary);
-  margin: 0;
+  color: var(--color-secondary);
+  /* Purple for Regions */
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
 }
 
 .chart-title {
-  font-size: 0.95rem;
-  font-weight: 600;
   color: var(--bd-text);
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
-/* Bullet point for chart title */
+/* Bullet point */
 .chart-title::before {
-  content: "";
-  display: block;
-  width: 4px;
-  height: 16px;
-  background: var(--color-accent);
-  border-radius: 2px;
+  background: var(--color-primary);
+  box-shadow: 0 0 8px var(--color-primary);
 }
 
 .chart-wrapper {
-  position: relative;
-  height: 260px;
-  /* Uniform Height */
-  border: 1px solid var(--bd-border);
-  border-radius: var(--radius-sm);
   background: var(--bd-surface);
-  padding: 15px;
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--bd-border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-/* Responsive adjustment */
-@media (max-width: 576px) {
-  .chart-wrapper {
-    height: 220px;
-  }
-
-  .slot-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-}
-
-/* Loading State Overlay */
+/* Loading State Overlay (Dark) */
 .chart-wrapper[data-loading="true"]::after {
-  content: "Loading...";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  color: var(--color-text-sub);
-  z-index: 5;
+  background: rgba(15, 23, 42, 0.8);
+  color: var(--color-primary);
 }

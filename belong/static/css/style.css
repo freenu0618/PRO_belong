@@ -1,231 +1,261 @@
 /* static/css/style.css */
+
 /* =========================================
-   Belong Global Styles (Calm & Professional Theme)
-   Theme: Trust, Data-driven, Serenity
-   Colors: Navy (Trust), Slate (Stability), Teal (Healing)
-   Tech: Standard CSS3 (Variables)
+   Belong Design System (Global)
+   Theme: Future & Safe (Dark Mode + Neon)
+   Base: Bootstrap 5 Overrides
 ========================================= */
 
 :root {
-  /* 1. Palette: "Trust & Calm" */
-  /* Primary: Deep Navy (신뢰, 전문성) */
-  --color-primary: #2c3e50;       /* Midnight Blue */
-  --color-primary-light: #34495e; /* Wet Asphalt */
-  --color-primary-dark: #1a252f;
-  
-  /* Accent: Muted Teal (치유, 희망 - 포인트) */
-  --color-accent: #2980b9;        /* Calm Blue */
-  --color-accent-soft: #d6eaf8;   /* Light Blue bg */
+  /* 1. Color Palette (Dark Neon) */
+  --color-bg-main: #0f172a;
+  /* Deep Slate (Main Background) */
+  --color-bg-card: rgba(30, 41, 59, 0.7);
+  /* Slate 800 (Glass Card) */
+  --color-bg-input: #1e293b;
+  /* Input Background */
 
-  /* Surface / Background */
-  --color-bg-main: #f5f7fa;       /* Very soft cool gray */
-  --color-bg-card: #ffffff;
-  --color-bg-input: #fdfdfd;
+  --color-text-main: #f1f5f9;
+  /* Slate 100 */
+  --color-text-sub: #94a3b8;
+  /* Slate 400 */
 
-  /* Text */
-  --color-text-main: #2c3e50;     /* Dark Navy text */
-  --color-text-sub: #7f8c8d;      /* Slate Gray */
-  --color-text-muted: #95a5a6;    /* Light Gray */
+  --color-primary: #06b6d4;
+  /* Cyan 500 (Access Point) */
+  --color-primary-hover: #22d3ee;
+  /* Cyan 400 */
+  --color-secondary: #8b5cf6;
+  /* Violet 500 */
 
-  /* Borders & Shadows (Soft) */
-  --color-border: #ecf0f1;
-  --shadow-sm: 0 2px 4px rgba(0,0,0,0.03);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.05);
-  --shadow-lg: 0 10px 25px rgba(0,0,0,0.08); /* Lift effect */
+  --color-border: rgba(148, 163, 184, 0.15);
+  /* Subtle Border */
+  --color-shadow: rgba(0, 0, 0, 0.4);
+  /* Deep Shadow */
+  --color-neon-glow: rgba(6, 182, 212, 0.3);
+  /* Neon Glow */
 
-  /* Radius */
-  --radius-sm: 6px;
-  --radius-md: 12px;  /* Smooth rounded */
-  --radius-lg: 16px; 
-
-  /* Layout */
-  --container-max: 1200px;
-  --container-pad: 20px;
-  --header-height: 64px;
+  /* 2. Metrics */
+  --header-height: 60px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
 }
 
-/* 2. Reset & Base */
-*, *::before, *::after { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; }
-
+/* Base Stylings */
 body {
-  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
-  background: var(--color-bg-main);
+  background-color: var(--color-bg-main);
   color: var(--color-text-main);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   line-height: 1.6;
-  font-size: 16px;
-  -webkit-font-smoothing: antialiased;
 }
 
-a { text-decoration: none; color: inherit; transition: color 0.2s; }
-a:hover { color: var(--color-accent); }
-ul, ol { list-style: none; padding: 0; margin: 0; }
-img { max-width: 100%; height: auto; display: block; }
-
-/* 3. Layout Utilities */
-.page-grid {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
+a {
+  text-decoration: none;
+  color: var(--color-primary);
+  transition: color 0.2s;
 }
-.site-main { flex: 1; margin-top: var(--header-height); /* Floating Header Space */ }
 
+a:hover {
+  color: var(--color-primary-hover);
+  text-shadow: 0 0 5px var(--color-neon-glow);
+}
+
+/* Container */
 .page-container {
-  max-width: var(--container-max);
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 0 var(--container-pad);
-}
-.section { padding: 40px 0; }
-
-/* 4. Component: Navbar (Floating, Glassmorphism) */
-.site-header {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: var(--header-height);
-  background: rgba(255, 255, 255, 0.9); /* Translucent */
-  backdrop-filter: blur(10px);           /* Glass effect */
-  border-bottom: 1px solid rgba(0,0,0,0.05);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
+  padding: 0 20px;
 }
 
-[data-component="navbar"] {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.navbar-brand {
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.navbar-brand span { color: var(--color-accent); }
-
-.nav-link {
-  font-weight: 500;
-  color: var(--color-text-sub);
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  transition: all 0.2s;
-}
-.nav-link:hover {
-  color: var(--color-primary);
-  background: rgba(0,0,0,0.03);
-}
-.nav-link.active {
-  color: var(--color-accent);
-  font-weight: 600;
-}
-
-/* 5. Component: Cards (Clean, Soft Shadow) */
-.card-soft {
+/* Glassmorphism Card Utility */
+.card-soft,
+.card {
   background: var(--color-bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 20px var(--color-shadow);
+  color: var(--color-text-main);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
 }
-.card-soft:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-  border-color: rgba(41, 128, 185, 0.2); /* Accent hint */
+
+/* Micro-interaction: Card Hover Glow */
+.card-soft:hover,
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(6, 182, 212, 0.1);
+  border-color: rgba(6, 182, 212, 0.3);
 }
-.card-body { padding: 24px; }
-.card-title {
+
+/* Typography */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: #fff;
   font-weight: 700;
-  color: var(--color-primary);
-  margin-bottom: 1rem;
+  letter-spacing: -0.01em;
 }
 
-/* 6. Component: Buttons (Rounded, Navy/Teal) */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 20px;
-  font-weight: 600;
-  border-radius: var(--radius-md);
-  transition: all 0.2s;
-  cursor: pointer;
-  border: 1px solid transparent;
+.text-muted {
+  color: var(--color-text-sub) !important;
 }
 
+/* Buttons (Neon Style) */
 .btn-primary {
-  background: var(--color-primary);
-  color: white;
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #0f172a;
+  /* Dark Text on Cyan */
+  font-weight: 700;
+  box-shadow: 0 0 10px var(--color-neon-glow);
+  transition: all 0.3s ease;
 }
-.btn-primary:hover {
-  background: var(--color-primary-light);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+
+.btn-primary:hover,
+.btn-primary:active,
+.btn-primary:focus {
+  background-color: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+  color: #0f172a !important;
+  box-shadow: 0 0 20px var(--color-neon-glow), 0 0 5px #fff;
+  /* Stronger Glow */
+  transform: translateY(-2px);
 }
 
 .btn-outline-primary {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
   background: transparent;
-  border: 1px solid var(--color-primary);
-  color: var(--color-primary);
+  transition: all 0.3s ease;
 }
+
 .btn-outline-primary:hover {
-  background: var(--color-primary);
-  color: white;
+  background-color: var(--color-primary);
+  color: #0f172a;
+  box-shadow: 0 0 15px var(--color-neon-glow);
+  transform: translateY(-2px);
 }
 
-.btn-secondary {
-  background: var(--color-bg-main);
-  color: var(--color-text-sub);
-}
-.btn-secondary:hover {
-  background: #e2e6ea;
-  color: var(--color-text-main);
-}
-
-/* 7. Forms */
-.form-control, .form-select {
-  border-radius: var(--radius-sm);
+/* Form Inputs (Dark + Focus Anim) */
+.form-control,
+.form-select {
+  background-color: var(--color-bg-input);
   border: 1px solid var(--color-border);
-  padding: 10px 12px;
   color: var(--color-text-main);
-  background: var(--color-bg-input);
-  transition: border-color 0.2s;
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
 }
-.form-control:focus, .form-select:focus {
+
+.form-control:focus,
+.form-select:focus {
+  background-color: #252f45;
+  /* Slightly lighter on focus */
+  border-color: var(--color-primary);
+  color: var(--color-text-main);
+  box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.2);
+  /* Expanded glow ring */
   outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent-soft);
-}
-.form-label {
-  font-weight: 600;
-  color: var(--color-primary);
-  margin-bottom: 6px;
-  display: block;
 }
 
-/* 8. Text Utilities */
-.text-muted { color: var(--color-text-muted) !important; }
-.fw-bold { font-weight: 700 !important; }
-.small { font-size: 0.875rem; }
-
-/* 9. Utility: Glassmorphism Panel */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: var(--shadow-md);
-  border-radius: var(--radius-md);
+.form-control::placeholder {
+  color: rgba(148, 163, 184, 0.5);
 }
 
-/* 10. Footer */
-.site-footer {
-  background: white;
-  border-top: 1px solid var(--color-border);
-  padding: 24px 0;
-  text-align: center;
-  color: var(--color-text-sub);
+/* Navbar */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.navbar {
+  background: rgba(15, 23, 42, 0.95);
+  /* More opaque */
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-border);
+  transition: background 0.3s;
+}
+
+.navbar-brand {
+  font-weight: 800;
+  color: #fff !important;
+  text-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+}
+
+.nav-link {
+  color: #cbd5e1 !important;
+  /* Brighter than slate-400 */
+  font-weight: 500;
+  transition: color 0.2s, text-shadow 0.2s;
+}
+
+.nav-link.active,
+.nav-link:hover,
+.nav-link:focus {
+  color: var(--color-primary) !important;
+  text-shadow: 0 0 5px var(--color-neon-glow);
+}
+
+/* Modal (Dark Neon Theme) */
+.modal-content {
+  background-color: #1e293b;
+  /* Dark Slate */
+  border: 1px solid var(--color-border);
+  color: #f1f5f9;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+  /* Make close button white */
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-main);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+/* Loading Spinner (Neon) */
+.loader-neon {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(6, 182, 212, 0.3);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
