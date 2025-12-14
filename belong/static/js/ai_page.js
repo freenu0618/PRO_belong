@@ -1,232 +1,192 @@
 // static/js/ai_page.js
 document.addEventListener("DOMContentLoaded", () => {
   const serviceSelect = document.getElementById("ai-service-select");
-  const inputEl       = document.getElementById("ai-input-text");
-  const chatBox       = document.getElementById("ai-chat-box");
-  const runBtn        = document.getElementById("ai-run-btn");
-  const clearBtn      = document.getElementById("ai-clear-btn");
-  const directionEl   = document.getElementById("ai-translate-direction");
+  const inputEl = document.getElementById("ai-input-text");
+  const chatBox = document.getElementById("ai-chat-box");
+  const runBtn = document.getElementById("ai-run-btn");
+  const clearBtn = document.getElementById("ai-clear-btn");
+
+  const directionEl = document.getElementById("ai-translate-direction");
   const translateOpts = document.getElementById("translate-options");
-  const serviceHelp   = document.getElementById("ai-service-help");
+
+  const qaOpts = document.getElementById("qa-options");
+  const qaContextEl = document.getElementById("ai-qa-context");
+
+  const serviceHelp = document.getElementById("ai-service-help");
 
   if (!serviceSelect || !inputEl || !chatBox || !runBtn) return;
 
-  // ---- 서비스별 설명 문구 ----
   const helpTexts = {
-    sentiment: "감정 분석: 문장의 감정(긍정/부정 등)을 분석합니다.",
-    entities:  "개체 분석: 문장에서 사람, 기관, 장소 등을 추출합니다.",
-    qa:        "질의 응답: 주어진 텍스트를 기반으로 질문에 답변합니다.",
-    translate: "번역: 한국어↔영어 번역을 수행합니다.",
-    summary:   "문장 요약: 긴 문장을 짧게 요약합니다.",
+    translate: "번역: 한↔영 번역(방향 선택)",
+    sentiment: "감정 분석: 문장의 감정(긍정/부정 등)을 분석",
+    entities: "개체 분석: 텍스트에서 사람/장소/기관 등 엔티티를 추출",
+    summary: "요약: 핵심만 짧게 요약",
+    qa: "질의응답(QA): 질문 + 컨텍스트(문서)를 기반으로 답변",
   };
 
-  function updateServiceHelp() {
-    const key = serviceSelect.value;
-    if (serviceHelp) {
-      serviceHelp.textContent = helpTexts[key] || "";
-    }
+  const endpointMap = {
+    translate: "/api/ai/translate",
+    sentiment: "/api/ai/sentiment",
+    entities: "/api/ai/entities",
+    summary: "/api/ai/summary",
+    qa: "/api/ai/qa",
+  };
+
+  function getToken() {
+    return window.BelongAuth?.getToken?.() || localStorage.getItem("access_token") || "";
   }
 
-  function updateTranslateOptions() {
-    const svc = serviceSelect.value;
-    if (translateOpts) {
-      translateOpts.style.display = (svc === "translate") ? "block" : "none";
-    }
+  function setLoading(isLoading) {
+    runBtn.disabled = isLoading;
+    runBtn.textContent = isLoading ? "처리중..." : "실행";
   }
 
-  // 서비스 바뀔 때 옵션 표시/숨기기 + 설명 업데이트
-  serviceSelect.addEventListener("change", () => {
-    updateTranslateOptions();
-    updateServiceHelp();
-  });
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
 
-  // 초기 상태 반영
-  updateServiceHelp();
-  updateTranslateOptions();
-
-  // ✅ 빠른 선택 카드(템플릿 인라인 JS 제거 → 여기서 처리)
-  document.querySelectorAll(".ai-quick-select").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const v = btn.getAttribute("data-ai-service");
-      if (!v) return;
-
-      serviceSelect.value = v;
-      serviceSelect.dispatchEvent(new Event("change", { bubbles: true }));
-
-      // 사용자가 바로 입력할 수 있게 포커스
-      inputEl.focus();
-
-      // 콘솔로 스크롤(부드럽게)
-      const consoleEl = document.getElementById("ai-console");
-      if (consoleEl) {
-        consoleEl.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    });
-  });
-
-  // ---- 채팅 말풍선 추가 함수 ----
-  function appendMessage(role, text) {
+  function addBubble(role, html) {
     const wrap = document.createElement("div");
-    wrap.classList.add("mb-2", "d-flex");
-    wrap.classList.add(role === "user" ? "justify-content-end" : "justify-content-start");
-
-    const bubble = document.createElement("div");
-    bubble.classList.add("px-3", "py-2", "rounded-3", "small");
-
-    if (role === "user") {
-      bubble.classList.add("bg-primary", "text-white");
-    } else {
-      bubble.classList.add("bg-light");
-    }
-
-    bubble.textContent = text;
-    wrap.appendChild(bubble);
+    wrap.className = `ai-bubble ai-${role}`;
+    wrap.style.marginBottom = "10px";
+    wrap.innerHTML = html;
     chatBox.appendChild(wrap);
     chatBox.scrollTop = chatBox.scrollHeight;
   }
 
-  // ---- 결과 포맷터: 서비스별로 보기 좋게 변환 ----
-  function formatResult(service, result) {
-    if (result == null) return "결과가 비어 있습니다.";
-
-    if (service === "sentiment") {
-      if (typeof result === "object" && !Array.isArray(result)) {
-        const label = result.label || "라벨 미상";
-        const score = typeof result.score === "number" ? (result.score * 100).toFixed(1) + "%" : "";
-        return score ? `감정 분석 결과: ${label} (${score})` : `감정 분석 결과: ${label}`;
-      }
-      if (Array.isArray(result)) {
-        if (result.length === 0) return "감정 분석 결과가 없습니다.";
-        const lines = result.map((item, idx) => {
-          const label = item.label || item.class || item.prediction || "라벨 미상";
-          const score = typeof item.score === "number" ? (item.score * 100).toFixed(1) + "%" : "";
-          const prefix = result.length > 1 ? `${idx + 1}. ` : "- ";
-          return score ? `${prefix}${label} (${score})` : `${prefix}${label}`;
-        });
-        return "감정 분석 결과:\n" + lines.join("\n");
-      }
-      return typeof result === "string" ? result : JSON.stringify(result, null, 2);
-    }
-
-    if (service === "entities") {
-      let entities = [];
-      if (Array.isArray(result)) entities = result;
-      else if (result && Array.isArray(result.entities)) entities = result.entities;
-
-      if (entities.length === 0) return "인식된 개체가 없습니다.";
-
-      function mapEntityType(t) {
-        if (!t) return "타입 미상";
-        const up = String(t).toUpperCase();
-        if (up.includes("PER"))  return "사람(PER)";
-        if (up.includes("ORG"))  return "기관/회사(ORG)";
-        if (up.includes("LOC"))  return "장소(LOC)";
-        if (up.includes("MISC")) return "기타(MISC)";
-        return t;
-      }
-
-      const lines = entities.map((ent, idx) => {
-        const word  = ent.text || ent.word || ent.token || "";
-        const type  = mapEntityType(ent.entity || ent.entity_group || ent.label);
-        const score = typeof ent.score === "number" ? (ent.score * 100).toFixed(1) + "%" : "";
-        let base = `${idx + 1}. "${word}"`;
-        const meta = [];
-        if (type)  meta.push(`타입: ${type}`);
-        if (score) meta.push(`신뢰도: ${score}`);
-        if (meta.length > 0) base += ` (${meta.join(", ")})`;
-        return base;
-      });
-
-      return "인식된 개체들:\n" + lines.join("\n");
-    }
-
-    if (service === "qa") {
-      if (result && typeof result === "object") {
-        if (result.answer) {
-          const score = typeof result.score === "number" ? (result.score * 100).toFixed(1) + "%" : null;
-          return score ? `답변: ${result.answer}\n(신뢰도: ${score})` : `답변: ${result.answer}`;
-        }
-        return JSON.stringify(result, null, 2);
-      }
-      return typeof result === "string" ? result : JSON.stringify(result, null, 2);
-    }
-
-    if (service === "summary") {
-      if (result && typeof result === "object" && result.summary) return `요약:\n${result.summary}`;
-      return typeof result === "string" ? result : JSON.stringify(result, null, 2);
-    }
-
-    if (service === "translate") {
-      if (result && typeof result === "object" && result.translation) {
-        const dir = result.direction === "en-ko" ? "영어 → 한국어" : "한국어 → 영어";
-        return `번역(${dir}):\n${result.translation}`;
-      }
-      return typeof result === "string" ? result : JSON.stringify(result, null, 2);
-    }
-
-    return typeof result === "string" ? result : JSON.stringify(result, null, 2);
+  function addText(role, text) {
+    addBubble(role, `<div><strong>${role === "user" ? "나" : "AI"}</strong></div>
+      <div style="white-space:pre-wrap;">${escapeHtml(text)}</div>`);
   }
 
-  // ✅ 서비스 → API 엔드포인트 맵 (if-else 제거: 실수↓)
-  const ENDPOINTS = {
-    sentiment: "/api/ai/sentiment",
-    entities:  "/api/ai/entities",
-    qa:        "/api/ai/qa",
-    summary:   "/api/ai/summary",
-    translate: "/api/ai/translate",
-  };
+  function addJson(role, obj) {
+    const pretty = JSON.stringify(obj, null, 2);
+    addBubble(role, `<div><strong>${role === "user" ? "나" : "AI"}</strong></div>
+      <pre class="mb-0 mt-1 p-2 border rounded-2" style="background:#fff; white-space:pre-wrap;">${escapeHtml(pretty)}</pre>`);
+  }
+
+  function setHelp() {
+    const svc = serviceSelect.value;
+    if (serviceHelp) serviceHelp.textContent = helpTexts[svc] || "";
+  }
+
+  function toggleOptions() {
+    const svc = serviceSelect.value;
+    if (translateOpts) translateOpts.style.display = svc === "translate" ? "block" : "none";
+    if (qaOpts) qaOpts.style.display = svc === "qa" ? "block" : "none";
+    setHelp();
+  }
+
+  async function callApi(service, payload) {
+    const url = endpointMap[service];
+    if (!url) throw new Error(`Unknown service: ${service}`);
+
+    const token = getToken();
+    if (!token) {
+      // AI는 로그인 필요(서버가 jwt_required로 막는 구조) :contentReference[oaicite:10]{index=10}
+      throw new Error("로그인이 필요합니다. 먼저 로그인해주세요.");
+    }
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    // 401이면 토큰 만료/미로그인
+    if (res.status === 401) {
+      // auth_ui.js도 만료 토큰이면 지우는 정책 :contentReference[oaicite:11]{index=11}
+      window.BelongAuth?.clearToken?.();
+      throw new Error("인증이 만료되었거나 로그인되지 않았습니다. 다시 로그인해주세요.");
+    }
+
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = json?.message || json?.error || `HTTP ${res.status}`;
+      throw new Error(msg);
+    }
+    return json;
+  }
+
+  function buildPayload() {
+    const svc = serviceSelect.value;
+    const text = (inputEl.value || "").trim();
+
+    if (!text) throw new Error("텍스트(또는 질문)를 입력해주세요.");
+
+    // AI 라우트가 기대하는 공통 포맷: { text, options } :contentReference[oaicite:12]{index=12}
+    const payload = { text, options: {} };
+
+    if (svc === "translate") {
+      payload.options.direction = (directionEl?.value || "ko-en").trim();
+    }
+
+    if (svc === "qa") {
+      const ctx = (qaContextEl?.value || "").trim();
+      if (!ctx) throw new Error("QA는 컨텍스트(문서/정보)가 필요합니다.");
+      payload.options.context = ctx;
+    }
+
+    return payload;
+  }
+
+  function showLoginCtaIfNeeded() {
+    const token = getToken();
+    if (token) return;
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    addBubble(
+      "assistant",
+      `<div><strong>AI</strong></div>
+       <div class="mt-1">
+         AI 기능은 로그인이 필요합니다.
+         <a class="ms-2" href="/login?next=${next}">로그인 하러가기</a>
+       </div>`
+    );
+  }
+
+  serviceSelect.addEventListener("change", toggleOptions);
+
+  clearBtn?.addEventListener("click", () => {
+    inputEl.value = "";
+    if (qaContextEl) qaContextEl.value = "";
+    chatBox.innerHTML = "";
+    toggleOptions();
+    showLoginCtaIfNeeded();
+  });
 
   runBtn.addEventListener("click", async () => {
-    const text = (inputEl.value || "").trim();
-    if (!text) {
-      appendMessage("assistant", "텍스트를 입력해주세요.");
-      return;
-    }
-
-    const service = serviceSelect.value;
-    const url = ENDPOINTS[service];
-
-    if (!url) {
-      appendMessage("assistant", `알 수 없는 서비스: ${service}`);
-      return;
-    }
-
-    appendMessage("user", text);
-    inputEl.value = "";
-
-    const options = {};
-    if (service === "translate" && directionEl) {
-      options.direction = directionEl.value; // "ko-en" or "en-ko"
-    }
-
-    const payload = { text, options };
-
     try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      setLoading(true);
+      const svc = serviceSelect.value;
 
-      const data = await res.json().catch(() => ({}));
+      const payload = buildPayload();
+      addText("user", payload.text);
 
-      if (!res.ok || data.ok === false) {
-        const msg = data.error || `요청 실패 (${res.status})`;
-        appendMessage("assistant", msg);
+      const json = await callApi(svc, payload);
+
+      // ai_route.py 공통 응답은 { ok, result } :contentReference[oaicite:13]{index=13}
+      if (json?.ok === false) {
+        addJson("assistant", json);
         return;
       }
-
-      const formatted = formatResult(service, data.result);
-      appendMessage("assistant", formatted);
+      addJson("assistant", json?.result ?? json);
     } catch (err) {
       console.error(err);
-      appendMessage("assistant", "서버와 통신 중 오류가 발생했습니다.");
+      addText("assistant", err?.message || "오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
     }
   });
 
-  if (clearBtn) {
-    clearBtn.addEventListener("click", () => {
-      chatBox.innerHTML = '<div class="text-muted small">대화 내역이 초기화되었습니다.</div>';
-    });
-  }
+  // 초기 상태
+  toggleOptions();
+  showLoginCtaIfNeeded();
 });

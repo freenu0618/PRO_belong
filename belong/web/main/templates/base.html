@@ -3,42 +3,28 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
     <title>{% block title %}Belong - 고독사 안심 프로젝트{% endblock %}</title>
 
-    <!-- Bootstrap 5.x CSS (CDN) -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    >
-
-    <!-- Pretendard -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
-
-    <!-- Global CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block extra_css %}{% endblock %}
   </head>
 
-  <body class="{% block body_class %}{% endblock %}" data-page="{% block page_id %}{% endblock %}">
+  <body>
     <div class="page-grid">
-
-      <!-- 헤더 -->
       <header class="site-header">
         {% block header %}
-          {# ✅ 전역 네비를 base에서 제공 (각 페이지는 header 블록을 되도록 쓰지 않음) #}
           <div class="page-container py-2">
             {% include "navbar.html" %}
           </div>
         {% endblock %}
       </header>
 
-      <!-- 메인 콘텐츠 -->
       <main class="site-main">
         {% block content %}{% endblock %}
       </main>
 
-      <!-- 푸터 -->
       <footer class="site-footer">
         {% block footer %}
           <div class="page-container footer-inner py-3">
@@ -46,10 +32,9 @@
           </div>
         {% endblock %}
       </footer>
-
     </div>
 
-    <!-- ✅ 전역: 준비중 모달 (페이지 어디서든 호출 가능) -->
+    <!-- ✅ 전역: 준비중 모달 -->
     <div class="modal fade" id="comingSoonModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4">
@@ -76,15 +61,17 @@
       </div>
     </div>
 
-    <!-- Bootstrap JS (bundle - Popper 포함) -->
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- ✅ 전역 JS (준비중 링크를 모달로 연결) -->
+    <!-- 전역 JS -->
     <script src="{{ url_for('static', filename='js/app_ui.js') }}"></script>
 
-    <!-- ✅ 전역 JS (navbar active / 로그인 UI 토글) -->
-    <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
+    <!-- ✅ JWT 로그인 상태 네비 토글/로그아웃 처리 -->
+    <script src="{{ url_for('static', filename='js/auth_ui.js') }}"></script>
 
+    <!-- 페이지별 JS: 둘 다 지원(기존 템플릿이 scripts를 쓰고 있어서) -->
     {% block extra_js %}{% endblock %}
+    {% block scripts %}{% endblock %}
   </body>
 </html>

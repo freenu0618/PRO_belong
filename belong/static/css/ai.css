@@ -15,6 +15,11 @@
   border: 1px solid var(--color-border);
   box-shadow: 0 10px 28px var(--color-shadow);
   overflow: hidden;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.ai-feature-card:hover {
+  transform: translateY(-9px);
 }
 
 .ai-page .ai-feature-card .card-body{
@@ -24,6 +29,7 @@
 .ai-page .ai-feature-title{
   font-weight: 800;
   margin: 0;
+  letter-spacing: -0.02em;
 }
 
 .ai-page .ai-feature-desc{
@@ -94,4 +100,16 @@
 /* 카드 클릭 버튼의 일관성 */
 .ai-page .ai-quick-select{
   border-radius: var(--radius-md);
+}
+.ai-msg {
+  padding: 12px 4px;
+}
+
+.ai-msg-body {
+  line-height: 1.75;
+}
+
+/* translate option spacing */
+#translate-options {
+  display: none;
 }

@@ -1,88 +1,59 @@
 // static/js/signup.js
-
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("signup-form");
   const errorBox = document.getElementById("signup-error");
-  const pwMsg = document.getElementById("pw-match-msg");
-  const pw1Input = document.getElementById("password1");
-  const pw2Input = document.getElementById("password2");
-
   if (!form) return;
 
-  function checkPasswordMatch() {
-    const pw1 = pw1Input.value;
-    const pw2 = pw2Input.value;
-
-    if (!pw2) {
-      pwMsg.style.display = "none";
-      return;
-    }
-
-    pwMsg.style.display = "inline";
-
-    if (pw1 === pw2) {
-      pwMsg.classList.remove("text-danger");
-      pwMsg.classList.add("text-success");
-      pwMsg.innerText = "비밀번호가 일치합니다.";
-    } else {
-      pwMsg.classList.remove("text-success");
-      pwMsg.classList.add("text-danger");
-      pwMsg.innerText = "비밀번호가 일치하지 않습니다.";
-    }
-  }
-
-  pw1Input.addEventListener("input", checkPasswordMatch);
-  pw2Input.addEventListener("input", checkPasswordMatch);
+  const getNextUrl = () => {
+    const p = new URLSearchParams(window.location.search);
+    const next = p.get("next");
+    if (next && next.startsWith("/")) return next;
+    return "/";
+  };
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const username = document.getElementById("username").value.trim();
-    const email = document.getElementById("email").value.trim();
-    const password1 = pw1Input.value.trim();
-    const password2 = pw2Input.value.trim();
+    const username = (document.getElementById("username")?.value || "").trim();
+    const email = (document.getElementById("email")?.value || "").trim();
+    const password = (document.getElementById("password")?.value || "").trim();
 
-    errorBox.style.display = "none";
-
-    if (!password1 || !password2) {
-      errorBox.innerText = "비밀번호를 모두 입력해주세요.";
-      errorBox.style.display = "block";
-      return;
-    }
-
-    if (password1 !== password2) {
-      errorBox.innerText = "비밀번호가 서로 일치하지 않습니다.";
-      errorBox.style.display = "block";
-      checkPasswordMatch();
-      return;
-    }
+    if (errorBox) errorBox.style.display = "none";
 
     try {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username,
-          email,
-          password: password1,
-        }),
+        body: JSON.stringify({ username, email, password }),
       });
 
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
 
-      if (!res.ok || json.status !== "success") {
-        errorBox.innerText = json.message || "이미 가입된 회원입니다.";
-        errorBox.style.display = "block";
+      if (!res.ok || json?.status !== "success") {
+        if (errorBox) {
+          errorBox.innerText = json?.message || "회원가입에 실패했습니다.";
+          errorBox.style.display = "block";
+        }
         return;
       }
 
-      // 회원가입 성공 → 메인 페이지로 이동
-      window.location.href = "/";
+      const token = json?.data?.access_token;
+      const user = json?.data?.user;
+
+      // 회원가입 성공 시 토큰을 내려주는 버전 기준 :contentReference[oaicite:6]{index=6}
+      if (token) {
+        if (window.BelongAuth?.setToken) window.BelongAuth.setToken(token);
+        else localStorage.setItem("access_token", token);
+      }
+      if (user) localStorage.setItem("belong_user", JSON.stringify(user));
+
+      window.location.href = getNextUrl();
     } catch (err) {
-       console.error("fetch 또는 JSON 파싱 에러:", err);
-       alert("클라이언트 에러: " + err);  // 임시
-       errorBox.innerText = "서버와의 통신 중 오류가 발생했습니다.";
-       errorBox.style.display = "block";
+      console.error(err);
+      if (errorBox) {
+        errorBox.innerText = "서버와 연결할 수 없습니다.";
+        errorBox.style.display = "block";
+      }
     }
   });
 });

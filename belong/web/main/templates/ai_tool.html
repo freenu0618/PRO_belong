@@ -1,4 +1,4 @@
-{# templates/ai_tool.html (프로젝트 경로에 맞게) #}
+{# templates/ai_tool.html #}
 {% extends "base.html" %}
 
 {% block title %}AI 챗봇 서비스 - Belong{% endblock %}
@@ -70,7 +70,7 @@
               <span class="badge text-bg-light">qa</span>
             </div>
             <p class="ai-feature-desc" style="line-height:1.6;">
-              질문을 입력하면 답변을 생성합니다.
+              질문 + 지문(Context)을 입력하면 답변을 생성합니다.
             </p>
             <button class="btn btn-outline-primary rounded-4 ai-quick-select"
                     type="button"
@@ -150,8 +150,8 @@
           </div>
         </div>
 
-        <!-- 번역 옵션 -->
-        <div id="translate-options" class="mb-3">
+        <!-- 번역 옵션 (기본 숨김) -->
+        <div id="translate-options" class="mb-3" style="display:none;">
           <label for="ai-translate-direction" class="form-label me-2">번역 방향</label>
           <select id="ai-translate-direction" class="form-select form-select-sm d-inline-block w-auto">
             <option value="ko-en">한국어 → 영어</option>
@@ -159,6 +159,18 @@
           </select>
           <div class="form-text text-muted">
             * 번역 기능 선택 시에만 의미가 있습니다.
+          </div>
+        </div>
+
+        <!-- QA 옵션 (기본 숨김) -->
+        <div id="qa-options" class="mb-3" style="display:none;">
+          <label for="ai-qa-context" class="form-label fw-semibold">지문(Context)</label>
+          <textarea id="ai-qa-context"
+                    class="form-control"
+                    rows="4"
+                    placeholder="질의응답(qa)은 지문이 필수입니다. 여기에 지문을 입력하세요."></textarea>
+          <div class="form-text text-muted">
+            * qa 선택 시: text(질문) + options.context(지문)이 모두 필요합니다.
           </div>
         </div>
 
