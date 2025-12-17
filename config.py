@@ -39,6 +39,18 @@ class Config:
     JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES") or "60")
 
     # -----------------------------
+    # Security (Ngrok etc)
+    # -----------------------------
+    # CSRF 방어 설정 (Ngrok 도메인 허용)
+    WTF_CSRF_ENABLED = True
+    WTF_CSRF_TRUSTED_ORIGINS = [
+        "https://*.ngrok-free.dev", 
+        "https://*.ngrok.io",
+        "http://localhost:5000",
+        "http://127.0.0.1:5000"
+    ]
+
+    # -----------------------------
     # DB (Oracle)
     # -----------------------------
     ORACLE_USER = os.getenv("ORACLE_USER", "scott")

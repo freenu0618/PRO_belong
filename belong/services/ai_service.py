@@ -1,27 +1,20 @@
-# belong/services/ai_service.py
-from typing import Dict, Any, List, Optional
-
 import torch
 from transformers import pipeline
-
+from typing import Dict, Any, List, Optional
 from belong.extensions import logger
-
 
 class AIService:
     """
-    순수 모델 호출 담당 (PyTorch + HuggingFace)
-    - 감정 분석
-    - 개체명 인식
-    - 질의응답
+    HuggingFace Pipelines 기반 AI 서비스 (Reverted)
+    - 감정 분석 (KoELECTRA)
+    - 개체 인식 (KoELECTRA NER)
+    - 질의 응답 (KoELECTRA QA)
+    - 텍스트 요약 (T5)
+    - 번역 (mBART)
     """
 
-    def __init__(self, device: Optional[int] = None) -> None:
-        # GPU / CPU 설정
-        if device is None:
-            self.device = 0 if torch.cuda.is_available() else -1
-        else:
-            self.device = device
-
+    def __init__(self) -> None:
+        self.device = 0 if torch.cuda.is_available() else -1
         self._init_pipelines()
 
     def _init_pipelines(self) -> None:
@@ -64,7 +57,6 @@ class AIService:
             )
 
             # 5) 번역: Mbart 기반 한↔영
-
             model_id = "facebook/mbart-large-50-many-to-many-mmt"
 
             self.translate_ko_en_pipe = pipeline(
@@ -92,107 +84,42 @@ class AIService:
             raise
 
     # -----------------------
-    # 감정 분석
+    # 1. 감정 분석
     # -----------------------
-    def analyze_sentiment(self, text: str) -> Dict[str, Any]:
-        outputs: List[Dict[str, Any]] = self.sentiment_pipe([text])
-        if not outputs:
-            return {"label": "UNKNOWN", "score": 0.0}
-        out = outputs[0]
-        return {
-            "label": str(out.get("label", "")),
-            "score": float(out.get("score", 0.0)),
-        }
+    def analyze_sentiment(self, text: str, model: str = None) -> Dict[str, Any]:
+        result = self.sentiment_pipe(text)
+        # [{'label': '1', 'score': 0.9}] (1=Positive, 0=Negative typically for this model)
+        return result
 
     # -----------------------
-    # 개체 인식
+    # 2. 개체 인식
     # -----------------------
-    def analyze_entities(self, text: str) -> Dict[str, Any]:
-        raw_entities: List[Dict[str, Any]] = self.entities_pipe(text)
-        entities: List[Dict[str, Any]] = []
-        for ent in raw_entities:
-            entities.append(
-                {
-                    "entity": str(ent.get("entity_group") or ent.get("entity") or ""),
-                    "text": str(ent.get("word", "")),
-                    "score": float(ent.get("score", 0.0)),
-                    "start": int(ent.get("start", 0)),
-                    "end": int(ent.get("end", 0)),
-                }
-            )
-        return {"entities": entities}
+    def analyze_entities(self, text: str, model: str = None) -> Dict[str, Any]:
+        result = self.entities_pipe(text)
+        return {"entities": result}
 
     # -----------------------
-    # 질의응답
+    # 3. 질의 응답
     # -----------------------
-    def answer_question(self, question: str, context: str) -> Dict[str, Any]:
-        # context가 비어 있으면 모델 호출 대신 안전하게 빈 답변 반환
-        if not context:
-            return {
-                "answer": "",
-                "score": 0.0,
-                "start": 0,
-                "end": 0,
-            }
-
-        raw = self.qa_pipe({"question": question, "context": context})
-        return {
-            "answer": str(raw.get("answer", "")),
-            "score": float(raw.get("score", 0.0)),
-            "start": int(raw.get("start", 0)),
-            "end": int(raw.get("end", 0)),
-        }
+    def answer_question(self, question: str, context: str, model: str = None) -> Dict[str, Any]:
+        result = self.qa_pipe(question=question, context=context)
+        return {"answer": result['answer']}
 
     # -----------------------
-    # 텍스트 요약
+    # 4. 텍스트 요약
     # -----------------------
-    def summarize( self, text: str, max_length: int = 64, min_length: int = 16,) -> Dict[str, Any]:
-        """
-        긴 한국어 텍스트를 요약해서 반환.
-        """
-        if not text.strip():
-            return {"summary": ""}
-
-        outputs = self.summarization_pipe(
-            text,
-            max_length=max_length,
-            min_length=min_length,
-            do_sample=False,
-        )
-        if not outputs:
-            return {"summary": ""}
-
-        out = outputs[0]
-        # T5 기반 summarization의 key 는 보통 summary_text
-        summary = out.get("summary_text") or out.get("generated_text", "")
-        return {"summary": str(summary)}
+    def summarize(self, text: str, model: str = None) -> Dict[str, Any]:
+        result = self.summarization_pipe(text)
+        # [{'summary_text': '...'}]
+        return {"summary": result[0]['summary_text']}
 
     # -----------------------
-    # 번역 (한↔영)
+    # 5. 번역
     # -----------------------
-    def translate( self, text: str, direction: str = "ko-en", ) -> Dict[str, Any]:
-        """
-        direction:
-          - "ko-en" : 한국어 -> 영어
-          - "en-ko" : 영어   -> 한국어
-        """
-        if not text.strip():
-            return {"translation": "", "direction": direction}
-
-        if direction == "en-ko":
-            pipe = self.translate_en_ko_pipe
+    def translate(self, text: str, direction: str = "ko-en", model: str = None) -> Dict[str, Any]:
+        if direction == "ko-en":
+            result = self.translate_ko_en_pipe(text)
+            return {"translation": result[0]['translation_text']}
         else:
-            # 기본값: ko-en
-            direction = "ko-en"
-            pipe = self.translate_ko_en_pipe
-
-        outputs = pipe(text)
-        if not outputs:
-            return {"translation": "", "direction": direction}
-
-        out = outputs[0]
-        translated = out.get("translation_text") or out.get("generated_text", "")
-        return {
-            "translation": str(translated),
-            "direction": direction,
-        }
+            result = self.translate_en_ko_pipe(text)
+            return {"translation": result[0]['translation_text']}

@@ -62,6 +62,16 @@ def ai_home():
         description="번역, 감정 분석, 개체 분석, 텍스트 요약, 질의응답 AI 도구를 한 곳에서 사용할 수 있습니다.",
     )
 
+@web_bp.get("/tuning")
+def ai_tuning():
+    """
+    AI Model Fine-tuning, Chat, Comparison Page
+    """
+    return render_template(
+        "ai_tuning.html",
+        page_title="AI 파인튜닝",
+    )
+
 @web_bp.get("/regions/<region_name>")
 def region_detail(region_name):
     """

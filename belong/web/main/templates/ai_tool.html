@@ -51,8 +51,16 @@
     </div>
   </aside>
 
+  <!-- Mobile Sidebar Overlay -->
+  <div class="ai-sidebar-overlay" id="ai-sidebar-overlay"></div>
+
   <!-- 2. Main Chat Area -->
   <main class="ai-main">
+    <!-- Toggle Button (Visible on Mobile) -->
+    <button class="btn btn-dark d-md-none m-3 mb-0" id="btn-toggle-sidebar"
+      style="position:absolute; top:10px; left:10px; z-index:800;">
+      <span class="fs-4">☰</span>
+    </button>
     <div class="ai-chat-container" id="ai-chat-container">
       <!-- Welcome Screen -->
       <div class="ai-welcome-screen" id="ai-welcome">

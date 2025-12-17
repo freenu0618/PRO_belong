@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}회원가입{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="auth-page page-gradient">
   <div class="auth-card">
@@ -48,7 +52,7 @@
 
         <div class="mb-3">
           <label class="form-label auth-input-label">비밀번호</label>
-          <input type="password" class="form-control auth-input" id="password1" required autocomplete="new-password">
+          <input type="password" class="form-control auth-input" id="password" required autocomplete="new-password">
         </div>
 
         <div class="mb-4">
@@ -57,7 +61,7 @@
           <small id="pw-match-msg" class="fw-bold mt-1 d-block" style="display:none; font-size:0.8rem;"></small>
         </div>
 
-        <button type="submit" class="auth-btn-primary mb-3">
+        <button type="submit" class="btn btn-primary w-100 mb-3">
           가입하기
         </button>
 

@@ -173,22 +173,20 @@ def elderly_correlation():
 
     region_ids = None
 
-    if region_name:
-        region_row = db.session.query(Region).filter(Region.name == region_name).first()
-        if region_row is None:
-            return api_error(
-                404,
-                "region_not_found",
-                f"Region '{region_name}' not found",
-                region_name=region_name,
-            )
-        region_ids = [region_row.id]
-
+    # REFAC: Service에서 region_name을 직접 처리하도록 변경
     raw_data = correlation_service.compute(
         year_from=year_from,
         year_to=year_to,
-        region_ids=region_ids,
+        region_name=region_name,
     )
+    
+    if raw_data.get("error"):
+         return api_error(
+            404,
+            "region_not_found",
+            raw_data["error"],
+            region_name=region_name,
+        )
 
     if raw_data is None:
         return api_error(

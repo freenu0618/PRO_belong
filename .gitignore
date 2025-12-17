@@ -31,4 +31,10 @@ data/
 /migrations/
 probelong.cmd
 ui_dump.py
-*.md
+
+# Model outputs
+gguf_models/
+merged_models/
+output/
+llama.cpp/
+_unused/

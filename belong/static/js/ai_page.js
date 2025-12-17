@@ -147,7 +147,7 @@ $(document).ready(function () {
         const data = Array.isArray(result) ? result[0] : result;
         if (!data || (!data.label && data.label !== 0)) return formatMarkdown(JSON.stringify(result, null, 2));
 
-        const labelMap = { "POSITIVE": "긍정", "NEGATIVE": "부정", "0": "부정", "1": "긍정" };
+        const labelMap = { "POSITIVE": "긍정", "NEGATIVE": "부정", "0": "부정", "1": "긍정", "neutral": "중립", "NEUTRAL": "중립" };
         let raw = String(data.label).toUpperCase();
         let label = labelMap[raw] || raw;
         let score = (data.score * 100).toFixed(1);
@@ -162,7 +162,6 @@ $(document).ready(function () {
 
       // Entities: { entities: [...] } logic
       if (mode === "entities") {
-        // Handle { entities: [] } vs [ ... ]
         let list = result.entities ? result.entities : result;
         if (!Array.isArray(list)) return formatMarkdown(JSON.stringify(result, null, 2));
 
@@ -283,4 +282,41 @@ $(document).ready(function () {
     $chatBox.empty();
     $welcome.show();
   });
+  // 7. Sidebar Toggle Logic (Mobile)
+  const $overlay = $("#ai-sidebar-overlay");
+  const $toggleBtn = $("#btn-toggle-sidebar");
+
+  function toggleSidebar() {
+    $sidebar.toggleClass("open");
+    $overlay.toggleClass("show");
+  }
+
+  function closeSidebar() {
+    $sidebar.removeClass("open");
+    $overlay.removeClass("show");
+  }
+
+  $toggleBtn.on("click", function (e) {
+    e.stopPropagation();
+    toggleSidebar();
+  });
+
+  $overlay.on("click", function () {
+    closeSidebar();
+  });
+
+  // Close sidebar when clicking a nav item on mobile
+  $(".ai-nav-btn").on("click", function () {
+    if ($(window).width() <= 768) {
+      closeSidebar();
+    }
+  });
+
+  // Handle Resize
+  $(window).on("resize", function () {
+    if ($(window).width() > 768) {
+      closeSidebar(); // Reset mobile state when expanding
+    }
+  });
 });
+

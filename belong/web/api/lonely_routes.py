@@ -137,16 +137,15 @@ def create_prediction(region: str, year: int):
 
 @api_bp.get("/predictions/history/<region>")
 def get_prediction_history(region: str):
-    repo = current_app.config["services"]["prediction_repo"]
-    rows = repo.list_by_region(region)
+    services = current_app.config.get("services", {})
+    prediction_service = services.get("prediction_service")
+    
+    if prediction_service is None:
+        return api_error(
+            500,
+            "service_not_configured",
+            "prediction_service is configured"
+        )
 
-    return jsonify([
-        {
-            "region": r.region_name,
-            "year": r.year,
-            "prediction": r.prediction_value,
-            "source": r.source,
-            "created_at": r.created_at.isoformat(),
-        }
-        for r in rows
-    ])
+    history = prediction_service.get_prediction_history(region)
+    return jsonify(history)

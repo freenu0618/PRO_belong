@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ai_tuning.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="tuning-container">
+    <!-- Left Sidebar -->
+    <aside class="tuning-sidebar">
+        <div class="mb-4 px-2">
+            <h5 class="fw-bold text-white mb-0">AI Studio</h5>
+            <small class="text-muted">Fine-tuning & Evaluation</small>
+        </div>
+
+        <button class="tuning-nav-btn active" data-section="tuning">
+            <span class="tuning-nav-icon">🛠️</span>
+            <span>파인튜닝하기</span>
+        </button>
+        <button class="tuning-nav-btn" data-section="chat">
+            <span class="tuning-nav-icon">🤖</span>
+            <span>튜닝된 LLM 사용하기</span>
+        </button>
+        <button class="tuning-nav-btn" data-section="compare">
+            <span class="tuning-nav-icon">⚖️</span>
+            <span>LLM 비교하기</span>
+        </button>
+
+        <button class="tuning-nav-btn mt-auto" id="btn-show-help">
+            <span class="tuning-nav-icon">❓</span>
+            <span>도움말</span>
+        </button>
+    </aside>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div class="tuning-sidebar-overlay" id="tuning-sidebar-overlay"></div>
+
+    <!-- Main Content -->
+    <main class="tuning-main">
+        <!-- Toggle Button (Visible on Mobile) -->
+        <button class="btn btn-dark d-md-none m-3 mb-0" id="btn-toggle-sidebar" style="width: fit-content;">
+            <span class="fs-4">☰</span>
+        </button>
+
+        <!-- 1. Fine-Tuning Section -->
+        <section id="section-tuning" class="tuning-section active">
+            <h3 class="mb-4">RunPod 파인튜닝 설정</h3>
+            <div class="tuning-card">
+                <form id="tuning-form">
+                    <!-- Row 1: Steps & Rate -->
+                    <div class="row mb-3">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Max Steps <i class="bi bi-question-circle help-icon"
+                                    data-key="max_steps"></i></label>
+                            <input type="number" class="form-control bg-dark text-white border-secondary"
+                                name="max_steps" value="100">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Warmup Steps <i class="bi bi-question-circle help-icon"
+                                    data-key="warmup_steps"></i></label>
+                            <input type="number" class="form-control bg-dark text-white border-secondary"
+                                name="warmup_steps" value="10">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Learning Rate <i class="bi bi-question-circle help-icon"
+                                    data-key="learning_rate"></i></label>
+                            <input type="number" class="form-control bg-dark text-white border-secondary"
+                                name="learning_rate" value="0.0002" step="0.0001">
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Evaluation & Saving -->
+                    <div class="row mb-3">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Eval Steps <i class="bi bi-question-circle help-icon"
+                                    data-key="eval_steps"></i></label>
+                            <input type="number" class="form-control bg-dark text-white border-secondary"
+                                name="eval_steps" value="20">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Save Steps <i class="bi bi-question-circle help-icon"
+                                    data-key="save_steps"></i></label>
+                            <input type="number" class="form-control bg-dark text-white border-secondary"
+                                name="save_steps" value="20">
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Strategies -->
+                    <div class="row mb-3">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Evaluation Strategy</label>
+                            <select class="form-select bg-dark text-white border-secondary" name="evaluation_strategy">
+                                <option value="steps" selected>Steps</option>
+                                <option value="epoch">Epoch</option>
+                                <option value="no">No</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Save Strategy</label>
+                            <select class="form-select bg-dark text-white border-secondary" name="save_strategy">
+                                <option value="steps" selected>Steps</option>
+                                <option value="epoch">Epoch</option>
+                                <option value="no">No</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Row 4: Advanced -->
+                    <div class="row mb-3">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Optimizer</label>
+                            <select class="form-select bg-dark text-white border-secondary" name="optim">
+                                <option value="adamw_torch" selected>adamw_torch</option>
+                                <option value="adamw_hf">adamw_hf</option>
+                                <option value="sgd">sgd</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Weight Decay</label>
+                            <input type="number" class="form-control bg-dark text-white border-secondary"
+                                name="weight_decay" value="0.01" step="0.01">
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">RunPod 학습 시작</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- 2. Chat Section -->
+        <section id="section-chat" class="tuning-section">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>튜닝된 모델과 대화</h3>
+                <div class="d-flex gap-2">
+                    <select class="form-select form-select-sm bg-dark text-white border-secondary"
+                        id="chat-model-select" style="width: 250px;">
+                        <option value="llama3-8b-base-q4">Llama-3-8B-Base (Q4)</option>
+                        <option value="llama3-8b-constant-100-q4">Llama-3-8B-Constant-100 (Q4)</option>
+                        <option value="llama3-8b-cosine-100-q4">Llama-3-8B-Cosine-100 (Q4)</option>
+                        <option value="llama3-8b-cosine-1000-q4">Llama-3-8B-Cosine-1000 (Q4)</option>
+                    </select>
+                    <button class="btn btn-sm btn-outline-light" id="btn-chat-settings">고급 설정</button>
+                </div>
+            </div>
+
+            <div class="chat-window bg-dark rounded border border-secondary mb-3" id="chat-single-box">
+                <div class="chat-bubble bot">안녕하세요! 어떤 모델을 테스트해볼까요?</div>
+            </div>
+
+            <div class="input-group">
+                <textarea class="form-control bg-dark text-white border-secondary" id="chat-single-input" rows="1"
+                    placeholder="메시지를 입력하세요... (Shift+Enter 줄바꿈)"></textarea>
+                <button class="btn btn-primary" id="btn-single-send">전송</button>
+            </div>
+        </section>
+
+        <!-- 3. Compare Section -->
+        <section id="section-compare" class="tuning-section">
+            <h3 class="mb-3">모델 성능 비교</h3>
+
+            <div class="compare-container mb-3">
+                <!-- Model A Pane -->
+                <div class="compare-pane">
+                    <div class="compare-header d-flex justify-content-between align-items-center">
+                        <span class="badge bg-primary">Model A</span>
+                        <select class="form-select form-select-sm bg-dark text-white border-secondary w-50"
+                            id="model-a-select">
+                            <option value="llama3-8b-base-q4" selected>Base Model (Q4)</option>
+                            <option value="llama3-8b-constant-100-q4">Constant-100 (Q4)</option>
+                            <option value="llama3-8b-cosine-100-q4">Cosine-100 (Q4)</option>
+                            <option value="llama3-8b-cosine-1000-q4">Cosine-1000 (Q4)</option>
+                        </select>
+                    </div>
+                    <div class="compare-body" id="compare-box-a"></div>
+                </div>
+
+                <!-- Model B Pane -->
+                <div class="compare-pane">
+                    <div class="compare-header d-flex justify-content-between align-items-center">
+                        <span class="badge bg-success">Model B</span>
+                        <select class="form-select form-select-sm bg-dark text-white border-secondary w-50"
+                            id="model-b-select">
+                            <option value="llama3-8b-constant-100-q4" selected>Constant-100 (Q4)</option>
+                            <option value="llama3-8b-base-q4">Base Model (Q4)</option>
+                            <option value="llama3-8b-cosine-100-q4">Cosine-100 (Q4)</option>
+                            <option value="llama3-8b-cosine-1000-q4">Cosine-1000 (Q4)</option>
+                        </select>
+                    </div>
+                    <div class="compare-body" id="compare-box-b"></div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <textarea class="form-control bg-dark text-white border-secondary" id="compare-input" rows="1"
+                    placeholder="두 모델에게 동시에 질문하기... (Shift+Enter 줄바꿈)"></textarea>
+                <button class="btn btn-primary" id="btn-compare-send">비교하기</button>
+            </div>
+        </section>
+
+    </main>
+
+</div>
+
+<!-- Chat Settings Modal -->
+<div class="modal fade" id="chatSettingsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">고급 설정 (Advanced Settings)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="chat-settings-form">
+                    <div class="mb-3">
+                        <label class="form-label">Creativity (Temperature)</label>
+                        <input type="range" class="form-range" id="setting-temp" min="0" max="1" step="0.1" value="0.7">
+                        <div class="d-flex justify-content-between text-muted small">
+                            <span>0 (Logical)</span>
+                            <span id="label-temp-val">0.7</span>
+                            <span>1 (Creative)</span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                <button type="button" class="btn btn-primary" id="btn-save-settings">저장하기</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Container (Dynamic Content) -->
+<div class="modal fade" id="tuningHelpModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">도움말</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="tuningHelpBody">
+                <!-- Content injected by JS -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/ai_tuning.js') }}"></script>
+{% endblock %}

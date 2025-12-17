@@ -1,4 +1,4 @@
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 
 from belong.services.feature_stats_service import FeatureStatsService
 from belong.repositories.prediction_repo import PredictionRepository
@@ -187,6 +187,25 @@ class PredictionService:
             result_map[region_name] = prediction_value
 
         return result_map
+
+    def get_prediction_history(self, region_name: str) -> List[Dict[str, Any]]:
+        """
+        특정 지역의 예측 기록을 조회하여 반환.
+        """
+        if self.prediction_repo is None:
+            return []
+            
+        rows = self.prediction_repo.list_by_region(region_name)
+        return [
+            {
+                "region": r.region_name,
+                "year": r.year,
+                "prediction": r.prediction_value,
+                "source": r.source,
+                "created_at": r.created_at.isoformat(),
+            }
+            for r in rows
+        ]
     # ------------------------------------------------------------------
     # 내부 헬퍼들
     # ------------------------------------------------------------------

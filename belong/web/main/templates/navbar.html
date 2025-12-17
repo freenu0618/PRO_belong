@@ -1,27 +1,23 @@
 {# templates/navbar.html #}
-<nav class="navbar navbar-expand-lg navbar-light" data-component="navbar">
+<nav class="navbar navbar-expand-lg navbar-dark" data-component="navbar">
   <div class="container">
 
     <!-- 브랜드: 홈 -->
     <a class="navbar-brand d-flex align-items-center fw-bold" href="{{ url_for('web.index') }}">
-      <img
-        src="{{ url_for('static', filename='image/logo.png') }}"
-        alt="Belong Logo"
-        style="height:40px; border-radius:8px; margin-right:10px;"
-      >
+      <img src="{{ url_for('static', filename='image/logo.png') }}" alt="Belong Logo"
+        style="height:40px; border-radius:8px; margin-right:10px;">
       <span style="font-size:22px;">Belong</span>
     </a>
 
     <!-- 모바일 토글 -->
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-            data-bs-target="#navbarNav" aria-controls="navbarNav"
-            aria-expanded="false" aria-label="Toggle navigation">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
 
     <!-- 메뉴 -->
     <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+      <ul class="navbar-nav ms-auto align-items-lg-center gap-2 gap-lg-2">
 
         <!-- 1) 대시보드 -->
         <li class="nav-item">
@@ -33,20 +29,21 @@
           <a class="nav-link" href="{{ url_for('web.ai_home') }}">AI 챗봇</a>
         </li>
 
-        <!-- 3) AI Agent (준비중) -->
+        <!-- 3) AI 파인튜닝 (New) -->
         <li class="nav-item">
-          <a class="nav-link is-coming-soon"
-             href="#"
-             data-coming-soon="agent">
+          <a class="nav-link" href="{{ url_for('web.ai_tuning') }}">AI 파인튜닝</a>
+        </li>
+
+        <!-- 4) AI Agent (준비중) -->
+        <li class="nav-item">
+          <a class="nav-link is-coming-soon" href="#" data-coming-soon="agent">
             AI Agent <span class="badge text-bg-secondary ms-1">준비중</span>
           </a>
         </li>
 
         <!-- 4) Agentic AI (준비중) -->
         <li class="nav-item">
-          <a class="nav-link is-coming-soon"
-             href="#"
-             data-coming-soon="agentic">
+          <a class="nav-link is-coming-soon" href="#" data-coming-soon="agentic">
             Agentic AI <span class="badge text-bg-secondary ms-1">준비중</span>
           </a>
         </li>
@@ -61,12 +58,8 @@
         </li>
 
         <li class="nav-item dropdown d-none" id="nav-user">
-          <a class="nav-link dropdown-toggle"
-             href="#"
-             id="userDropdown"
-             role="button"
-             data-bs-toggle="dropdown"
-             aria-expanded="false">
+          <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown"
+            aria-expanded="false">
             <span id="nav-username">사용자</span>
           </a>
 

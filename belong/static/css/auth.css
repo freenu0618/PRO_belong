@@ -1,7 +1,7 @@
 /* static/css/auth.css */
 /* PAGE ONLY: Login/Signup (Dark Neon) */
 
-.auth-page-container {
+.auth-page {
   display: flex;
   align-items: center;
   justify-content: center;
