@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List, Dict, Optional
-import cx_Oracle
+import oracledb as cx_Oracle
 from config import Config
 from sqlalchemy import func
 

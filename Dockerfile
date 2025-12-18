@@ -1,0 +1,38 @@
+# 1. Base Image
+FROM python:3.11-slim
+
+# 2. Install System Dependencies (libaio1t64 is required for Oracle Thick Mode on Debian Trixie/Sid)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget unzip libaio1t64 \
+    && ln -s /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# 3. Work Directory
+WORKDIR /app
+
+# 3.5 Install Oracle Instant Client (for 11g Support)
+# 11g requires Thick Mode. We use Instant Client 19c (backward compatible)
+RUN wget -q https://download.oracle.com/otn_software/linux/instantclient/1924000/instantclient-basic-linux.x64-19.24.0.0.0dbru.zip -O oracle-client.zip \
+    && unzip oracle-client.zip \
+    && mkdir -p /opt/oracle \
+    && mv instantclient_19_24/* /opt/oracle/ \
+    && rm oracle-client.zip \
+    && rm -rf instantclient_19_24 \
+    && echo /opt/oracle > /etc/ld.so.conf.d/oracle-instantclient.conf \
+    && ldconfig
+
+# Set Env for Oracle
+ENV LD_LIBRARY_PATH=/opt/oracle:$LD_LIBRARY_PATH
+
+# 4. Install Dependencies
+# Install PyTorch CPU version explicitly first (to keep image small)
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 5. Copy Code
+COPY . .
+
+# 6. Run
+CMD ["python", "run.py"]

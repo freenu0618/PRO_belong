@@ -2,8 +2,11 @@ from flask import request
 from . import api_bp
 from .jwt_utils import jwt_required
 from belong.services.ollama_service import OllamaService
+import os
 
-ollama_service = OllamaService()
+# Initialize with environment variable flexibility (Docker support)
+ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
+ollama_service = OllamaService(ollama_url=ollama_url)
 
 @api_bp.post("/tuning/chat")
 @jwt_required

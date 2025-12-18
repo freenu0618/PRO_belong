@@ -19,33 +19,60 @@
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav ms-auto align-items-lg-center gap-2 gap-lg-2">
 
-        <!-- 1) 대시보드 -->
+        <!-- 1) Agentic AI (준비중) -->
         <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('web.dashboard') }}">대시보드</a>
+          <a class="nav-link is-coming-soon" href="#" data-coming-soon="agentic">
+            Agentic AI <span class="badge text-bg-secondary ms-1">준비중</span>
+          </a>
         </li>
 
-        <!-- 2) AI 챗봇 -->
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('web.ai_home') }}">AI 챗봇</a>
-        </li>
-
-        <!-- 3) AI 파인튜닝 (New) -->
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('web.ai_tuning') }}">AI 파인튜닝</a>
-        </li>
-
-        <!-- 4) AI Agent (준비중) -->
+        <!-- 2) AI Agent (준비중) -->
         <li class="nav-item">
           <a class="nav-link is-coming-soon" href="#" data-coming-soon="agent">
             AI Agent <span class="badge text-bg-secondary ms-1">준비중</span>
           </a>
         </li>
 
-        <!-- 4) Agentic AI (준비중) -->
-        <li class="nav-item">
-          <a class="nav-link is-coming-soon" href="#" data-coming-soon="agentic">
-            Agentic AI <span class="badge text-bg-secondary ms-1">준비중</span>
+        <!-- 3) AI 파인튜닝 (Dropdown) -->
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="tuningDropdown" role="button" data-bs-toggle="dropdown"
+            aria-expanded="false">
+            AI 파인튜닝
           </a>
+          <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="tuningDropdown">
+            <li><a class="dropdown-item" href="{{ url_for('web.ai_tuning') }}">파인튜닝 모델 목록</a></li>
+            <li>
+              <hr class="dropdown-divider">
+            </li>
+            <li><a class="dropdown-item" href="{{ url_for('web.ai_tuning') }}#section-tuning">파인튜닝 학습 (Training)</a>
+            </li>
+            <li><a class="dropdown-item" href="{{ url_for('web.ai_tuning') }}#section-chat">튜닝 모델 대화 (Chat)</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('web.ai_tuning') }}#section-compare">모델 성능 비교 (Compare)</a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- 4) AI 챗봇 (Dropdown) -->
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="aiChatDropdown" role="button" data-bs-toggle="dropdown"
+            aria-expanded="false">
+            AI 챗봇
+          </a>
+          <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="aiChatDropdown">
+            <li><a class="dropdown-item" href="{{ url_for('web.ai_home') }}">AI 도구 허브</a></li>
+            <li>
+              <hr class="dropdown-divider">
+            </li>
+            <!-- 예시 세부 메뉴 (실제 라우트나 기능이 있다면 연결, 현재는 허브로 통일 or #) -->
+            <li><a class="dropdown-item" href="{{ url_for('web.ai_home') }}#translation">실시간 번역</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('web.ai_home') }}#sentiment">감정 분석</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('web.ai_home') }}#summary">텍스트 요약</a></li>
+          </ul>
+        </li>
+
+        <!-- 5) 대시보드 -->
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('web.dashboard') }}">대시보드</a>
         </li>
 
         <!-- Auth -->
@@ -63,7 +90,7 @@
             <span id="nav-username">사용자</span>
           </a>
 
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+          <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="userDropdown">
             <li>
               <a class="dropdown-item" href="{{ url_for('web.logout') }}" id="logout-btn">로그아웃</a>
             </li>

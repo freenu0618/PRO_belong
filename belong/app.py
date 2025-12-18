@@ -10,6 +10,19 @@ from belong.extensions import db, migrate, logger
 from config import Config
 from belong.services.registry import register_services
 from belong.ml.region_weights import load_region_weights
+import oracledb
+import sys
+
+# Oracle 11g 지원을 위해 Thick Mode 활성화 필요
+try:
+    if sys.platform.startswith("linux"):
+        # Docker/Linux 환경 (LD_LIBRARY_PATH에 /opt/oracle 있음)
+        oracledb.init_oracle_client()
+    else:
+        # Windows 로컬 환경 (PATH에 이미 클라이언트가 있다고 가정)
+        oracledb.init_oracle_client()
+except Exception as e:
+    print(f"[WARN] Failed to initialize Oracle Client (Thick Mode): {e}")
 
 """
 api_bp → /api/v1/... 같은 REST API 엔드포인트 모음

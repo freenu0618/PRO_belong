@@ -37,7 +37,7 @@ $(document).ready(function () {
     };
 
     // 1. Navigation Logic
-    $(".tuning-nav-btn").on("click", function () {
+    $(".tuning-nav-btn[data-section]").on("click", function () {
         // Active Style
         $(".tuning-nav-btn").removeClass("active");
         $(this).addClass("active");
@@ -124,8 +124,13 @@ $(document).ready(function () {
         new bootstrap.Modal(document.getElementById('tuningHelpModal')).show();
     }
 
-    // Initial Load - Show Tuning Help
-    if ($("#section-tuning").hasClass("active")) {
+    // Initial Load - Check Hash for Deep Linking
+    const hash = window.location.hash.replace("#section-", "");
+    if (hash && ["tuning", "chat", "compare"].includes(hash)) {
+        // Trigger click on corresponding nav button
+        $(`.tuning-nav-btn[data-section="${hash}"]`).click();
+    } else if ($("#section-tuning").hasClass("active")) {
+        // Default (Tuning)
         // showHelp('tuning'); // Uncomment if you want it to pop up immediately on page load
     }
 
@@ -184,11 +189,18 @@ $(document).ready(function () {
         $("#chat-single-box").append(`<div id="${loadingId}" class="chat-bubble bot">...</div>`);
         $("#chat-single-box").scrollTop($("#chat-single-box")[0].scrollHeight);
 
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            alert("로그인 후 이용 가능합니다.");
+            window.location.href = "/login";
+            return;
+        }
+
         $.ajax({
             url: "/api/tuning/chat",
             type: "POST",
             contentType: "application/json",
-            headers: { "Authorization": "Bearer " + localStorage.getItem("accessToken") },
+            headers: { "Authorization": "Bearer " + token },
             data: JSON.stringify({
                 text: msg,
                 model: model,
@@ -217,6 +229,14 @@ $(document).ready(function () {
         $("#compare-box-b").append(`<div class="text-end mb-2 text-muted">${msg.replace(/\n/g, "<br>")}</div>`);
         $("#compare-input").val("");
 
+        // Check auth before starting comparison
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            alert("로그인 후 이용 가능합니다.");
+            window.location.href = "/login";
+            return;
+        }
+
         // Loading bubbles
         const idA = "comp-a-" + Date.now();
         const idB = "comp-b-" + Date.now();
@@ -229,11 +249,17 @@ $(document).ready(function () {
             // Compare feature specific limits
             const compareOptions = Object.assign({}, chatOptions, { num_predict: 500 });
 
+            const token = localStorage.getItem("access_token");
+            if (!token) {
+                $(`#${targetId}`).html(`<span class="text-danger">로그인 필요</span>`);
+                return;
+            }
+
             $.ajax({
                 url: "/api/tuning/compare",
                 type: "POST",
                 contentType: "application/json",
-                headers: { "Authorization": "Bearer " + localStorage.getItem("accessToken") },
+                headers: { "Authorization": "Bearer " + token },
                 data: JSON.stringify({
                     text: msg,
                     model: targetModel,

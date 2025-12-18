@@ -59,9 +59,14 @@ class Config:
 
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URI",
-        f"oracle+cx_oracle://{ORACLE_USER}:{ORACLE_PASSWORD}@{ORACLE_DSN}"
+        f"oracle+oracledb://{ORACLE_USER}:{ORACLE_PASSWORD}@{ORACLE_DSN}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # -----------------------------
+    # AI Service
+    # -----------------------------
+    OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 
     # -----------------------------
     # ML
