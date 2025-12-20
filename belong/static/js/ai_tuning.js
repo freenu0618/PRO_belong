@@ -125,14 +125,20 @@ $(document).ready(function () {
     }
 
     // Initial Load - Check Hash for Deep Linking
-    const hash = window.location.hash.replace("#section-", "");
-    if (hash && ["tuning", "chat", "compare"].includes(hash)) {
-        // Trigger click on corresponding nav button
-        $(`.tuning-nav-btn[data-section="${hash}"]`).click();
-    } else if ($("#section-tuning").hasClass("active")) {
-        // Default (Tuning)
-        // showHelp('tuning'); // Uncomment if you want it to pop up immediately on page load
+    function checkHash() {
+        const hash = window.location.hash.replace("#section-", "");
+        if (hash && ["tuning", "chat", "compare"].includes(hash)) {
+            $(`.tuning-nav-btn[data-section="${hash}"]`).click();
+        }
     }
+
+    // Run on load
+    checkHash();
+
+    // Run on hash change (Navbar link connection)
+    $(window).on("hashchange", function () {
+        checkHash();
+    });
 
     // 3. Form Handling (Using real endpoint placeholder)
     $("#tuning-form").on("submit", function (e) {
@@ -142,22 +148,44 @@ $(document).ready(function () {
     });
 
     // 4. Chat & Compare Logic (Real API)
-    let chatOptions = { temperature: 0.7 };
+    // Shared Generation Options
+    let genOptions = {
+        temperature: 0.7,
+        num_predict: 200,
+        use_cache: true
+    };
 
-    // Settings Modal Logic
-    $("#btn-chat-settings").on("click", function () {
-        // Load current value
-        $("#setting-temp").val(chatOptions.temperature);
-        $("#label-temp-val").text(chatOptions.temperature);
+    // Settings Modal Logic (Shared)
+    function openSettingsModal() {
+        // Load current values
+        $("#setting-temp").val(genOptions.temperature);
+        $("#label-temp-val").text(genOptions.temperature);
+
+        $("#setting-max-tokens").val(genOptions.num_predict);
+        $("#label-tokens-val").text(genOptions.num_predict);
+
+        $("#setting-use-cache").prop("checked", genOptions.use_cache);
+
         new bootstrap.Modal(document.getElementById('chatSettingsModal')).show();
+    }
+
+    $("#btn-chat-settings, #btn-compare-settings").on("click", function () {
+        openSettingsModal();
     });
 
     $("#setting-temp").on("input", function () {
         $("#label-temp-val").text($(this).val());
     });
 
+    $("#setting-max-tokens").on("input", function () {
+        $("#label-tokens-val").text($(this).val());
+    });
+
     $("#btn-save-settings").on("click", function () {
-        chatOptions.temperature = parseFloat($("#setting-temp").val());
+        genOptions.temperature = parseFloat($("#setting-temp").val());
+        genOptions.num_predict = parseInt($("#setting-max-tokens").val());
+        genOptions.use_cache = $("#setting-use-cache").is(":checked");
+
         // Close modal
         const modalEl = document.getElementById('chatSettingsModal');
         const modal = bootstrap.Modal.getInstance(modalEl);
@@ -204,7 +232,7 @@ $(document).ready(function () {
             data: JSON.stringify({
                 text: msg,
                 model: model,
-                options: chatOptions
+                options: genOptions
             }),
             success: function (res) {
                 // Formatting newlines in response
@@ -246,9 +274,7 @@ $(document).ready(function () {
 
         // Function to call API
         function callCompare(targetId, targetModel) {
-            // Compare feature specific limits
-            const compareOptions = Object.assign({}, chatOptions, { num_predict: 500 });
-
+            // Use genOptions directly (user-defined limits)
             const token = localStorage.getItem("access_token");
             if (!token) {
                 $(`#${targetId}`).html(`<span class="text-danger">로그인 필요</span>`);
@@ -263,7 +289,7 @@ $(document).ready(function () {
                 data: JSON.stringify({
                     text: msg,
                     model: targetModel,
-                    options: compareOptions
+                    options: genOptions
                 }),
                 success: function (res) {
                     const formatted = (res.result || "").replace(/\n/g, "<br>");

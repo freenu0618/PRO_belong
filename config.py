@@ -66,7 +66,16 @@ class Config:
     # -----------------------------
     # AI Service
     # -----------------------------
+    # -----------------------------
+    # AI Service (RunPod & Ollama)
+    # -----------------------------
     OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
+    
+    # RunPod Configuration (Pod Direct Connection)
+    # Direct TCP Address (Bypassing RunPod Proxy for stability)
+    RUNPOD_ENDPOINT_URL = os.getenv("RUNPOD_ENDPOINT_URL", "http://194.68.245.66:22109/generate")
+    RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY", "")
+
 
     # -----------------------------
     # ML

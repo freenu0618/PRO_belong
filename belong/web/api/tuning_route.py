@@ -1,42 +1,48 @@
 from flask import request
 from . import api_bp
 from .jwt_utils import jwt_required
-from belong.services.ollama_service import OllamaService
+from belong.services.ai_service import AIService
 import os
 
-# Initialize with environment variable flexibility (Docker support)
-ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
-ollama_service = OllamaService(ollama_url=ollama_url)
+# Initialize AIService (Uses RunPod Config)
+ai_service = AIService()
 
 @api_bp.post("/tuning/chat")
 @jwt_required
 def api_tuning_chat():
     payload = request.get_json() or {}
     messages = payload.get("messages", [])
-    model = payload.get("model", "llama3-8b-base-q4")
+    model = payload.get("model", "constant-100")
     options = payload.get("options", {})
     
-    # If explicit text is sent instead of messages list (shim)
-    if "text" in payload and not messages:
-        messages = [{"role": "user", "content": payload["text"]}]
-
-    result = ollama_service.chat(messages, model, options)
+    # Extract last user message for simple prompt (Adapter adaptation)
+    user_text = ""
+    if messages:
+        # Find last user message
+        for msg in reversed(messages):
+            if msg.get("role") == "user":
+                user_text = msg.get("content", "")
+                break
     
-    # Standardize response structure
-    if "message" in result: # Ollama format: result['message']['content']
+    if not user_text and "text" in payload:
+        user_text = payload["text"]
+
+    # Use AIService (RunPod) instead of OllamaService
+    result = ai_service.chat(user_text, model=model, options=options)
+    
+    # Adapt response to frontend expectation
+    if "response" in result:
         return {
             "ok": True, 
-            "result": result['message']['content'],
-            "raw": result
+            "result": result['response'], # Frontend expects raw text here usually or message object? 
+            # Looking at original code: result['message']['content'] or result['response']
+            # Let's return structure compatible with what frontend likely expects from this route
+            # If original was ollama chat, it returned 'result' as text or message object.
+            # Let's infer based on "result: result['response']" in legacy fallback
+            # We will return the text directly in 'result' key as expected by many simple UIs
         }, 200
-    
-    if "response" in result: # Legacy generate format fallback
-         return {"ok": True, "result": result['response']}, 200
-
-    if "error" in result:
-        return {"ok": False, "message": result['error']}, 500
         
-    return {"ok": False, "message": "Unknown response from Ollama"}, 500
+    return {"ok": False, "message": "Failed to generate response"}, 500
 
 
 @api_bp.post("/tuning/compare")
@@ -53,12 +59,11 @@ def api_tuning_compare():
     if not text or not model:
         return {"ok": False, "message": "Text and Model are required"}, 400
         
-    # Use generate for simple comparison (faster/simpler than chat history)
-    result = ollama_service.generate(text, model, options)
+    # Use AIService (RunPod)
+    # Reusing chat or creating a generation method? chat is fine for now.
+    result = ai_service.chat(text, model=model, options=options)
     
     if "response" in result:
         return {"ok": True, "result": result["response"]}, 200
-    if "error" in result:
-        return {"ok": False, "message": result["error"]}, 500
 
     return {"ok": False, "message": "Unknown response"}, 500

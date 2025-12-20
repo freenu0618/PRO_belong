@@ -1,0 +1,25 @@
+# Base Image: PyTorch with CUDA support (RunPod 호환성 고려)
+FROM pytorch/pytorch:2.1.2-cuda12.1-cudnn8-runtime
+
+# 작업 디렉토리 설정
+WORKDIR /app
+
+# 시스템 패키지 업데이트 및 필수 패키지 설치
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 파이썬 의존성 설치
+COPY requirements_inference.txt .
+RUN pip install --no-cache-dir -r requirements_inference.txt
+
+# 소스 코드 복사
+COPY inference_server.py .
+
+# 포트 노출 (RunPod 기본 포트 매핑 고려)
+EXPOSE 8000
+
+# 실행 명령
+# HF_TOKEN은 실행 시 환경 변수로 주입받아야 함
+CMD ["uvicorn", "inference_server:app", "--host", "0.0.0.0", "--port", "8000"]

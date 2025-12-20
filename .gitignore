@@ -16,8 +16,8 @@ Thumbs.db
 *.log
 *.sqlite3
 *.db
-docs/
-*.md
+
+
 .vscode/
 .idea/
 *.pkl
@@ -42,4 +42,4 @@ llama.cpp/
 _unused/
 
 # Documentation exceptions
-!docs/Docker_Run_Guide.md
+docs/

@@ -1,4 +1,0 @@
-FROM c:/project_belong/belong/ml/gguf_models/llama3-8b-base.gguf
-PARAMETER temperature 0.7
-PARAMETER top_p 0.9
-SYSTEM "당신은 유용한 AI 어시스턴트입니다. 한국어로 답변해 주세요."

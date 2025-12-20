@@ -212,7 +212,7 @@
 
 .solution-step.active,
 .solution-step:hover {
-    opacity: 1;
+    opacity: 1 !important;
 }
 
 .step-num {

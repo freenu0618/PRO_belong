@@ -108,7 +108,7 @@
         </h2>
 
         <div class="solution-steps mt-5">
-          <div class="solution-step active gsap-reveal-right">
+          <div class="solution-step gsap-reveal-right">
             <div class="step-num">1</div>
             <div class="step-content">
               <h4>통합 대시보드</h4>
@@ -215,13 +215,28 @@
       gsap.from(elem, {
         scrollTrigger: {
           trigger: elem,
-          start: "top 90%"
+          start: "top 90%",
+          // Remove toggleActions to avoid conflict with the class toggle below
+          // or keep it for the slide-in animation
         },
         x: 50,
         opacity: 0,
         duration: 0.8,
         delay: i * 0.1,
         ease: "power3.out"
+      });
+    });
+
+    // ✅ Solution Steps Highlight Animation (Scroll-based)
+    // 1, 2, 3, 4 turns white as they reach the viewport center
+    gsap.utils.toArray(".solution-step").forEach(step => {
+      ScrollTrigger.create({
+        trigger: step,
+        start: "top 80%", // When top of element hits 80% of viewport height (near bottom)
+        end: "bottom 20%",
+        onEnter: () => step.classList.add("active"),
+        onLeaveBack: () => step.classList.remove("active"), // Optional: Turn gray again if scrolling up
+        // markers: true // Debug
       });
     });
 

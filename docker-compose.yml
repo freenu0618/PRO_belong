@@ -22,7 +22,7 @@ services:
     environment:
       - ORACLE_DSN=host.docker.internal:1521/xe
       - OLLAMA_URL=http://host.docker.internal:11434
-      - FLASK_DEBUG=1
+      - FLASK_DEBUG=0
     env_file:
       - .env
     extra_hosts:
