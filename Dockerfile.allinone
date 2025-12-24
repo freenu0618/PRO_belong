@@ -1,0 +1,66 @@
+# User Requested Base Image (RunPod Official)
+FROM runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04
+
+# 1. System Setup
+# Install SQLite, PostgreSQL, and useful tools
+RUN apt-get update && apt-get install -y \
+    sqlite3 \
+    libsqlite3-dev \
+    postgresql \
+    postgresql-contrib \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# (Oracle Code Removed)
+
+WORKDIR /app
+
+# 2. Install Python Dependencies
+# A. Web & DB Common
+COPY requirements.txt .
+RUN pip install --no-cache-dir --ignore-installed blinker
+RUN pip install --no-cache-dir -r requirements.txt
+
+# B. AI & Inference Specific
+COPY requirements_inference.txt .
+RUN pip install --no-cache-dir -r requirements_inference.txt
+
+# C. Install Gunicorn & SQLite specific if missing (usually in requirements, but safe to add)
+RUN pip install --no-cache-dir gunicorn
+
+# 3. Copy Application Code
+# ✅ First, explicitly copy CSV files to ensure they are included
+COPY belong/ml/dataset/raw_data/*.csv /app/belong/ml/dataset/raw_data/
+
+# Then copy the rest of the application
+COPY . .
+
+# Verify CSV files are present (for debugging)
+RUN echo "📊 Checking CSV files..." && \
+    ls -lh /app/belong/ml/dataset/raw_data/*.csv && \
+    echo "✅ CSV files verified!" || \
+    echo "❌ WARNING: CSV files not found!"
+
+# 4. Environment Variables
+# Flask Env
+ENV FLASK_APP=belong.app:create_app
+ENV FLASK_ENV=production
+# SQLite DB Path (Relative to /app)
+# SQLite DB Path (Removed to default to Postgres)
+# ENV DATABASE_URL=sqlite:///app.db
+
+# 5. Expose Ports
+# 8000: AI Inference API
+# 5000: Web Server
+# Explicitly set internal AI URL for All-in-One (Localhost)
+ENV RUNPOD_ENDPOINT_URL=http://127.0.0.1:8000/generate
+
+EXPOSE 8000 5000
+
+# 6. Start Script and Utility Scripts
+COPY scripts/ /app/scripts/
+RUN chmod +x /app/scripts/*.sh 2>/dev/null || true
+COPY start_all.sh .
+RUN chmod +x start_all.sh
+
+CMD ["./start_all.sh"]

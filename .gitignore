@@ -42,4 +42,11 @@ llama.cpp/
 _unused/
 
 # Documentation exceptions
-docs/
+# Documentation exceptions
+# docs/
+
+# Ignore local Vector DB
+chroma_db/
+
+# Allow specific dataset for portfolio
+!belong/ml/dataset/raw_data/*.csv

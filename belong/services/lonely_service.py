@@ -37,15 +37,15 @@ class LonelyService:
           PredictionService를 사용해 해당 연도의 예측값을 먼저 생성한다.
         """
 
-        # 1) 미래 연도에 대해서는 예측값을 먼저 보장
-        if target_year > ACTUAL_LAST_YEAR:
-            if self.prediction_service is None:
-                raise RuntimeError(
-                    "미래 연도 고독사 TOP5를 계산하려면 PredictionService가 필요합니다."
-                )
-
-            # 모든 구에 대해 target_year 예측을 보장 (없으면 생성)
-            self.prediction_service.ensure_predictions_for_year(target_year)
+        # ⚠️ [임시 비활성화] PredictionService가 elderly_population 전용으로 하드코딩됨
+        # LonelyService에서 호출 시 고독사 데이터가 노인 인구 값으로 오염되는 문제 방지
+        # TODO: LonelyPredictionService 분리 또는 target_type 파라미터 추가 후 활성화
+        # if target_year > ACTUAL_LAST_YEAR:
+        #     if self.prediction_service is None:
+        #         raise RuntimeError(
+        #             "미래 연도 고독사 TOP5를 계산하려면 PredictionService가 필요합니다."
+        #         )
+        #     self.prediction_service.ensure_predictions_for_year(target_year)
 
         # 2) 그 다음 기존 로직대로 repo에서 (base, target) 값을 가져온다.
         rows = self.repo.get_region_values_for_years(base_year, target_year)

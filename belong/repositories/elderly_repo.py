@@ -1,8 +1,14 @@
 from __future__ import annotations
 from typing import List, Dict, Optional
-import oracledb as cx_Oracle
+# import oracledb as cx_Oracle
 from config import Config
 from sqlalchemy import func
+
+# ... (omitted shared code)
+
+# Oracle Implementation Removed (Legacy)
+# class OracleElderlyHistoryRepository(ElderlyHistoryRepository):
+#    ...
 
 from belong.extensions import db
 from belong.models.elderly_history import ElderlyHistory
@@ -125,62 +131,11 @@ class InMemoryElderlyHistoryRepository(ElderlyHistoryRepository):
     def get_region_values_for_years(self, years: List[int]) -> List[Dict]:
         raise NotImplementedError
 
-class OracleElderlyHistoryRepository(ElderlyHistoryRepository):
-    """
-    Oracle DB에서 ELDERLY_HISTORY 테이블을 읽어오는 구현체.
-
-    - cx_Oracle.SessionPool을 사용해서 커넥션 풀을 만든다.
-    - ForecastService는 이 Repo를 주입받아서 사용한다.
-    """
-
-    def __init__(
-        self,
-        user: str | None = None,
-        password: str | None = None,
-        dsn: str | None = None,
-        min_conn: int = 1,
-        max_conn: int = 4,
-        increment: int = 1,
-    ) -> None:
-        self.user = user or Config.ORACLE_USER
-        self.password = password or Config.ORACLE_PASSWORD
-        self.dsn = dsn or Config.ORACLE_DSN
-
-        self.pool = cx_Oracle.SessionPool(
-            user=self.user,
-            password=self.password,
-            dsn=self.dsn,
-            min=min_conn,
-            max=max_conn,
-            increment=increment,
-            threaded=True,
-            getmode=cx_Oracle.SPOOL_ATTRVAL_WAIT,
-        )
-
-    def get_history(self, region: str) -> Optional[List[Dict[str, int]]]:
-        conn = self.pool.acquire()
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                """
-                SELECT YEAR, ELDERLY_POP
-                FROM ELDERLY_HISTORY
-                WHERE REGION_NAME = :region
-                ORDER BY YEAR
-                """,
-                region=region,
-            )
-            rows = cur.fetchall()
-        finally:
-            self.pool.release(conn)
-
-        if not rows:
-            return None
-
-        return [
-            {"year": int(year), "value": int(value)}
-            for year, value in rows
-        ]
+# class OracleElderlyHistoryRepository(ElderlyHistoryRepository):
+#     """
+#     Oracle DB Implementation Removed for PostgreSQL Migration.
+#     """
+#     pass
 
 class SqlAlchemyElderlyHistoryRepository(ElderlyHistoryRepository):
     """

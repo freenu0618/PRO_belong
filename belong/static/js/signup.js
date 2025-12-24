@@ -29,9 +29,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const json = await res.json().catch(() => ({}));
 
-      if (!res.ok || json?.status !== "success") {
+      // ✅ 새 API 응답 형식: {ok: true, data: {...}}
+      if (!res.ok || json?.ok !== true) {
         if (errorBox) {
-          errorBox.innerText = json?.message || "회원가입에 실패했습니다.";
+          errorBox.innerText = json?.error?.message || json?.message || "회원가입에 실패했습니다.";
           errorBox.style.display = "block";
         }
         return;

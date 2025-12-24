@@ -1,11 +1,6 @@
 // static/js/navbar.js
+// 네비게이션 바 UI 로직 (인증은 auth_ui.js에서 처리)
 document.addEventListener("DOMContentLoaded", () => {
-  const navLogin = document.getElementById("nav-login");
-  const navSignup = document.getElementById("nav-signup");
-  const navUser = document.getElementById("nav-user");
-  const navUsername = document.getElementById("nav-username");
-  const logoutBtn = document.getElementById("logout-btn");
-
   // 1) Active state (underline) — 현재 URL 기준으로 nav-link에 .active 부여
   try {
     const path = window.location.pathname.replace(/\/+$/, "") || "/";
@@ -24,36 +19,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // ignore
   }
 
-  // 2) Login state (P2에서 JWT 정식 연결 예정)
-  //    지금 단계(P0)에서는: access_token(또는 belong_user) 존재 여부로만 UI 토글.
-  const token =
-    localStorage.getItem("access_token") ||
-    localStorage.getItem("belong_access_token") ||
-    "";
-
-  let user = null;
-  try {
-    user = JSON.parse(localStorage.getItem("belong_user") || "null");
-  } catch (e) {
-    user = null;
-  }
-
-  const isLoggedIn = Boolean(token) || Boolean(user && user.username);
-
-  if (isLoggedIn) {
-    navLogin?.classList.add("d-none");
-    navSignup?.classList.add("d-none");
-    navUser?.classList.remove("d-none");
-    if (navUsername) navUsername.textContent = (user && user.username) ? user.username : "사용자";
-
-    logoutBtn?.addEventListener("click", () => {
-      localStorage.removeItem("belong_user");
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("belong_access_token");
-    });
-  } else {
-    navLogin?.classList.remove("d-none");
-    navSignup?.classList.remove("d-none");
-    navUser?.classList.add("d-none");
-  }
+  // ✅ 인증 로직 제거 - auth_ui.js에서 처리
+  // navbar.js는 링크 활성화만 담당
 });

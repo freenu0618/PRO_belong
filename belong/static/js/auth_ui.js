@@ -64,12 +64,14 @@
       return { ok: false, status: `http-${res.status}`, user: null, json };
     }
 
-    if (!json || json.status !== "success") {
+    // ✅ 수정: json.ok === true 확인 (API 응답 형식에 맞춤)
+    if (!json || json.ok !== true) {
       return { ok: false, status: "bad-payload", user: null, json };
     }
 
     return { ok: true, status: "ok", user: json.data?.user ?? null };
   }
+
 
   // ---- UI 토글 (너 프로젝트 네비 id 기준) ----
   function setNavLoggedOut() {
@@ -101,7 +103,7 @@
         await fetch("/api/auth/logout", {
           method: "POST",
           headers: { "Authorization": `Bearer ${token}` },
-        }).catch(() => {});
+        }).catch(() => { });
       }
     } finally {
       clearToken();

@@ -61,3 +61,20 @@ class ChatMessageRepository:
             lines.append(f"{prefix}: {m.content}")
 
         return "\n".join(lines)
+
+    # ----------------------------------------
+    # ChatService 호환용 별칭 메서드
+    # ----------------------------------------
+    def save(
+        self,
+        user_id: int,
+        role: str,
+        service: str,
+        content: str,
+    ) -> ChatMessage:
+        """ChatService 호환: save_message() 별칭"""
+        return self.save_message(user_id, role, service, content)
+
+    def list_by_user(self, user_id: int, limit: int = 10) -> List[ChatMessage]:
+        """ChatService 호환: get_recent_messages() 별칭"""
+        return self.get_recent_messages(user_id, limit)

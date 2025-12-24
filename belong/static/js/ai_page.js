@@ -6,10 +6,12 @@ $(document).ready(function () {
   let currentMode = "translate";
   const modeLabels = {
     translate: "AI 번역",
-    sentiment: "감정 분석",
-    entities: "개체 분석",
     summary: "텍스트 요약",
+    rerank: "문서 재순위 (Reranker)",
+    "text-gen": "AI 텍스트 생성",
     qa: "질의 응답",
+    agent: "AI Agent (RAG)",
+    comparison: "모델 비교 (Base vs Tuned)",
     guide: "사용 가이드"
   };
 
@@ -30,6 +32,22 @@ $(document).ready(function () {
   const $transDir = $("#opt-trans-direction");
   const $qaContext = $("#opt-qa-context");
 
+  // 0. Initial Mode Setup (from URL)
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialMode = urlParams.get('mode');
+  if (initialMode && modeLabels[initialMode]) {
+    setTimeout(() => $(`.ai-nav-btn[data-mode="${initialMode}"]`).click(), 50);
+  } else {
+    // Default to Agent
+    // $(`.ai-nav-btn[data-mode="agent"]`).click();
+  }
+
+  // 0.5. Welcome Card Click Handlers
+  $('.welcome-card[data-mode]').on('click', function () {
+    const mode = $(this).data('mode');
+    $(`.ai-nav-btn[data-mode="${mode}"]`).click();
+  });
+
   // 1. Mode Switching
   $(".ai-nav-btn[data-mode]").on("click", function () {
     const mode = $(this).data("mode");
@@ -49,9 +67,19 @@ $(document).ready(function () {
     // Update Options Visibility
     $optTranslate.hide();
     $optQa.hide();
+    $("#opt-rag").hide(); // Default hide
 
     if (currentMode === "translate") $optTranslate.show();
-    if (currentMode === "qa") $optQa.show();
+    if (currentMode === "qa") {
+      $optQa.show();
+      $("#opt-rag").show();
+    }
+    // Agent also uses RAG option maybe? For now Agent forces RAG in backend logic, but UI option might be useful if we want to toggle.
+    // Let's keep Agent simple (always RAG or implicit).
+
+    // Comparison container logic removed (moved to AI Lab)
+    $("#ai-chat-box").removeClass("d-none");
+    $("#ai-compare-box").addClass("d-none"); // Ensure hidden just in case
 
     // Auto-focus input
     $input.focus();
@@ -97,17 +125,46 @@ $(document).ready(function () {
     addBubble("user", escapeHtml(text));
     setLoading(true);
 
-    const payload = { text: text, options: {} };
-    if (currentMode === "translate") payload.options.direction = $transDir.val();
-    if (currentMode === "qa") payload.options.context = $qaContext.val();
-
     const token = getToken();
-    const endpoint = `/api/ai/${currentMode}`;
-
     if (!token) {
       addBubble("assistant", "로그인이 필요합니다.");
       setLoading(false);
       return;
+    }
+
+    // 4. Send Logic
+    // Comparison mode removed from this page (Moved to AI Lab)
+
+    // 2. Standard Modes (Agent, QA, Translate, etc.)
+    const payload = { text: text, options: {} };
+    let endpoint = `/api/ai/${currentMode}`;
+
+    // Agent Mode: Force Chat Endpoint with RAG
+    if (currentMode === "agent") {
+      endpoint = "/api/ai/chat";
+      payload.model = "lora_best_r32";
+      payload.options.use_rag = true;
+    } else if (currentMode === "qa") {
+      payload.options.context = $qaContext.val();
+      payload.options.use_rag = $("#opt-use-rag").is(":checked");
+    } else if (currentMode === "translate") {
+      payload.options.direction = $transDir.val();
+    } else if (currentMode === "rerank") {
+      // Reranker: 쿼리와 문서 리스트 필요
+      endpoint = "/api/ai/rerank";
+      delete payload.text;  // text 대신 query 사용
+      payload.query = text;
+      // 간단한 데모: 줄바꿈으로 문서 분리
+      payload.documents = text.split("\n").filter(line => line.trim().length > 10);
+      if (payload.documents.length === 0) {
+        payload.documents = [text];  // 문서가 없으면 전체를 하나로
+      }
+    } else if (currentMode === "text-gen") {
+      // AI 텍스트 생성 (MobileLLM) - 순수 텍스트 생성
+      endpoint = "/api/ai/text-gen";
+      delete payload.text;
+      payload.prompt = text;
+      // 함수 정의 없이 순수 텍스트 생성
     }
 
     $.ajax({
@@ -141,6 +198,11 @@ $(document).ready(function () {
   function humanizeResponse(mode, result) {
     try {
       if (typeof result === "string") return formatMarkdown(result);
+
+      // Agent & Chat: { response: "..." }
+      if (mode === "agent" || mode === "chat") {
+        return formatMarkdown(result.response || JSON.stringify(result));
+      }
 
       // Sentiment: { label: "1"/"0", score: ... }
       if (mode === "sentiment") {
@@ -191,6 +253,29 @@ $(document).ready(function () {
       if (mode === "qa") {
         if (!result.answer) return "질문에 대한 적절한 답변을 찾지 못했습니다. 본문(Context) 내용을 다시 확인해 주세요.";
         return formatMarkdown(`**답변:** ${result.answer}`);
+      }
+
+      // Rerank: { ranked_documents: [...] }
+      if (mode === "rerank") {
+        if (!result.ranked_documents || result.ranked_documents.length === 0) {
+          return formatMarkdown("재순위 결과가 없습니다.");
+        }
+        let msg = "**📊 문서 재순위 결과:**\n\n";
+        result.ranked_documents.forEach((doc, i) => {
+          msg += `${i + 1}. (${(doc.score * 100).toFixed(1)}%) ${doc.text.substring(0, 100)}...\n\n`;
+        });
+        return formatMarkdown(msg);
+      }
+
+      // AI 텍스트 생성: raw_output만 표시
+      if (mode === "text-gen") {
+        if (result.error) return formatMarkdown(`**오류:** ${result.error}`);
+
+        // 생성된 텍스트만 깔끔하게 표시
+        if (result.raw_output) {
+          return formatMarkdown(`**✨ AI 생성 결과:**\n\n${result.raw_output}`);
+        }
+        return formatMarkdown("생성된 텍스트가 없습니다.");
       }
 
       // Fallback
@@ -258,13 +343,23 @@ $(document).ready(function () {
   function escapeHtml(s) { return $('<div>').text(s).html(); }
 
   function formatMarkdown(text) {
-    let out = text || "";
-    out = out.replace(/```(\w+)?\n?([\s\S]*?)```/g, function (match, lang, code) {
-      lang = lang || "text";
-      return `<div class="ai-code-block"><div class="code-header"><span class="lang">${lang}</span><button class="btn-copy">Copy</button></div><pre><code>${code.trim()}</code></pre><div style="display:none;" class="raw-code">${code.trim()}</div></div>`;
+    // 코드 블록 내부 줄바꿈 보존을 위해 placeholder로 교체 후 복원
+    const codeBlocks = [];
+    let out = (text || "").replace(/```(\w+)?\n?([\s\S]*?)```/g, function (match, lang, code) {
+      codeBlocks.push({ lang: lang || "text", code: code.trim() });
+      return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
     });
+
+    // 일반 텍스트 마크다운 처리
     out = out.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     out = out.replace(/\n/g, '<br>');
+
+    // 코드 블록 복원 (줄바꿈은 <pre> 내부에서 자동 보존됨)
+    codeBlocks.forEach((block, i) => {
+      const html = `<div class="ai-code-block"><div class="code-header"><span class="lang">${block.lang}</span><button class="btn-copy">Copy</button></div><pre><code>${block.code}</code></pre><div style="display:none;" class="raw-code">${block.code}</div></div>`;
+      out = out.replace(`__CODE_BLOCK_${i}__`, html);
+    });
+
     return out;
   }
 

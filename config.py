@@ -42,25 +42,23 @@ class Config:
     # Security (Ngrok etc)
     # -----------------------------
     # CSRF 방어 설정 (Ngrok 도메인 허용)
-    WTF_CSRF_ENABLED = True
+    # [Demo Fix] RunPod 동적 IP 접속 시 CSRF 에러 방지를 위해 비활성화
+    WTF_CSRF_ENABLED = True 
     WTF_CSRF_TRUSTED_ORIGINS = [
         "https://*.ngrok-free.dev", 
         "https://*.ngrok.io",
+        "https://*.runpod.net",
         "http://localhost:5000",
         "http://127.0.0.1:5000"
     ]
 
     # -----------------------------
-    # DB (Oracle)
+    # DB (PostgreSQL)
     # -----------------------------
-    ORACLE_USER = os.getenv("ORACLE_USER", "scott")
-    ORACLE_PASSWORD = os.getenv("ORACLE_PASSWORD", "tiger")
-    ORACLE_DSN = os.getenv("ORACLE_DSN", "localhost:1521/xe")
-
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URI",
-        f"oracle+oracledb://{ORACLE_USER}:{ORACLE_PASSWORD}@{ORACLE_DSN}"
-    )
+    # DATABASE_URI가 있으면(Postgres) 사용, 없으면 로컬 SQLite 사용 (개발 편의성)
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URI", os.getenv("DATABASE_URL")) or "sqlite:///local_dev.db"
+    
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # -----------------------------
@@ -73,7 +71,7 @@ class Config:
     
     # RunPod Configuration (Pod Direct Connection)
     # Direct TCP Address (Bypassing RunPod Proxy for stability)
-    RUNPOD_ENDPOINT_URL = os.getenv("RUNPOD_ENDPOINT_URL", "http://194.68.245.66:22109/generate")
+    RUNPOD_ENDPOINT_URL = os.getenv("RUNPOD_ENDPOINT_URL", "http://127.0.0.1:8000/generate")
     RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY", "")
 
 

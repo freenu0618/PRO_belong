@@ -11,21 +11,21 @@ services:
     environment:
       - APP_ENV=production
       - RUNPOD_ENDPOINT_URL=http://194.68.245.66:22109/generate # AI Pod IP (Check again!)
-      - ORACLE_DSN=db:1521/xe
-      - ORACLE_USER=system
-      - ORACLE_PASSWORD=oracle
+      - DATABASE_URI=postgresql://postgres:password@db:5432/belong_db
     depends_on:
       - db
 
-  # 2. Database Service (Oracle 11g XE)
+  # 2. Database Service (PostgreSQL 15)
   db:
-    image: gvenzl/oracle-xe:11
+    image: postgres:15
     container_name: belong-db
     restart: always
     environment:
-      - ORACLE_PASSWORD=oracle
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=belong_db
     volumes:
-      - oracle_data:/opt/oracle/oradata # Data Persistence
+      - postgres_data:/var/lib/postgresql/data # Data Persistence
 
 volumes:
-  oracle_data:
+  postgres_data:

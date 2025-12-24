@@ -116,6 +116,7 @@
 .ai-chat-container {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 20px 0;
   scroll-behavior: smooth;
 }
@@ -315,6 +316,10 @@
   line-height: 1.6;
   position: relative;
   font-size: 1rem;
+  /* Text overflow fixes */
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .ai-user {

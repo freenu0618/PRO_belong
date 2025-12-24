@@ -5,24 +5,21 @@ from sqlalchemy import func
 
 from belong.extensions import db
 from belong.models.region import Region
-from belong.models.feature_stats import ElderlyStats  # ELDERLY_STATS
+from belong.models.elderly_history import ElderlyHistory  # ✅ 변경: ELDERLY_HISTORY 사용
 from belong.models.prediction_result import PredictionResult  # PREDICTION_RESULT
 
 
 class LonelyForecastRepository:
     """
     고독사 모달(한 구 상세)을 위해
-    - ELDERLY_STATS(실측),
+    - ELDERLY_HISTORY(실측) - seed_data.py로 채워진 테이블
     - PREDICTION_RESULT(예측)
     를 조회하는 전용 레포지토리.
-
-    여기서는 'DB에서 꺼내서 리스트로 돌려주는 역할'만 한다.
-    region, message, is_forecast 같은 가공은 Service가 맡는다.
     """
 
     def get_history(self, region_name: str, max_year: int | None = None) -> List[Dict[str, Any]]:
         """
-        ELDERLY_STATS에서 해당 구의 '실측' 고독사 데이터를 연도별로 조회.
+        ELDERLY_HISTORY에서 해당 구의 '실측' 고독사 데이터를 연도별로 조회.
 
         반환 예:
         [
@@ -38,24 +35,24 @@ class LonelyForecastRepository:
             .first()
         )
         if region is None:
-            # Repo는 그냥 빈 리스트만 주고, "없는 구" 메시지는 Service가 처리
             return []
 
-        # 2) ELDERLY_STATS에서 연도별 합계 조회
+        # 2) ELDERLY_HISTORY에서 연도별 합계 조회 (is_forecast='N'인 실측 데이터만)
         q = (
             db.session.query(
-                ElderlyStats.year.label("year"),
-                func.sum(ElderlyStats.target_value).label("value"),
+                ElderlyHistory.year.label("year"),
+                func.sum(ElderlyHistory.elderly_population).label("value"),
             )
-            .filter(ElderlyStats.region_id == region.id)
+            .filter(ElderlyHistory.region_id == region.id)
+            .filter(ElderlyHistory.is_forecast == 'N')  # 실측 데이터만
         )
 
         if max_year is not None:
-            q = q.filter(ElderlyStats.year <= max_year)
+            q = q.filter(ElderlyHistory.year <= max_year)
 
         rows = (
-            q.group_by(ElderlyStats.year)
-            .order_by(ElderlyStats.year.asc())
+            q.group_by(ElderlyHistory.year)
+            .order_by(ElderlyHistory.year.asc())
             .all()
         )
 
@@ -66,6 +63,7 @@ class LonelyForecastRepository:
             }
             for row in rows
         ]
+
 
     def get_forecast(
         self,

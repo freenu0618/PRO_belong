@@ -34,8 +34,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const json = await res.json().catch(() => null);
 
-      if (!res.ok || !json || json.status !== "success") {
-        const msg = json?.message || "아이디 또는 비밀번호가 올바르지 않습니다.";
+      // ✅ 새 API 응답 형식: {ok: true, data: {...}}
+      if (!res.ok || !json || json.ok !== true) {
+        const msg = json?.error?.message || json?.message || "아이디 또는 비밀번호가 올바르지 않습니다.";
         if (errorBox) {
           errorBox.innerText = msg;
           errorBox.style.display = "block";

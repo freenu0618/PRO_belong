@@ -10,6 +10,7 @@ from belong.models.region import Region
 from belong.extensions import db
 
 from .routes import api_error, _clean_nan, _validate_year, _validate_year_range
+from .response_utils import success_response, bad_request, not_found, server_error
 
 # -----------------------------
 # Service 인스턴스 (간단 전역)
@@ -118,7 +119,7 @@ def api_elderly_forecast(region: str):
 
     응답:
     {
-      "status": "success",
+      "ok": true,
       "data": {
         "region": "강남구",
         "history": [...],
@@ -129,29 +130,15 @@ def api_elderly_forecast(region: str):
     """
     region = region.strip()
     if not region:
-        return (
-            jsonify(
-                {"status": "error", "message": "region 경로 파라미터는 필수입니다."}
-            ),
-            400,
-        )
+        return bad_request("region 경로 파라미터는 필수입니다.")
 
     data = forecast_service.forecast_region(region)
 
-    # history/forecast 둘 다 비어 있으면 404로 돌려줘도 JS 쪽에서 잘 처리됨
+    # history/forecast 둘 다 비어 있으면 404로 돌려줘도 JS 지서서 잘 처리됨
     if not data.get("history") and not data.get("forecast"):
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": f"'{region}' 구의 노인 인구 데이터를 찾을 수 없습니다.",
-                    "data": data,
-                }
-            ),
-            404,
-        )
+        return not_found(f"'{region}' 구의 노인 인구 데이터를 찾을 수 없습니다.")
 
-    return jsonify({"status": "success", "data": data})
+    return success_response(data)
 
 
 # =========================================================

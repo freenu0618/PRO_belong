@@ -4,6 +4,7 @@ from . import api_bp
 
 from belong.services.lonely_forecast_service import LonelyForecastService
 from .routes import api_error, _validate_year
+from .response_utils import success_response, bad_request, not_found, server_error
 
 lonely_forecast_service = LonelyForecastService()
 
@@ -33,7 +34,7 @@ def api_lonely_forecast():
 
     응답:
     {
-      "status": "success",
+      "ok": true,
       "data": {
         "region": "강남구",
         "history": [...],
@@ -44,28 +45,14 @@ def api_lonely_forecast():
     """
     region = request.args.get("region", "", type=str).strip()
     if not region:
-        return (
-            jsonify(
-                {"status": "error", "message": "region 쿼리 파라미터는 필수입니다."}
-            ),
-            400,
-        )
+        return bad_request("region 쿼리 파라미터는 필수입니다.")
 
     data = lonely_forecast_service.forecast_region(region)
 
     if not data.get("history") and not data.get("forecast"):
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": f"'{region}' 구의 고독사 실측/예측 데이터를 찾을 수 없습니다.",
-                    "data": data,
-                }
-            ),
-            404,
-        )
+        return not_found(f"'{region}' 구의 고독사 실측/예측 데이터를 찾을 수 없습니다.")
 
-    return jsonify({"status": "success", "data": data})
+    return success_response(data)
 
 
 # =========================================================

@@ -277,11 +277,15 @@
   }
 
   function extractHistory(json) {
-    return (json?.data?.history || []).map(p => ({ year: Number(p.year), value: Number(p.value) || 0 }));
+    // ✅ 새 API 응답: {ok: true, data: {history: [...]}}
+    // 기존 호환: {status: "success", data: {history: [...]}}
+    const data = json?.data || json;
+    return (data?.history || []).map(p => ({ year: Number(p.year), value: Number(p.value) || 0 }));
   }
 
   function extractForecast(json) {
-    return (json?.data?.forecast || []).map(p => ({ year: Number(p.year), value: Number(p.value) || 0 }));
+    const data = json?.data || json;
+    return (data?.forecast || []).map(p => ({ year: Number(p.year), value: Number(p.value) || 0 }));
   }
 
   function sumSeriesByYear(seriesList) {

@@ -13,34 +13,29 @@
 
   <!-- 1. Sidebar -->
   <aside class="ai-sidebar" id="ai-sidebar">
-    <div class="ai-sidebar-header">AI Capabilities</div>
+    <div class="ai-sidebar-header">AI Service Workspace</div>
 
+    <!-- Group: Utility Tools (유틸리티 도구) -->
+    <div class="sidebar-group-label">유틸리티 도구 (HuggingFace)</div>
     <button class="ai-nav-btn active" data-mode="translate">
       <span class="ai-nav-icon">🌐</span>
       <span>AI 번역 (Translate)</span>
-    </button>
-    <button class="ai-nav-btn" data-mode="sentiment">
-      <span class="ai-nav-icon">❤️</span>
-      <span>감정 분석 (Sentiment)</span>
-    </button>
-    <button class="ai-nav-btn" data-mode="entities">
-      <span class="ai-nav-icon">🏷️</span>
-      <span>개체 분석 (Entities)</span>
     </button>
     <button class="ai-nav-btn" data-mode="summary">
       <span class="ai-nav-icon">📝</span>
       <span>텍스트 요약 (Summary)</span>
     </button>
+    <button class="ai-nav-btn" data-mode="rerank">
+      <span class="ai-nav-icon">📊</span>
+      <span>문서 재순위 (Reranker)</span>
+    </button>
+    <button class="ai-nav-btn" data-mode="text-gen">
+      <span class="ai-nav-icon">⚡</span>
+      <span>AI 텍스트 생성</span>
+    </button>
     <button class="ai-nav-btn" data-mode="qa">
       <span class="ai-nav-icon">❓</span>
-      <span>질의 응답 (Q&A)</span>
-    </button>
-
-    <hr style="border-color: rgba(255,255,255,0.1); margin: 15px 0;">
-
-    <button class="ai-nav-btn" data-mode="guide">
-      <span class="ai-nav-icon">📖</span>
-      <span>사용 가이드 (Guide)</span>
+      <span>문서 질의 (Q&A)</span>
     </button>
 
     <div class="mt-auto">
@@ -63,17 +58,58 @@
     </button>
     <div class="ai-chat-container" id="ai-chat-container">
       <!-- Welcome Screen -->
+      <!-- Welcome Screen -->
       <div class="ai-welcome-screen" id="ai-welcome">
         <div class="ai-logo-large">✨</div>
-        <h2 class="mb-3">무엇을 도와드릴까요?</h2>
-        <p>왼쪽 메뉴에서 기능을 선택하거나,<br>아래 채팅창에 바로 입력해 보세요.</p>
-        <div class="mt-4 badge bg-primary bg-opacity-10 text-primary p-2">Currently: <span id="current-mode-label">AI
-            번역</span></div>
+        <h2 class="mb-2">AI Service Workspace</h2>
+        <p class="text-muted mb-5">원하시는 AI 기능을 선택하여 업무 효율을 높여보세요.</p>
+
+        <div class="welcome-grid">
+          <!-- Card 1: Agent -->
+          <div class="welcome-card" data-mode="agent">
+            <div class="icon">🤖</div>
+            <div class="title">AI 에이전트</div>
+            <div class="desc">사내 규정 및 정책 문서를 기반으로<br>정확하고 전문적인 답변을 제공합니다.</div>
+          </div>
+
+          <!-- Card 2: General Chat (Mapped to Agent/QA or a specific mode if we had one. Using QA context for now or just generic info) -->
+          <!-- Actually, let's point to QA purely for 'General' if Agent is specialized. Or just Tools. -->
+          <div class="welcome-card" data-mode="qa">
+            <div class="icon">❓</div>
+            <div class="title">문서 질의 (Q&A)</div>
+            <div class="desc">사용자가 입력한 문서를 바탕으로<br>질문에 답하는 맞춤형 질의응답입니다.</div>
+          </div>
+
+          <!-- Card 3: Tools -->
+          <div class="welcome-card" data-mode="translate">
+            <div class="icon">🛠️</div>
+            <div class="title">유틸리티 도구</div>
+            <div class="desc">번역, 요약, 감정 분석 등<br>다양한 언어 처리 도구를 사용하세요.</div>
+          </div>
+        </div>
       </div>
 
       <!-- Chat Buckets -->
       <div class="ai-bubble-container" id="ai-chat-box">
         <!-- Bubbles go here -->
+      </div>
+
+      <!-- Comparison Buckets (Hidden by default) -->
+      <div class="compare-container d-none" id="ai-compare-box" style="padding: 0 20px;">
+        <!-- Model A -->
+        <div class="compare-pane">
+          <div class="compare-header">
+            <span class="badge bg-primary">기본 모델 (Llama-3 Base)</span>
+          </div>
+          <div class="compare-body" id="compare-body-a"></div>
+        </div>
+        <!-- Model B -->
+        <div class="compare-pane">
+          <div class="compare-header">
+            <span class="badge bg-success">파인튜닝 모델 (lora_best_r32)</span>
+          </div>
+          <div class="compare-body" id="compare-body-b"></div>
+        </div>
       </div>
     </div>
 
@@ -93,6 +129,9 @@
               <option value="en_ko">영어 → 한국어</option>
             </select>
           </div>
+
+          <!-- RAG Options Removed - Now only in AI Lab -->
+          <!-- Users should use /tuning for RAG functionality -->
 
           <!-- QA Options -->
           <div class="option-group" id="opt-qa" style="display:none;">

@@ -33,8 +33,130 @@ $(document).ready(function () {
                 <li>왼쪽과 오른쪽에 비교하고 싶은 모델을 각각 선택하세요.</li>
                 <li>질문을 입력하고 <b>'비교하기'</b>를 누르면 동시에 대답을 내놓습니다.</li>
             </ul>
+        `,
+        docs: `
+            <h6>📚 지식 베이스 관리 (RAG)</h6>
+            <p><b>"AI에게 새로운 지식을 가르쳐주세요."</b></p>
+            <p>PDF나 TXT 파일을 업로드하면, AI가 그 내용을 읽고 기억합니다. (Retrieval-Augmented Generation)</p>
+            <hr>
+            <ul>
+                <li><b>파일 업로드</b>: 정책 문서, 매뉴얼, 보고서 등을 업로드하세요.</li>
+                <li><b>지식 활용</b>: 업로드 후 '모델 대화'에서 질문하면, 이 내용을 참고(Reference)하여 답변합니다.</li>
+            </ul>
         `
     };
+
+    // 0. Dynamic Model Loading
+    function loadModels() {
+        $.ajax({
+            url: "/api/tuning/models",
+            method: "GET",
+            success: function (res) {
+                // Flask success_response는 data로 감싸서 반환
+                const data = res.data || res;
+                const models = data.models || [];
+                if (models.length > 0) {
+                    const $selects = $("#chat-model-select, #model-a-select, #model-b-select");
+                    $selects.empty();
+
+                    models.forEach(model => {
+                        let label = model;
+                        if (model === "base") label = "Llama-3-8B-Base (Original)";
+                        // Prettify Lora names if needed
+
+                        $selects.append(`<option value="${model}">${label}</option>`);
+                    });
+
+                    if (models.length > 1) {
+                        $("#model-b-select").val(models[1]);
+                    }
+                    console.log("✅ Models loaded:", models);
+
+                    // ✅ 저장된 모델 목록 UI 갱신
+                    loadSavedModelsUI(models);
+                }
+            },
+            error: function (err) {
+                console.error("Failed to load models:", err);
+            }
+        });
+    }
+    loadModels();
+
+    // ✅ 저장된 모델 관리 UI
+    function loadSavedModelsUI(models) {
+        const $container = $("#saved-models-list");
+        $container.empty();
+
+        const protected = ["base", "lora_best_r32"];
+
+        models.forEach(model => {
+            const isProtected = protected.includes(model);
+            const card = `
+                <div class="col-md-4 col-sm-6">
+                    <div class="card bg-secondary bg-opacity-25 border-secondary">
+                        <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="text-white">${model}</span>
+                                ${isProtected ? '<span class="badge bg-info ms-2">기본</span>' : ''}
+                            </div>
+                            ${!isProtected ? `
+                                <button class="btn btn-outline-danger btn-sm btn-delete-model" 
+                                        data-model="${model}" title="삭제">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            $container.append(card);
+        });
+
+        if (models.length === 0) {
+            $container.html('<div class="text-muted">저장된 모델이 없습니다.</div>');
+        }
+    }
+
+    // ✅ 모델 삭제 버튼 이벤트
+    $(document).on("click", ".btn-delete-model", function () {
+        const modelName = $(this).data("model");
+        if (!confirm(`'${modelName}' 모델을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+            return;
+        }
+
+        const token = localStorage.getItem("access_token");
+        const $btn = $(this);
+        $btn.prop("disabled", true).html('<i class="bi bi-hourglass-split"></i>');
+
+        $.ajax({
+            url: `/api/tuning/models/${modelName}`,
+            method: "DELETE",
+            headers: { "Authorization": "Bearer " + token },
+            success: function (res) {
+                const data = res.data || res;
+                if (data.ok) {
+                    alert(`✅ '${modelName}' 삭제 완료!`);
+                    loadModels();  // 목록 새로고침
+                } else {
+                    alert(`❌ 오류: ${data.error || "삭제 실패"}`);
+                }
+            },
+            error: function (xhr) {
+                const err = xhr.responseJSON?.error?.message || "삭제 실패";
+                alert(`❌ 오류: ${err}`);
+            },
+            complete: function () {
+                $btn.prop("disabled", false).html('<i class="bi bi-trash"></i>');
+            }
+        });
+    });
+
+    // ✅ 새로고침 버튼
+    $("#btn-refresh-models").on("click", function () {
+        loadModels();
+    });
+
 
     // 1. Navigation Logic
     $(".tuning-nav-btn[data-section]").on("click", function () {
@@ -127,7 +249,7 @@ $(document).ready(function () {
     // Initial Load - Check Hash for Deep Linking
     function checkHash() {
         const hash = window.location.hash.replace("#section-", "");
-        if (hash && ["tuning", "chat", "compare"].includes(hash)) {
+        if (hash && ["tuning", "chat", "compare", "docs"].includes(hash)) {
             $(`.tuning-nav-btn[data-section="${hash}"]`).click();
         }
     }
@@ -141,17 +263,350 @@ $(document).ready(function () {
     });
 
     // 3. Form Handling (Using real endpoint placeholder)
+    // 3. Form Handling (Real API)
     $("#tuning-form").on("submit", function (e) {
         e.preventDefault();
-        // Phase 3: RunPod API Integration (Next Step)
-        alert("RunPod 파인튜닝 시작! (Backend: /api/tuning/start 연동 예정)\n\n" + $(this).serialize());
+
+        const $btn = $(this).find("button[type='submit']");
+        const originalText = $btn.text();
+        $btn.prop("disabled", true).text("요청 중...");
+
+        // Serialize to JSON
+        const formData = {};
+        $(this).serializeArray().forEach(item => {
+            // Special handling for model_name - always keep as string
+            if (item.name === 'model_name') {
+                formData[item.name] = String(item.value);
+            }
+            // Convert numbers (except model_name)
+            else if (!isNaN(item.value) && item.value !== "") {
+                formData[item.name] = Number(item.value);
+            } else {
+                formData[item.name] = item.value;
+            }
+        });
+
+        // Handle checkboxes separately (they don't appear in serializeArray if unchecked)
+        formData.use_double_quant = $('#use_double_quant').is(':checked');
+
+        const token = localStorage.getItem("access_token");
+
+        // ✅ UI Feedback: Show Inline Progress Section with max_steps
+        const maxSteps = parseInt(formData.max_steps) || 100;
+        showInlineProgress("pending-job-creation", maxSteps);
+
+        $.ajax({
+            url: "/api/tuning/start",
+            type: "POST",
+            contentType: "application/json",
+            headers: { "Authorization": "Bearer " + token },
+            data: JSON.stringify(formData),
+            success: function (res) {
+                // Update inline progress with real Job ID and start polling
+                updateInlineProgressJobId(res.data.job_id || res.job_id);
+            },
+            error: function (xhr) {
+                const err = xhr.responseJSON?.error?.message || xhr.responseJSON?.message || "학습 시작 실패";
+                alert(`❌ 오류: ${err}`);
+                hideInlineProgress();
+            },
+            complete: function () {
+                $btn.prop("disabled", false).text(originalText);
+            }
+        });
+    });
+
+    // Polling Logic
+    let currentPollingInterval = null;
+    let lossChart = null;  // Chart.js instance
+
+    function showInlineProgress(tempJobId, maxSteps = 100) {
+        // Show progress section
+        $("#training-progress-section").slideDown();
+
+        // Scroll to progress section
+        $('html, body').animate({
+            scrollTop: $("#training-progress-section").offset().top - 100
+        }, 500);
+
+        // Reset UI
+        $("#progress-percentage").text("0%");
+        $("#progress-bar").css("width", "0%").attr("aria-valuenow", 0);
+        $("#current-step").text(`0/${maxSteps}`);
+        $("#elapsed-time").text("00:00:00");
+        $("#train-loss").text("-");
+        $("#eval-loss").text("-");
+        $("#training-logs").html('<div class="text-info">학습을 준비 중입니다...</div>');
+
+        // ✅ Initialize Chart.js with max_steps for X-axis
+        initLossChart(maxSteps);
+    }
+
+    function hideInlineProgress() {
+        $("#training-progress-section").slideUp();
+        if (currentPollingInterval) {
+            clearInterval(currentPollingInterval);
+            currentPollingInterval = null;
+        }
+        if (lossChart) {
+            lossChart.destroy();
+            lossChart = null;
+        }
+    }
+
+    // ✅ max_steps 기반 X축 미리 그리기
+    function initLossChart(maxSteps = 100) {
+        if (lossChart) {
+            lossChart.destroy();
+        }
+
+        const ctx = document.getElementById('loss-chart');
+        if (!ctx) return;
+
+        // X축 라벨을 max_steps까지 미리 생성 (10step 간격)
+        const labels = [];
+        const interval = Math.max(1, Math.floor(maxSteps / 20)); // 최대 20개 포인트
+        for (let i = 0; i <= maxSteps; i += interval) {
+            labels.push(i);
+        }
+        if (labels[labels.length - 1] !== maxSteps) {
+            labels.push(maxSteps);
+        }
+
+        // null로 채워진 데이터 배열 (라인이 연결되지 않음)
+        const emptyData = new Array(labels.length).fill(null);
+
+        lossChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Training Loss',
+                        data: [...emptyData],
+                        borderColor: '#ffc107',
+                        backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        spanGaps: true  // null 값 사이 연결
+                    },
+                    {
+                        label: 'Eval Loss',
+                        data: [...emptyData],
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        spanGaps: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                animation: {
+                    duration: 300  // 빠른 애니메이션
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: { color: '#fff' }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Step', color: '#aaa' },
+                        ticks: { color: '#aaa' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Loss', color: '#aaa' },
+                        ticks: { color: '#aaa' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    }
+                }
+            }
+        });
+
+        console.log(`📊 Chart initialized with ${labels.length} labels for ${maxSteps} steps`);
+    }
+
+    // ✅ 차트에 데이터 업데이트 (step 위치에 맞게)
+    function updateLossChart(step, loss, evalLoss) {
+        if (!lossChart) return;
+
+        const labels = lossChart.data.labels;
+        // 가장 가까운 라벨 인덱스 찾기
+        let idx = labels.findIndex(l => l >= step);
+        if (idx === -1) idx = labels.length - 1;
+
+        // 데이터 업데이트
+        if (loss !== undefined && loss !== null) {
+            lossChart.data.datasets[0].data[idx] = loss;
+        }
+        if (evalLoss !== undefined && evalLoss !== null) {
+            lossChart.data.datasets[1].data[idx] = evalLoss;
+        }
+
+        lossChart.update('none');  // 애니메이션 없이 즉시 업데이트
+    }
+
+    function updateInlineProgressJobId(jobId) {
+        $("#training-logs").append(`<div class="text-info">✅ 작업 생성 완료! Job ID: ${jobId}</div>`);
+        $("#training-logs").append(`<div class="text-muted">학습 로그 수집을 시작합니다...</div>`);
+
+        // Clear any existing poll
+        if (currentPollingInterval) clearInterval(currentPollingInterval);
+
+        // Start Polling (3초 간격으로 변경 - UI 렉 방지)
+        currentPollingInterval = setInterval(() => {
+            pollStatus(jobId, currentPollingInterval);
+        }, 3000);  // 1000 → 3000ms
+
+        // Bind Close Button (Unique handler)
+        $("#btn-close-training-progress").off("click").on("click", function () {
+            hideInlineProgress();
+            loadModels(); // Refresh model list after training
+        });
+    }
+
+    function pollStatus(jobId, intervalId) {
+        const token = localStorage.getItem("access_token");
+        $.ajax({
+            url: `/api/tuning/status/${jobId}`,
+            method: "GET",
+            headers: { "Authorization": "Bearer " + token },
+            success: function (res) {
+                // Flask success_response는 data로 감싸서 반환
+                const data = res.data || res;
+                if (!data.ok && !res.ok) return;
+
+                // Update Progress Bar
+                const pct = data.progress || 0;
+                $("#progress-bar").css("width", `${pct}%`).attr("aria-valuenow", pct);
+                $("#progress-percentage").text(`${pct}%`);
+
+                // Update Step Counter
+                if (data.metrics) {
+                    const m = data.metrics;
+                    const current = m.current_step || 0;
+                    const total = m.total_steps || 100;
+                    $("#current-step").text(`${current} / ${total}`);
+
+                    // Update Metrics Dashboard
+                    if (m.loss !== undefined) {
+                        const loss = typeof m.loss === 'number' ? m.loss.toFixed(4) : m.loss;
+                        $("#train-loss").text(loss);
+                        // ✅ 새 차트 업데이트 함수 사용
+                        updateLossChart(current, parseFloat(loss), m.eval_loss);
+                    }
+                    if (m.eval_loss !== undefined) {
+                        const eval_loss = typeof m.eval_loss === 'number' ? m.eval_loss.toFixed(4) : m.eval_loss;
+                        $("#eval-loss").text(eval_loss);
+                        // ✅ updateLossChart에서 이미 처리됨
+                    }
+
+                    if (m.learning_rate !== undefined) {
+                        const lr = typeof m.learning_rate === 'number' ? m.learning_rate.toExponential(2) : m.learning_rate;
+                        $("#train-lr").text(lr);
+                    }
+                    if (m.eta_seconds !== undefined) {
+                        $("#train-eta").text(formatETA(m.eta_seconds));
+                    }
+                    if (m.elapsed_time !== undefined) {
+                        $("#elapsed-time").text(formatTime(m.elapsed_time));
+                    }
+                }
+
+                // Update Status Text
+                if (data.status_text) {
+                    $("#training-status-text").text(data.status_text);
+                } else if (data.status) {
+                    const statusMap = {
+                        "pending": "대기 중...",
+                        "running": "학습 진행 중...",
+                        "completed": "✅ 학습 완료!",
+                        "failed": "❌ 학습 실패"
+                    };
+                    $("#training-status-text").text(statusMap[data.status] || data.status);
+                }
+
+                // Update Logs
+                if (data.logs && Array.isArray(data.logs) && data.logs.length > 0) {
+                    const logHtml = data.logs.map(log => {
+                        let logClass = "text-light";
+                        if (log.includes("Error") || log.includes("Failed")) logClass = "text-danger";
+                        else if (log.includes("Eval") || log.includes("Checkpoint")) logClass = "text-info";
+                        else if (log.includes("Loss=")) logClass = "text-warning";
+                        return `<div class="${logClass}">${escapeHtml(log)}</div>`;
+                    }).join("");
+                    $("#training-logs").html(logHtml);
+                    // Also update legacy console if exists
+                    const $console = $("#training-log-console");
+                    if ($console.length) $console.html(logHtml);
+                    // Auto-scroll to bottom
+                    const logContainer = document.getElementById("training-logs") || document.getElementById("training-log-console");
+                    if (logContainer) logContainer.scrollTop = logContainer.scrollHeight;
+                }
+
+                // Check if Completed or Failed
+                const statusText = data.status_text || data.status || "running";
+                if (statusText === "completed") {
+                    clearInterval(intervalId);
+                    $("#training-logs").append('<div class="text-success fw-bold mt-2">✅ 학습이 완료되었습니다!</div>');
+                    $("#btn-stop-training").hide();
+                    alert("✅ 학습이 완료되었습니다!");
+                    loadModels(); // Refresh model list
+                } else if (statusText === "failed" || statusText === "error") {
+                    clearInterval(intervalId);
+                    $("#training-logs").append('<div class="text-danger fw-bold mt-2">❌ 학습이 실패했습니다.</div>');
+                    $("#btn-stop-training").hide();
+                    alert("❌ 학습이 실패했습니다.");
+                }
+            },
+            error: function (xhr) {
+                console.warn("Polling failed:", xhr);
+            }
+        });
+    }
+
+    // ETA 포맷팅 헬퍼
+    function formatETA(seconds) {
+        if (!seconds || seconds < 0) return "-";
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.round(seconds % 60);
+        if (mins > 0) return `${mins}분 ${secs}초`;
+        return `${secs}초`;
+    }
+
+    function formatTime(seconds) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+
+    // 로그 지우기 버튼
+    $("#btn-clear-logs").on("click", function () {
+        $("#training-log-console").html('<div class="text-muted">로그가 초기화되었습니다.</div>');
     });
 
     // 4. Chat & Compare Logic (Real API)
     // Shared Generation Options
     let genOptions = {
         temperature: 0.7,
-        num_predict: 200,
+        max_new_tokens: 200,
         use_cache: true
     };
 
@@ -161,8 +616,8 @@ $(document).ready(function () {
         $("#setting-temp").val(genOptions.temperature);
         $("#label-temp-val").text(genOptions.temperature);
 
-        $("#setting-max-tokens").val(genOptions.num_predict);
-        $("#label-tokens-val").text(genOptions.num_predict);
+        $("#setting-max-tokens").val(genOptions.max_new_tokens);
+        $("#label-tokens-val").text(genOptions.max_new_tokens);
 
         $("#setting-use-cache").prop("checked", genOptions.use_cache);
 
@@ -183,7 +638,7 @@ $(document).ready(function () {
 
     $("#btn-save-settings").on("click", function () {
         genOptions.temperature = parseFloat($("#setting-temp").val());
-        genOptions.num_predict = parseInt($("#setting-max-tokens").val());
+        genOptions.max_new_tokens = parseInt($("#setting-max-tokens").val());
         genOptions.use_cache = $("#setting-use-cache").is(":checked");
 
         // Close modal
@@ -202,19 +657,57 @@ $(document).ready(function () {
         }
     });
 
+    // RAG Toggle Logic
+    $("#toggle-use-rag").on("change", function () {
+        if ($(this).is(":checked")) {
+            $("#rag-upload-panel").removeClass("d-none");
+        } else {
+            $("#rag-upload-panel").addClass("d-none");
+        }
+    });
+
+    $("#btn-close-rag-panel").on("click", function () {
+        $("#rag-upload-panel").addClass("d-none");
+    });
+
+    // System Message Helper
+    function logSystemMessage(msg) {
+        const sysMsg = `<div class="text-center my-2"><span class="badge bg-secondary text-wrap" style="font-weight: normal; opacity: 0.8;">ℹ️ ${msg}</span></div>`;
+        $("#chat-single-box").append(sysMsg);
+        $("#chat-single-box").scrollTop($("#chat-single-box")[0].scrollHeight);
+    }
+
+    // Watch for Changes to Log System Messages
+    $("#toggle-use-rag").on("change", function () {
+        const state = $(this).is(":checked") ? "ON (지식 활용)" : "OFF (일반 대화)";
+        logSystemMessage(`RAG 지식 검색 기능이 <b>${state}</b>로 변경되었습니다.`);
+    });
+
+    $("#chat-model-select").on("change", function () {
+        const modelName = $(this).val();
+        logSystemMessage(`대화 모델이 <b>${modelName}</b>(으)로 변경되었습니다.`);
+    });
+
     $("#btn-single-send").on("click", function () {
         const msg = $("#chat-single-input").val().trim(); // Use trim()
         if (!msg) return;
 
         const model = $("#chat-model-select").val() || "llama3-8b-base-q4"; // Updated ID
+        const useRag = $("#toggle-use-rag").is(":checked");
 
         $("#chat-single-box").append(`<div class="chat-bubble user">${msg.replace(/\n/g, "<br>")}</div>`);
         $("#chat-single-input").val("");
         $("#chat-single-box").scrollTop($("#chat-single-box")[0].scrollHeight);
 
-        // Show loading
+        // Show typing indicator (animated)
         const loadingId = "loading-" + Date.now();
-        $("#chat-single-box").append(`<div id="${loadingId}" class="chat-bubble bot">...</div>`);
+        const typingIndicator = `
+            <div id="${loadingId}" class="chat-bubble bot">
+                <div class="typing-indicator">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>`;
+        $("#chat-single-box").append(typingIndicator);
         $("#chat-single-box").scrollTop($("#chat-single-box")[0].scrollHeight);
 
         const token = localStorage.getItem("access_token");
@@ -224,6 +717,9 @@ $(document).ready(function () {
             return;
         }
 
+        // Merge options with RAG flag
+        const finalOptions = { ...genOptions, use_rag: useRag };
+
         $.ajax({
             url: "/api/tuning/chat",
             type: "POST",
@@ -232,16 +728,29 @@ $(document).ready(function () {
             data: JSON.stringify({
                 text: msg,
                 model: model,
-                options: genOptions
+                options: finalOptions
             }),
             success: function (res) {
-                // Formatting newlines in response
-                const formatted = (res.result || "").replace(/\n/g, "<br>");
-                $(`#${loadingId}`).html(formatted);
+                // Flask success_response는 data로 감싸서 반환
+                const data = res.data || res;
+                const formatted = (data.result || "").replace(/\n/g, "<br>");
+                // Response with Copy Button and Model Badge
+                const responseId = "resp-" + Date.now();
+                const responseHTML = `
+                    <div class="position-relative">
+                        <div id="${responseId}">${formatted}</div>
+                        <div class="d-flex justify-content-between align-items-center mt-2 border-top border-secondary pt-1">
+                            <small class="text-warning" style="font-size: 0.75rem;">🤖 Model: ${model}</small>
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-1 btn-copy-response" data-target="${responseId}" title="복사">
+                                📋
+                            </button>
+                        </div>
+                    </div>`;
+                $(`#${loadingId}`).html(responseHTML);
             },
             error: function (xhr) {
                 const err = xhr.responseJSON?.message || "답변을 가져오지 못했습니다. (모델 상태를 확인해주세요)";
-                $(`#${loadingId}`).html(`<span class="text-danger">Error: ${err}</span>`);
+                $(`#${loadingId}`).html(`<span class="text-danger">❌ Error: ${err}</span>`);
             }
         });
     });
@@ -292,8 +801,10 @@ $(document).ready(function () {
                     options: genOptions
                 }),
                 success: function (res) {
-                    const formatted = (res.result || "").replace(/\n/g, "<br>");
-                    $(`#${targetId}`).html(formatted);
+                    // Flask success_response는 data로 감싸서 반환
+                    const data = res.data || res;
+                    const formatted = (data.result || "").replace(/\n/g, "<br>");
+                    $(`#${targetId}`).html(formatted || "(응답 없음)");
                 },
                 error: function (xhr) {
                     const err = xhr.responseJSON?.message || "Failed";
@@ -306,6 +817,126 @@ $(document).ready(function () {
         callCompare(idB, modelB);
 
     });
+
+    // 6. Doc Upload Logic with Drag & Drop
+    const $dropZone = $("#rag-upload-panel");
+    const $fileInput = $("#doc-upload-input");
+    const $status = $("#doc-upload-status");
+
+    // Drag and Drop Events
+    $dropZone.on("dragover", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(this).addClass("dragover");
+    });
+
+    $dropZone.on("dragleave drop", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(this).removeClass("dragover");
+    });
+
+    $dropZone.on("drop", function (e) {
+        const files = e.originalEvent.dataTransfer.files;
+        if (files.length > 0) {
+            $fileInput[0].files = files;
+            uploadFiles(files);
+        }
+    });
+
+    // Click Upload Button
+    $("#btn-doc-upload").on("click", function () {
+        const files = $fileInput[0].files;
+        if (files.length === 0) {
+            alert("파일을 선택해주세요.");
+            return;
+        }
+        uploadFiles(files);
+    });
+
+    // Unified Upload Function
+    function uploadFiles(files) {
+        $status.html(`
+            <div class="d-flex align-items-center gap-2">
+                <div class="spinner-border text-primary spinner-border-sm"></div>
+                <span>업로드 중... (${files.length}개 파일)</span>
+            </div>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+            </div>
+        `);
+
+        const formData = new FormData();
+        for (let i = 0; i < files.length; i++) {
+            formData.append("files", files[i]);
+        }
+
+        const token = localStorage.getItem("access_token");
+
+        $.ajax({
+            url: "/api/docs/upload",
+            type: "POST",
+            data: formData,
+            headers: { "Authorization": "Bearer " + token },
+            contentType: false,
+            processData: false,
+            xhr: function () {
+                const xhr = new window.XMLHttpRequest();
+                xhr.upload.addEventListener("progress", function (e) {
+                    if (e.lengthComputable) {
+                        const pct = Math.round((e.loaded / e.total) * 100);
+                        $status.find(".progress-bar").css("width", pct + "%");
+                    }
+                });
+                return xhr;
+            },
+            success: function (res) {
+                const count = res.results ? res.results.length : 1;
+                const chunks = res.results ? res.results.reduce((sum, r) => sum + (r.chunks || 0), 0) : 0;
+                $status.html(`
+                    <div class="text-success">
+                        <strong>✅ ${count}개 파일 업로드 완료!</strong>
+                        <small class="d-block text-muted">${chunks}개 청크가 지식 베이스에 추가되었습니다.</small>
+                    </div>
+                `);
+                $fileInput.val(""); // Reset
+            },
+            error: function (xhr) {
+                if (xhr.status === 401) {
+                    $status.html(`<div class="text-warning">⚠️ 로그인이 필요합니다.</div>`);
+                    window.location.href = "/login";
+                    return;
+                }
+                const err = xhr.responseJSON?.message || "업로드 실패";
+                $status.html(`<div class="text-danger">❌ 오류: ${err}</div>`);
+            }
+        });
+    }
+
+    // 7. Chat Export Logic
+    $("#btn-chat-export").on("click", function () {
+        let content = "Belong AI Chat Log\n==================\n\n";
+
+        $("#chat-single-box .chat-bubble").each(function () {
+            const isUser = $(this).hasClass("user");
+            const sender = isUser ? "USER" : "AI";
+            // Replace <br> with newline
+            const text = $(this).html().replace(/<br\s*\/?>/gi, "\n");
+
+            content += `[${sender}]\n${text}\n\n`;
+        });
+
+        const blob = new Blob([content], { type: "text/plain" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `chat_log_${new Date().toISOString().slice(0, 10)}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    });
+
     // 5. Sidebar Toggle Logic (Mobile)
     const $sidebar = $(".tuning-sidebar");
     const $overlay = $("#tuning-sidebar-overlay");
@@ -342,6 +973,29 @@ $(document).ready(function () {
         if ($(window).width() > 768) {
             closeSidebar(); // Reset mobile state when expanding
         }
+    });
+
+    // Copy Response Button Handler
+    $(document).on("click", ".btn-copy-response", function () {
+        const targetId = $(this).data("target");
+        const $target = $(`#${targetId}`);
+
+        // Get text content (removing HTML tags)
+        const textContent = $target.text();
+
+        // Copy to clipboard
+        navigator.clipboard.writeText(textContent).then(() => {
+            // Visual feedback
+            const $btn = $(this);
+            const originalText = $btn.html();
+            $btn.html("✅").addClass("text-success");
+            setTimeout(() => {
+                $btn.html(originalText).removeClass("text-success");
+            }, 1500);
+        }).catch(err => {
+            console.error("복사 실패:", err);
+            alert("복사에 실패했습니다.");
+        });
     });
 });
 

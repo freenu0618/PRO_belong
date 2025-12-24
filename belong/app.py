@@ -10,7 +10,6 @@ from belong.extensions import db, migrate, logger
 from config import Config
 from belong.services.registry import register_services
 from belong.ml.region_weights import load_region_weights
-import oracledb
 import sys
 
 # Oracle 11g 지원을 위해 Thick Mode 활성화 필요

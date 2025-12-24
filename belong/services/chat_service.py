@@ -139,7 +139,31 @@ class ChatService:
         자유 대화(chat) service 에 대한 호출 + 답변 텍스트 생성
         """
         result = self.ai_service.chat(text)
-        assistant_text = result.get("answer", "응답을 생성하지 못했어.") if isinstance(result, dict) else str(result)
+        # ai_service.chat()은 "response" 키 반환
+        assistant_text = result.get("response", "응답을 생성하지 못했어.") if isinstance(result, dict) else str(result)
+        return result, assistant_text
+
+    def _run_translate(self, text: str, options: Dict[str, Any]) -> Tuple[Any, str]:
+        """
+        번역 service 에 대한 호출 + 결과 텍스트 생성
+        """
+        direction = options.get("direction", "ko-en")
+        result = self.ai_service.translate(text, direction=direction)
+        if isinstance(result, dict):
+            assistant_text = result.get("translation", str(result))
+        else:
+            assistant_text = str(result)
+        return result, assistant_text
+
+    def _run_summarize(self, text: str) -> Tuple[Any, str]:
+        """
+        요약 service 에 대한 호출 + 결과 텍스트 생성
+        """
+        result = self.ai_service.summarize(text)
+        if isinstance(result, dict):
+            assistant_text = result.get("summary", str(result))
+        else:
+            assistant_text = str(result)
         return result, assistant_text
 
     def _run_ai_for_service(self,service: str,text: str,options: Dict[str, Any],) -> Tuple[Any, str]:
@@ -155,6 +179,10 @@ class ChatService:
             return self._run_qa(text, options)
         elif service == "chat":
             return self._run_free_chat(text)
+        elif service == "translate":
+            return self._run_translate(text, options)
+        elif service == "summarize":
+            return self._run_summarize(text)
         else:
             # 알 수 없는 service 값인 경우
             result: Dict[str, Any] = {"error": f"지원하지 않는 service 입니다: {service}"}
@@ -176,7 +204,7 @@ class ChatService:
             "input": {"text": text},
             "result": result,
             "history": history,
-            "debug": {"mode": "mock"},
+            "debug": {"mode": "local_gpu"},
         }
 
     # ---------------------------

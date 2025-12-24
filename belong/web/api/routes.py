@@ -3,6 +3,7 @@ from flask import jsonify, request, current_app
 from . import api_bp
 import math
 from belong.services.forecast_service import ACTUAL_LAST_YEAR
+from .response_utils import success_response, error_response, server_error
 # -----------------------------
 # 공통 유틸 함수들
 # -----------------------------
@@ -109,21 +110,22 @@ def dashboard_risk_map():
 
     ok, err = _validate_year(year)
     if not ok:
-        return api_error(400, err["code"], err["message"], detail=err)
+        return error_response(
+            message=err["message"],
+            status_code=400,
+            error_code=err["code"],
+            details=err
+        )
 
     services = current_app.config.get("services", {})
     elderly_service = services.get("elderly_service")
 
     if elderly_service is None:
-        return api_error(
-            500,
-            "service_not_configured",
-            "elderly_service is not registered in app.services",
-        )
+        return server_error("서비스가 초기화되지 않았습니다")
 
     # {year, items: [...] }
     snapshot = elderly_service.get_region_snapshot(year)
-    return jsonify(_clean_nan(snapshot))
+    return success_response(_clean_nan(snapshot))
 
 # 특정 구의 연도별 추세
 
@@ -131,24 +133,29 @@ def dashboard_risk_map():
 def dashboard_region_trend():
     region = request.args.get("region", type=str)
     if not region:
-        return api_error(400, "missing_region", "query parameter 'region' is required")
+        return error_response(
+            message="'region' 파라미터가 필요합니다",
+            status_code=400,
+            error_code="missing_region"
+        )
 
     start_year = request.args.get("start_year", type=int, default=MIN_YEAR)
     end_year = request.args.get("end_year", type=int, default=ACTUAL_LAST_YEAR)
 
     ok, err = _validate_year_range(start_year, end_year)
     if not ok:
-        return api_error(400, err["code"], err["message"], detail=err)
+        return error_response(
+            message=err["message"],
+            status_code=400,
+            error_code=err["code"],
+            details=err
+        )
 
     services = current_app.config.get("services", {})
     feature_stats_service = services.get("feature_stats_service")
 
     if feature_stats_service is None:
-        return api_error(
-            500,
-            "service_not_configured",
-            "feature_stats_service is not registered in app.services",
-        )
+        return server_error("서비스가 초기화되지 않았습니다")
 
     series = feature_stats_service.get_time_series(
         region_code=region,
@@ -162,4 +169,4 @@ def dashboard_region_trend():
         "end_year": end_year,
         "items": series,
     }
-    return jsonify(_clean_nan(payload))
+    return success_response(_clean_nan(payload))

@@ -5,7 +5,7 @@ __pycache__
 .Python
 env/
 venv/
-.env
+# .env  # INCLUDE for HF_TOKEN on RunPod
 .git
 .github
 .vscode
@@ -25,4 +25,8 @@ belong/ml/gguf_models/
 belong/ml/output/
 belong/ml/llama.cpp/
 belong/ml/dataset/processed/
-belong/ml/dataset/raw_data/
+# belong/ml/dataset/raw_data/  # KEEP CSV files for dashboard seeding!
+
+# ✅ Explicitly INCLUDE CSV files (override any exclude patterns)
+!belong/ml/dataset/**/*.csv
+!*.csv
