@@ -338,8 +338,8 @@ $(document).ready(function () {
         $("#eval-loss").text("-");
         $("#training-logs").html('<div class="text-info">학습을 준비 중입니다...</div>');
 
-        // ✅ Initialize Chart.js with max_steps for X-axis
-        initLossChart(maxSteps);
+        // ✅ Initialize Chart.js (반응형)
+        initLossChart();
     }
 
     function hideInlineProgress() {
@@ -354,8 +354,8 @@ $(document).ready(function () {
         }
     }
 
-    // ✅ max_steps 기반 X축 미리 그리기
-    function initLossChart(maxSteps = 100) {
+    // ✅ 반응형 차트 (동적으로 X축 추가)
+    function initLossChart() {
         if (lossChart) {
             lossChart.destroy();
         }
@@ -363,41 +363,28 @@ $(document).ready(function () {
         const ctx = document.getElementById('loss-chart');
         if (!ctx) return;
 
-        // X축 라벨을 max_steps까지 미리 생성 (10step 간격)
-        const labels = [];
-        const interval = Math.max(1, Math.floor(maxSteps / 20)); // 최대 20개 포인트
-        for (let i = 0; i <= maxSteps; i += interval) {
-            labels.push(i);
-        }
-        if (labels[labels.length - 1] !== maxSteps) {
-            labels.push(maxSteps);
-        }
-
-        // null로 채워진 데이터 배열 (라인이 연결되지 않음)
-        const emptyData = new Array(labels.length).fill(null);
-
         lossChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: labels,
+                labels: [],  // 동적으로 추가
                 datasets: [
                     {
                         label: 'Training Loss',
-                        data: [...emptyData],
+                        data: [],
                         borderColor: '#ffc107',
                         backgroundColor: 'rgba(255, 193, 7, 0.1)',
                         tension: 0.4,
                         fill: true,
-                        spanGaps: true  // null 값 사이 연결
+                        spanGaps: true  // ✅ 끊긴 데이터 연결
                     },
                     {
                         label: 'Eval Loss',
-                        data: [...emptyData],
+                        data: [],
                         borderColor: '#28a745',
                         backgroundColor: 'rgba(40, 167, 69, 0.1)',
                         tension: 0.4,
                         fill: true,
-                        spanGaps: true
+                        spanGaps: true  // ✅ Eval Loss 연결 (중요)
                     }
                 ]
             },
@@ -405,7 +392,7 @@ $(document).ready(function () {
                 responsive: true,
                 maintainAspectRatio: true,
                 animation: {
-                    duration: 300  // 빠른 애니메이션
+                    duration: 300
                 },
                 plugins: {
                     legend: {
@@ -428,25 +415,35 @@ $(document).ready(function () {
             }
         });
 
-        console.log(`📊 Chart initialized with ${labels.length} labels for ${maxSteps} steps`);
+        // ✅ 마지막 추가된 step 추적 (중복 방지용)
+        lossChart.lastAddedStep = -1;
+
+        console.log(`📊 Chart initialized (reactive mode)`);
     }
 
-    // ✅ 차트에 데이터 업데이트 (step 위치에 맞게)
+    // ✅ 반응형 차트 업데이트 (동적으로 X축 추가, 중복 방지)
     function updateLossChart(step, loss, evalLoss) {
         if (!lossChart) return;
 
-        const labels = lossChart.data.labels;
-        // 가장 가까운 라벨 인덱스 찾기
-        let idx = labels.findIndex(l => l >= step);
-        if (idx === -1) idx = labels.length - 1;
+        // ✅ Training loss가 없으면 evaluation 중이므로 업데이트 스킵
+        if (loss === undefined || loss === null) {
+            console.log(`⏳ Step ${step}: Evaluation in progress, skipping chart update`);
+            return;
+        }
 
-        // 데이터 업데이트
-        if (loss !== undefined && loss !== null) {
-            lossChart.data.datasets[0].data[idx] = loss;
+        // ✅ 중복 step 방지: 이미 추가된 step이면 스킵
+        if (step <= lossChart.lastAddedStep) {
+            console.log(`⏭️ Step ${step}: Already added, skipping`);
+            return;
         }
-        if (evalLoss !== undefined && evalLoss !== null) {
-            lossChart.data.datasets[1].data[idx] = evalLoss;
-        }
+
+        // 새 step 추가
+        lossChart.data.labels.push(step);
+        lossChart.data.datasets[0].data.push(loss);
+        lossChart.data.datasets[1].data.push(evalLoss || null);
+
+        // 마지막 추가된 step 업데이트
+        lossChart.lastAddedStep = step;
 
         lossChart.update('none');  // 애니메이션 없이 즉시 업데이트
     }
@@ -612,19 +609,34 @@ $(document).ready(function () {
 
     // Settings Modal Logic (Shared)
     function openSettingsModal() {
-        // Load current values
-        $("#setting-temp").val(genOptions.temperature);
-        $("#label-temp-val").text(genOptions.temperature);
+        try {
+            // Load current values
+            $("#setting-temp").val(genOptions.temperature);
+            $("#label-temp-val").text(genOptions.temperature);
 
-        $("#setting-max-tokens").val(genOptions.max_new_tokens);
-        $("#label-tokens-val").text(genOptions.max_new_tokens);
+            $("#setting-max-tokens").val(genOptions.max_new_tokens);
+            $("#label-tokens-val").text(genOptions.max_new_tokens);
 
-        $("#setting-use-cache").prop("checked", genOptions.use_cache);
+            $("#setting-use-cache").prop("checked", genOptions.use_cache);
 
-        new bootstrap.Modal(document.getElementById('chatSettingsModal')).show();
+            // Try Bootstrap 5 modal
+            const modalEl = document.getElementById('chatSettingsModal');
+            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            } else {
+                // Fallback: jQuery method
+                $('#chatSettingsModal').modal('show');
+            }
+        } catch (e) {
+            console.error("고급설정 모달 열기 실패:", e);
+            alert("고급설정 모달을 열 수 없습니다. 페이지를 새로고침해주세요.");
+        }
     }
 
-    $("#btn-chat-settings, #btn-compare-settings").on("click", function () {
+    $("#btn-chat-settings, #btn-compare-settings").on("click", function (e) {
+        e.preventDefault();
+        console.log("고급설정 버튼 클릭됨");
         openSettingsModal();
     });
 

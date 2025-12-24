@@ -315,7 +315,7 @@
 
             <div class="input-group mobile-sticky">
                 <textarea class="form-control bg-dark text-white border-secondary" id="chat-single-input" rows="1"
-                    placeholder="메시지를 입력하세요... (Shift+Enter 줄바꿈)"></textarea>
+                    placeholder="메시지를 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)"></textarea>
                 <button class="btn btn-primary" id="btn-single-send">전송</button>
             </div>
         </section>
@@ -355,7 +355,7 @@
 
             <div class="input-group mobile-sticky">
                 <textarea class="form-control bg-dark text-white border-secondary" id="compare-input" rows="1"
-                    placeholder="두 모델에게 동시에 질문하기... (Shift+Enter 줄바꿈)"></textarea>
+                    placeholder="두 모델에게 동시에 질문하기... (Enter: 전송, Shift+Enter: 줄바꿈)"></textarea>
                 <button class="btn btn-primary" id="btn-compare-send">비교하기</button>
             </div>
         </section>
@@ -495,5 +495,5 @@
     {% block scripts %}
     <!-- Chart.js for Loss Chart -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="{{ url_for('static', filename='js/ai_tuning.js') }}?v=3"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ai_tuning/main.js') }}?v=4"></script>
     {% endblock %}

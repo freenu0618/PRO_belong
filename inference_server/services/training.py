@@ -32,6 +32,7 @@ def run_training_task(job_id: str, params: dict):
         state.training_jobs[job_id]["logs"].append("📦 모델 로딩 준비 중...")
 
         # ✅ 추론 모델 언로드하여 GPU 메모리 확보
+        import gc
         if state.model is not None:
             state.training_jobs[job_id]["logs"].append("🔄 추론 모델 언로드 중 (GPU 메모리 확보)...")
             try:
@@ -46,7 +47,8 @@ def run_training_task(job_id: str, params: dict):
             except Exception:
                 pass
         
-        # GPU 캐시 정리
+        # GPU 캐시 및 가비지 컬렉션 (중요)
+        gc.collect()
         torch.cuda.empty_cache()
         torch.cuda.synchronize()
         state.training_jobs[job_id]["logs"].append("✅ GPU 메모리 정리 완료")
@@ -132,11 +134,17 @@ def run_training_task(job_id: str, params: dict):
         dataset = dataset.map(format_alpaca)
         state.training_jobs[job_id]["logs"].append(f"✅ 데이터셋 로드 완료: {len(dataset)}개 샘플")
 
+        # ✅ max_steps를 먼저 정의 (데이터 분할에서 사용하기 위해)
+        max_steps = params.get("max_steps", 100)
+        state.training_jobs[job_id]["logs"].append(f"⚙️ max_steps 설정: {max_steps}")
+
         # Train/Eval 분할 (80/20) - 노트북과 동일
         train_test = dataset.train_test_split(test_size=0.2, seed=42)
         train_dataset = train_test["train"]
-        eval_dataset = train_test["test"]
-        state.training_jobs[job_id]["logs"].append(f"📊 Train: {len(train_dataset)}, Eval: {len(eval_dataset)}")
+        # ✅ Eval 데이터셋 크기를 max_steps와 정확히 동일하게 설정
+        eval_size = max_steps
+        eval_dataset = train_test["test"].select(range(min(eval_size, len(train_test["test"]))))
+        state.training_jobs[job_id]["logs"].append(f"📊 Train: {len(train_dataset)}, Eval: {len(eval_dataset)} (max_steps와 동일)")
 
         # 5. Data Collator
         response_template = "### Response:\n"
@@ -150,8 +158,7 @@ def run_training_task(job_id: str, params: dict):
         output_dir = f"/workspace/output/{params['model_name']}"
         os.makedirs(output_dir, exist_ok=True)
 
-        max_steps = params.get("max_steps", 100)
-        state.training_jobs[job_id]["logs"].append(f"⚙️ max_steps 설정: {max_steps}")
+        # ✅ max_steps는 이미 위에서 정의됨 (데이터 분할에서 사용하기 위해)
 
         # ✅ max_steps만 사용 (num_train_epochs 없이)
         # Hugging Face: max_steps > 0이면 epochs 무시됨
@@ -163,8 +170,8 @@ def run_training_task(job_id: str, params: dict):
         training_args = TrainingArguments(
             output_dir=output_dir,
             report_to="none",
-            # num_train_epochs 제거됨 - max_steps가 종료 조건
             per_device_train_batch_size=2,
+            per_device_eval_batch_size = 2,
             gradient_accumulation_steps=8,
             warmup_steps=params.get("warmup_steps", 30),
             max_steps=max_steps,  # ✅ 유일한 종료 조건
@@ -190,32 +197,53 @@ def run_training_task(job_id: str, params: dict):
         state.training_jobs[job_id]["logs"].append("🚀 학습 시작!")
         state.training_jobs[job_id]["status"] = "running"
         state.training_jobs[job_id]["total_steps"] = max_steps
+        state.training_jobs[job_id]["start_time"] = time.time()  # ✅ 시작 시간 기록
 
         # 7. Custom Callback for Progress
-        # ✅ max_steps를 여기서 캡처 (클로저)
+        # ✅ max_steps와 start_time을 여기서 캡처 (클로저)
         configured_max_steps = max_steps
+        training_start_time = time.time()
+        last_logged_step = -1  # ✅ 중복 로그 방지용
         
         class ProgressCallback(TrainerCallback):
             def on_log(self, args, cb_state, control, logs=None, **kwargs):
+                nonlocal last_logged_step
                 if logs:
                     step = cb_state.global_step
-                    loss = logs.get("loss", 0)
+                    loss = logs.get("loss", None)
+                    eval_loss = logs.get("eval_loss", None)
+                    
+                    # ✅ 경과 시간 계산
+                    elapsed = time.time() - training_start_time
+                    
                     state.training_jobs[job_id]["current_step"] = step
-                    state.training_jobs[job_id]["metrics"]["loss"] = loss
                     state.training_jobs[job_id]["metrics"]["current_step"] = step
-                    # ✅ cb_state.max_steps 대신 설정된 max_steps 사용
                     state.training_jobs[job_id]["metrics"]["total_steps"] = configured_max_steps
+                    state.training_jobs[job_id]["metrics"]["elapsed_time"] = elapsed
+                    
+                    # ✅ loss가 있으면 업데이트
+                    if loss is not None:
+                        state.training_jobs[job_id]["metrics"]["loss"] = loss
+                    
+                    # ✅ eval_loss가 있으면 업데이트
+                    if eval_loss is not None:
+                        state.training_jobs[job_id]["metrics"]["eval_loss"] = eval_loss
+                        state.training_jobs[job_id]["logs"].append(f"[Step {step}] 📊 Eval Loss: {eval_loss:.4f}")
 
                     progress = int((step / configured_max_steps) * 100) if configured_max_steps else 0
                     state.training_jobs[job_id]["progress"] = min(progress, 100)
-                    state.training_jobs[job_id]["logs"].append(f"[Step {step}/{configured_max_steps}] Loss: {loss:.4f}")
+                    
+                    # ✅ 중복 로그 방지: 같은 step에서 loss가 있을 때만 로그
+                    if loss is not None and step != last_logged_step:
+                        state.training_jobs[job_id]["logs"].append(f"[Step {step}/{configured_max_steps}] Loss: {loss:.4f}")
+                        last_logged_step = step
 
         # 8. Trainer 생성
         trainer = SFTTrainer(
             model=train_model,
             tokenizer=train_tokenizer,
             train_dataset=train_dataset,
-            eval_dataset=eval_dataset,  # 평가 데이터셋 추가 (노트북과 동일)
+            eval_dataset=eval_dataset,  # ✅ 수정: train_dataset → eval_dataset (max_steps개)
             peft_config=peft_config,
             dataset_text_field="text",
             max_seq_length=2048,
@@ -340,6 +368,11 @@ async def get_training_status(job_id: str) -> dict:
         raise HTTPException(status_code=404, detail="Job not found")
 
     job = state.training_jobs[job_id]
+    
+    # ✅ metrics 복사본 생성 (원본 수정 방지)
+    metrics = dict(job.get("metrics", {}))
+    if "total_steps" not in metrics:
+        metrics["total_steps"] = job.get("total_steps", 100)
 
     return {
         "ok": True,
@@ -347,9 +380,10 @@ async def get_training_status(job_id: str) -> dict:
         "status": job.get("status", "unknown"),
         "status_text": job.get("status", "unknown"),
         "progress": job.get("progress", 0),
-        "metrics": job.get("metrics", {}),
+        "metrics": metrics,
         "logs": job.get("logs", [])[-20:],
-        "error": job.get("error")
+        "error": job.get("error"),
+        "total_steps": job.get("total_steps", 100)  # ✅ 직접 반환도 추가
     }
 
 

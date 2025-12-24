@@ -1,181 +1,127 @@
 #!/bin/bash
 echo "🚀 Starting Belong All-in-One Pod..."
 
-# ✅ Graceful Shutdown Handler (Backup before exit)
+# Graceful Shutdown Handler (Backup before exit)
 cleanup() {
     echo ""
     echo "🛑 Received shutdown signal. Performing final backup..."
     /app/scripts/backup_db.sh || echo "⚠️ Final backup failed"
     echo "✅ Final backup complete. Shutting down services..."
-    
-    # Stop PostgreSQL cleanly
     /etc/init.d/postgresql stop 2>/dev/null || true
-    
     echo "👋 Shutdown complete."
     exit 0
 }
-
 trap cleanup SIGTERM SIGINT
 
-# 0. PostgreSQL 데이터 영속화 (Network Volume)
-echo "💾 Setting up PostgreSQL persistence..."
-PG_DATA_DIR="/var/lib/postgresql/15/main"
-WORKSPACE_PG_DIR="/workspace/pg_data"
-
-# /workspace가 마운트되어 있는지 확인
-if [ -d "/workspace" ]; then
-    mkdir -p "$WORKSPACE_PG_DIR"
-    
-    # 이미 심볼릭 링크가 아닌 경우에만 처리
-    if [ ! -L "$PG_DATA_DIR" ]; then
-        echo "📦 Migrating PostgreSQL data to /workspace..."
-        
-        # 기존 데이터가 있으면 복사
-        if [ -d "$PG_DATA_DIR" ]; then
-            if cp -a "$PG_DATA_DIR"/* "$WORKSPACE_PG_DIR/"; then
-                echo "✅ PostgreSQL data copied successfully"
-                rm -rf "$PG_DATA_DIR"
-            else
-                echo "⚠️ Failed to copy PostgreSQL data, using original location"
-            fi
-        fi
-        
-        # 심볼릭 링크 생성 (원본 삭제된 경우만)
-        if [ ! -d "$PG_DATA_DIR" ]; then
-            ln -s "$WORKSPACE_PG_DIR" "$PG_DATA_DIR"
-            chown -R postgres:postgres "$WORKSPACE_PG_DIR"
-            echo "✅ PostgreSQL persistence configured (symlink created)"
-        fi
-    else
-        echo "✅ PostgreSQL persistence already configured (symlink exists)"
-        # 심볼릭 링크 대상 확인
-        ls -la "$PG_DATA_DIR"
-    fi
-else
-    echo "⚠️ /workspace not mounted, PostgreSQL data will not persist!"
-fi
-
-# 1. Initialize & Start PostgreSQL (Local All-in-One)
+# 1. Start PostgreSQL
 echo "🐘 Starting PostgreSQL..."
-# Use init.d instead of service for better compatibility
 /etc/init.d/postgresql start
 
-# Wait loop for PG to be ready (Force IPv4 check)
-echo "⏳ Waiting for PostgreSQL to be ready..."
-until pg_isready -h 127.0.0.1 -p 5432 -U postgres; do
-  echo "   Waiting for postgres..."
-  sleep 2
+# Wait for PostgreSQL to be ready
+until pg_isready -h localhost; do
+    echo "Waiting for PostgreSQL..."
+    sleep 2
 done
+echo "✅ PostgreSQL is ready!"
 
-# Setup DB (Idempotent & Force Password)
-echo "🔧 Configuring Database..."
-# 1. Create user if not exists (ignore error if exists)
-su - postgres -c "psql -c \"CREATE USER belong;\"" || true
-# 2. FORCE reset password (ensure it matches config)
-su - postgres -c "psql -c \"ALTER USER belong WITH PASSWORD 'belong';\""
-# 3. Create DB and Grant
-su - postgres -c "psql -c \"CREATE DATABASE belong_db OWNER belong;\"" || true
-su - postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE belong_db TO belong;\"" || true
+# 2. Setup Database & User (If not exists)
+su - postgres -c "psql -tAc \"SELECT 1 FROM pg_roles WHERE rolname='belong'\"" | grep -q 1 || {
+    echo "Creating 'belong' user..."
+    su - postgres -c "psql -c \"CREATE USER belong WITH PASSWORD 'belong';\""
+    su - postgres -c "psql -c \"ALTER USER belong WITH SUPERUSER;\""
+}
 
-# Set ENV for Flask to use this local DB (Variable name must match config.py)
-# Use 127.0.0.1 to avoid IPv6 ::1 connection issues
-export DATABASE_URI="postgresql://belong:belong@127.0.0.1:5432/belong_db"
+su - postgres -c "psql -tAc \"SELECT 1 FROM pg_database WHERE datname='belong_db'\"" | grep -q 1 || {
+    echo "Creating 'belong_db' database..."
+    su - postgres -c "psql -c \"CREATE DATABASE belong_db OWNER belong;\""
+}
 
-# 2.5. Auto-Restore from Workspace (If backup exists)
+# Export DATABASE_URL for Flask Config
+export DATABASE_URL="postgresql://belong:belong@127.0.0.1:5432/belong_db"
+export FLASK_APP=belong.app
+export FLASK_ENV=production
+echo "✅ Database: $DATABASE_URL"
+
+# 3. Restore from Backup (If exists)
 LATEST_BACKUP="/workspace/db_backup/latest"
-if [ -d "$LATEST_BACKUP" ]; then
-    echo "📦 Found backup at $LATEST_BACKUP, restoring..."
+if [ -d "$LATEST_BACKUP" ] && [ -f "$LATEST_BACKUP/belong_db.dump" ]; then
+    echo "🔄 Found backup at $LATEST_BACKUP, restoring..."
+    PGPASSWORD=belong pg_restore -h 127.0.0.1 -U belong -d belong_db --clean --if-exists "$LATEST_BACKUP/belong_db.dump" 2>&1 || echo "⚠️ Restore completed with warnings (may be normal)"
     
-    # Restore ChromaDB
-    if [ -d "$LATEST_BACKUP/chroma_db" ]; then
-        rm -rf /app/chroma_db 2>/dev/null || true
-        cp -r "$LATEST_BACKUP/chroma_db" /app/chroma_db
-        echo "✅ ChromaDB restored"
-    fi
-    
-    # Restore PostgreSQL (only if dump exists)
-    if [ -f "$LATEST_BACKUP/belong_db.dump" ]; then
-        echo "📥 Restoring PostgreSQL from backup..."
-        export PGPASSWORD='belong'
-        if pg_restore -h 127.0.0.1 -U belong -d belong_db --no-owner --clean --if-exists "$LATEST_BACKUP/belong_db.dump" 2>&1; then
-            echo "✅ PostgreSQL restored from backup successfully"
-        else
-            echo "⚠️ PostgreSQL restore completed with warnings (may be normal)"
-        fi
-        unset PGPASSWORD
-        
-        # 복원 확인
-        USER_COUNT=$(psql -h 127.0.0.1 -U belong -d belong_db -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null || echo "0")
-        echo "📊 Users in database after restore: $USER_COUNT"
-    fi
-    
-    # Restore fine-tuned models
-    if [ -d "$LATEST_BACKUP/fine_tune" ]; then
-        mkdir -p /app/belong/ml/fine_tune
-        cp -r "$LATEST_BACKUP/fine_tune"/* /app/belong/ml/fine_tune/ 2>/dev/null || true
-        echo "✅ Models restored"
-    fi
-    
-    echo "✅ Auto-restore complete!"
+    # Check user count
+    USER_COUNT=$(PGPASSWORD=belong psql -h 127.0.0.1 -U belong -d belong_db -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null || echo "0")
+    echo "📊 Users in database after restore: $USER_COUNT"
 else
-    echo "📋 No backup found at $LATEST_BACKUP, starting fresh..."
+    echo "⚠️ No backup found, starting fresh..."
+    # Run Flask DB migrations for fresh database
+    flask db upgrade || echo "⚠️ Migration had issues, continuing..."
 fi
 
-# 3. Seed Data (Always run - it will skip if data already exists)
-echo "💾 Seeding Database..."
+# 4. Seed Data
+echo "🌱 Seeding Database..."
 python seed_data.py || echo "⚠️ Seeding failed or skipped"
 
-# 2. Start AI Inference Server (Background)
-# 2. Start AI Inference Server (Background)
-# Logging to stdout for easier debugging in RunPod Console
-echo "🧠 Starting AI Inference Server (Port 8000)..."
-uvicorn inference_server.main:app --host 0.0.0.0 --port 8000 &
+# 5. Restore ChromaDB (If exists)
+if [ -d "$LATEST_BACKUP/chroma_db" ]; then
+    echo "🔄 Restoring ChromaDB..."
+    mkdir -p /app/chroma_db
+    cp -r "$LATEST_BACKUP/chroma_db"/* /app/chroma_db/ 2>/dev/null || true
+fi
+
+# 6. Restore Fine-tuned Models (If exists)
+if [ -d "$LATEST_BACKUP/fine_tune" ]; then
+    echo "🔄 Restoring Fine-tuned models..."
+    mkdir -p /app/belong/ml/fine_tune
+    cp -r "$LATEST_BACKUP/fine_tune"/* /app/belong/ml/fine_tune/ 2>/dev/null || true
+fi
+
+# 7. Start AI Inference Server (Background)
+echo "🤖 Starting AI Inference Server (Port 8000)..."
+# Use module path instead of changing directory (more reliable)
+nohup python -m uvicorn inference_server.main:app --host 0.0.0.0 --port 8000 --workers 1 > /app/ai_server.log 2>&1 &
 AI_PID=$!
 echo "✅ AI Server started with PID $AI_PID"
 
-# 3. Wait for AI server to init
-# (Model loading takes time, so we just wait a bit, but real readiness is async)
-echo "⏳ Waiting 10s for AI Server process to settle..."
-sleep 10
+# Wait for AI server to be ready (health check)
+echo "⏳ Waiting for AI Server to be ready..."
+for i in {1..30}; do
+    if curl -s http://127.0.0.1:8000/ > /dev/null 2>&1; then
+        echo "✅ AI Server is responding!"
+        break
+    fi
+    echo "   Attempt $i/30..."
+    sleep 2
+done
 
-# Check if process is still alive
-if ! kill -0 $AI_PID > /dev/null 2>&1; then
-    echo "❌ AI Server exited unexpectedly! Check logs above."
-    # We don't exit here to allow Web Server to start for debugging,
-    # but in production we might want to fail.
-fi
-
-# ✅ 4. Start Periodic Auto-Backup (Background)
-echo "⏰ Starting auto-backup service (every 5 minutes)..."
+# 8. Start Auto-Backup Service (Background)
+echo "💾 Starting Auto-Backup Service..."
 (
-    # Wait 1 minute before first backup (빠른 초기 백업)
-    echo "⏰ First backup in 60 seconds..."
-    sleep 60
-    
     while true; do
-        TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
-        echo "🔄 [$TIMESTAMP] Auto-backup triggered"
-        
-        # Backup and create 'latest' symlink
-        BACKUP_DIR=$(/app/scripts/backup_db.sh | grep "📁 Location:" | awk '{print $3}')
-        if [ -n "$BACKUP_DIR" ]; then
-            rm -rf /workspace/db_backup/latest
-            ln -s "$BACKUP_DIR" /workspace/db_backup/latest
-            echo "✅ [$TIMESTAMP] Auto-backup complete → latest"
-        else
-            echo "⚠️ [$TIMESTAMP] Auto-backup failed"
-        fi
-        
         sleep 300
+        TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+        BACKUP_DIR="/workspace/db_backup/$TIMESTAMP"
+        mkdir -p "$BACKUP_DIR"
+        
+        # Backup PostgreSQL
+        PGPASSWORD=belong pg_dump -h 127.0.0.1 -U belong -Fc belong_db > "$BACKUP_DIR/belong_db.dump" 2>&1
+        
+        # Backup ChromaDB
+        cp -r /app/chroma_db "$BACKUP_DIR/" 2>/dev/null || true
+        
+        # Backup Fine-tuned Models
+        cp -r /app/belong/ml/fine_tune "$BACKUP_DIR/" 2>/dev/null || true
+        
+        # Update latest symlink
+        rm -rf /workspace/db_backup/latest
+        ln -s "$BACKUP_DIR" /workspace/db_backup/latest
+        
+        echo "✅ [$TIMESTAMP] Auto-backup complete"
     done
 ) &
 BACKUP_PID=$!
 echo "✅ Auto-backup service started with PID $BACKUP_PID"
 
-# 5. Start Web Server (Foreground - keeps container alive)
+# 9. Start Web Server (Foreground)
 echo "🌐 Starting Flask Web Server (Port 5000)..."
-# Ensure RUNPOD_ENDPOINT_URL points to localhost if not set
 export RUNPOD_ENDPOINT_URL=${RUNPOD_ENDPOINT_URL:-"http://127.0.0.1:8000"}
-
-# Using Gunicorn for production-grade serving (300s timeout for AI model loading)
-exec gunicorn -w 2 -b 0.0.0.0:5000 --timeout 300 "belong.app:create_app()"
+exec gunicorn -w 1 -b 0.0.0.0:5000 --timeout 300 "belong.app:create_app()"
