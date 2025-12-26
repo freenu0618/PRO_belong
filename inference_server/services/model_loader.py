@@ -112,7 +112,18 @@ async def load_models():
 
         # 4. Initialize RAG (ChromaDB)
         print("🧠 Initializing RAG VectorStore...")
-        embedding_model = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+        
+        # ✅ 임베딩 모델 선택 (환경변수로 설정 가능)
+        embedding_choice = os.environ.get("EMBEDDING_MODEL", "AUTO")
+        
+        EMBEDDING_MODELS = {
+            "AUTO": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",  # 다국어 (기본)
+            "KOREAN": "BM-K/KoSimCSE-roberta-multitask",  # 한글 특화 (더 정확)
+        }
+        
+        embedding_model = EMBEDDING_MODELS.get(embedding_choice.upper(), EMBEDDING_MODELS["AUTO"])
+        print(f"📦 Embedding model: {embedding_choice} → {embedding_model}")
+        
         embeddings = HuggingFaceEmbeddings(
             model_name=embedding_model,
             model_kwargs={'device': 'cpu'},
@@ -125,7 +136,7 @@ async def load_models():
         print("=" * 60)
         print(f"🎉 AI Server Startup Complete! ({total_time:.1f}s total)")
         print("✅ Available models: base, lora_best_r32")
-        print("✅ RAG enabled with ChromaDB")
+        print(f"✅ RAG enabled with ChromaDB (Embedding: {embedding_choice})")
         print("=" * 60)
 
     except Exception as e:

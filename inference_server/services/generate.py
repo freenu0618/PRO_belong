@@ -27,9 +27,9 @@ async def generate_text(request: GenerateRequest) -> dict:
     try:
         # 🔒 Critical Section: Lock model usage to prevent adapter race conditions
         async with state.model_lock:
-            target_model = getattr(request, "model", "lora_best_r32")
+            target_model = getattr(request, "model", "base")  # ✅ 기본값: 베이스 모델
             if target_model == "constant_with_warmup":
-                target_model = "lora_best_r32"  # Fallback for old requests
+                target_model = "base"  # Fallback for old requests
 
             # RAG Context Retrieval
             rag_context = ""
@@ -38,7 +38,18 @@ async def generate_text(request: GenerateRequest) -> dict:
                 if state.vectordb:
                     try:
                         print(f"🔍 Searching RAG for: {request.prompt}")
-                        docs = state.vectordb.similarity_search(request.prompt, k=3)
+                        # ✅ 1단계: 넉넉하게 20개 검색
+                        docs = state.vectordb.similarity_search(request.prompt, k=20)
+                        
+                        # ✅ 2단계: Reranker로 Top 3 선별
+                        from services.reranker import reranker
+                        if docs and reranker.load_model():
+                            reranked = reranker.rerank(request.prompt, docs, top_k=3)
+                            docs = [doc for doc, score in reranked]
+                            print(f"📊 Reranked: {len(reranked)} docs selected")
+                        elif docs:
+                            docs = docs[:3]  # Reranker 없으면 상위 3개만
+                        
                         if docs:
                             context_parts = []
                             for i, doc in enumerate(docs, 1):

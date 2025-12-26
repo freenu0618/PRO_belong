@@ -129,7 +129,8 @@ class TextGenerationService:
             outputs = model.generate(
                 **inputs,
                 max_new_tokens=max_new_tokens,
-                temperature=0.7,
+                temperature=0.05,  # ✅ 낮은 temperature로 일관된 응답
+                top_p=0.95,
                 do_sample=True,
                 pad_token_id=self._tokenizer.eos_token_id
             )

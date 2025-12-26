@@ -103,7 +103,7 @@ Generate a function call to handle this request."""
             if generator is None:
                 return {"error": f"모델 로드 실패: {model_id}", "raw_output": None}
             
-            result = generator(full_prompt, max_new_tokens=256, temperature=0.1)
+            result = generator(full_prompt, max_new_tokens=256, temperature=0.05, top_p=0.95)
             
             if isinstance(result, list) and len(result) > 0:
                 generated = result[0].get("generated_text", "")

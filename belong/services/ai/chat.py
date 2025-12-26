@@ -83,30 +83,38 @@ class AIChatService:
         Args:
             text: 사용자 입력
             model: 사용할 모델 (선택)
-            options: 추가 옵션 (max_new_tokens, use_rag 등)
+            options: 추가 옵션 (max_new_tokens, use_rag, use_db_rag 등)
             
         Returns:
             {"response": "AI 응답", "sources": [...]}  # RAG 사용 시 출처 포함
         """
-        # Llama-3 Prompt Template (한국어 응답 강화, 중립적)
-        prompt = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-당신은 친절하고 유능한 AI 어시스턴트입니다.
-
-**중요 규칙:**
-1. 반드시 한국어로만 답변하세요. (ALWAYS respond in Korean only)
-2. 사용자의 질문이 영어여도 한국어로 답변하세요.
-3. 주어진 문서가 있다면 그 내용을 바탕으로 답변하세요.
-4. 정확하고 도움이 되는 답변을 제공하세요.
-5. 모르는 내용은 모른다고 솔직히 말하세요.<|eot_id|><|start_header_id|>user<|end_header_id|>
-{text}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"""
-        
         opts = options or {}
         max_tokens = opts.pop('max_new_tokens', 512)
+        use_db_rag = opts.pop('use_db_rag', True)  # ✅ 기본적으로 DB RAG 활성화
         
-        result = self._call_runpod(prompt, max_tokens=max_tokens, model=model, **opts)
+        # ✅ DB RAG: 질문에서 지역/연도 추출하여 DB 데이터 컨텍스트 추가
+        db_context = ""
+        if use_db_rag:
+            try:
+                from belong.services.ai.db_rag import get_db_context
+                from belong.extensions import db
+                db_context = get_db_context(text, db.session)
+                if db_context:
+                    logger.info(f"📊 DB RAG Context added ({len(db_context)} chars)")
+            except Exception as e:
+                logger.warning(f"DB RAG failed: {e}")
+        
+        # ✅ DB 컨텍스트가 있으면 질문에 추가
+        prompt_text = text
+        if db_context:
+            prompt_text = f"{db_context}\n\n---\n사용자 질문: {text}"
+        
+        result = self._call_runpod(prompt_text, max_tokens=max_tokens, model=model, **opts)
         
         # ✅ Build response with optional sources
         response = {"response": result.get("output", str(result))}
         if "sources" in result:
             response["sources"] = result["sources"]
+        if db_context:
+            response["db_context_used"] = True
         return response
