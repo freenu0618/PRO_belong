@@ -118,9 +118,11 @@ class RAGService:
             }
         
         try:
+            # ✅ 스트리밍 업로드 (대용량 파일 OOM 방지)
             files = {
-                'file': (file_storage.filename, file_storage.read(), file_storage.content_type)
+                'file': (file_storage.filename, file_storage.stream, file_storage.content_type)
             }
+            
             base_url = api_url.replace("/generate", "")
             ingest_url = f"{base_url}/ingest"
             

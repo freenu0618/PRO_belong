@@ -61,6 +61,7 @@ EXPOSE 8000 5000
 COPY scripts/ /app/scripts/
 RUN chmod +x /app/scripts/*.sh 2>/dev/null || true
 COPY start_all.sh .
-RUN chmod +x start_all.sh
+# ✅ Fix Windows CRLF to Unix LF (important for cross-platform compatibility)
+RUN sed -i 's/\r$//' start_all.sh && chmod +x start_all.sh
 
 CMD ["./start_all.sh"]

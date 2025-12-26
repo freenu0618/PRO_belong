@@ -33,37 +33,119 @@ async def generate_text(request: GenerateRequest) -> dict:
 
             # RAG Context Retrieval
             rag_context = ""
+            rag_sources = []  # ✅ 출처 정보 저장
             if request.use_rag:
                 if state.vectordb:
                     try:
                         print(f"🔍 Searching RAG for: {request.prompt}")
                         docs = state.vectordb.similarity_search(request.prompt, k=3)
                         if docs:
-                            context_text = "\n".join([doc.page_content for doc in docs])
-                            rag_context = f"Here is some context to help you answer:\n{context_text}\n\n"
-                            print(f"✅ RAG Context Added ({len(docs)} chunks)")
+                            context_parts = []
+                            for i, doc in enumerate(docs, 1):
+                                context_parts.append(doc.page_content)
+                                # ✅ 출처 메타데이터 추출
+                                source = doc.metadata.get("source", "Unknown")
+                                page = doc.metadata.get("page", "")
+                                source_info = {"source": source, "page": page} if page else {"source": source}
+                                if source_info not in rag_sources:
+                                    rag_sources.append(source_info)
+                            
+                            context_text = "\n---\n".join(context_parts)
+                            # ✅ 한국어 RAG 컨텍스트 (영어 → 한국어)
+                            rag_context = f"""다음은 참고 문서입니다:
+
+{context_text}
+
+---
+위 문서 내용을 참고하여 질문에 답변하세요."""
+                            print(f"✅ RAG Context Added ({len(docs)} chunks from {len(rag_sources)} sources)")
                     except Exception as e:
                         print(f"⚠️ RAG Search Error: {e}")
                 else:
                     print("⚠️ RAG requested but VectorDB not initialized.")
 
-            # Construct Prompt
-            full_prompt = f"{rag_context}{request.prompt}" if rag_context else request.prompt
+            # ✅ 프롬프트 처리: Flask에서 템플릿이 이미 적용되었는지 확인
+            user_question = request.prompt or ""
+            
+            # Flask에서 이미 Llama-3 템플릿이 적용된 경우
+            if "<|begin_of_text|>" in user_question:
+                # ✅ 이미 템플릿 적용됨 - RAG 컨텍스트만 추가하면 됨
+                if rag_context:
+                    # 시스템 프롬프트 끝에 RAG 컨텍스트 삽입
+                    full_prompt = user_question.replace(
+                        "<|eot_id|><|start_header_id|>user<|end_header_id|>",
+                        f"\n\n{rag_context}<|eot_id|><|start_header_id|>user<|end_header_id|>"
+                    )
+                else:
+                    full_prompt = user_question
+                print(f"📝 Using Flask template as-is (RAG: {bool(rag_context)})")
+            else:
+                # ✅ 순수 텍스트 - 새로 템플릿 적용
+                print(f"📝 Applying new Llama-3 template")
+                system_instruction = """당신은 친절하고 정확한 AI 어시스턴트입니다.
+
+**중요 규칙:**
+1. 반드시 한국어로만 답변하세요.
+2. 질문에 대해 정확하고 간결하게 답변하세요.
+3. 모르는 내용은 모른다고 솔직히 말하세요."""
+
+                if rag_context:
+                    full_prompt = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+{system_instruction}
+
+{rag_context}<|eot_id|><|start_header_id|>user<|end_header_id|>
+{user_question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"""
+                else:
+                    full_prompt = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+{system_instruction}<|eot_id|><|start_header_id|>user<|end_header_id|>
+{user_question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"""
+            
+            print(f"📜 Final prompt length: {len(full_prompt)} chars")
 
             # 어댑터 선택 및 동적 로딩
+            is_peft_model = hasattr(state.model, 'peft_config')  # ✅ PeftModel 여부 체크
+            
             if target_model == "base" or "base" in target_model:
                 # Base 모델 사용
-                context = state.model.disable_adapter()
+                if is_peft_model:
+                    context = state.model.disable_adapter()
+                else:
+                    context = None  # Base model 그대로 사용
             else:
-                # 1. 이미 로드된 adapter인지 확인
-                if target_model in state.model.peft_config:
+                if not is_peft_model:
+                    # PeftModel이 아니면 어댑터 사용 불가
+                    logger.warning("Model is not a PeftModel, using base model for all requests")
+                    context = None
+                elif target_model in state.model.peft_config:
+                    # 1. 이미 로드된 adapter인지 확인
                     logger.info(f"✅ Using cached adapter: {target_model}")
                     state.model.set_adapter(target_model)
                     context = None
                 else:
                     # 2. /workspace/output에서 동적 로드 시도
-                    adapter_path = f"/workspace/output/{target_model}"
-                    if os.path.exists(adapter_path):
+                    base_adapter_path = f"/workspace/output/{target_model}"
+                    adapter_path = None
+                    
+                    if os.path.exists(base_adapter_path):
+                        # adapter_config.json이 직접 있는지 확인
+                        if os.path.exists(os.path.join(base_adapter_path, "adapter_config.json")):
+                            adapter_path = base_adapter_path
+                        else:
+                            # checkpoint 폴더에서 최신 것 찾기
+                            try:
+                                subdirs = [d for d in os.listdir(base_adapter_path) 
+                                          if os.path.isdir(os.path.join(base_adapter_path, d)) and d.startswith("checkpoint-")]
+                                if subdirs:
+                                    subdirs.sort(key=lambda x: int(x.split('-')[-1]) if x.split('-')[-1].isdigit() else 0)
+                                    latest_checkpoint = subdirs[-1]
+                                    checkpoint_path = os.path.join(base_adapter_path, latest_checkpoint)
+                                    if os.path.exists(os.path.join(checkpoint_path, "adapter_config.json")):
+                                        adapter_path = checkpoint_path
+                                        logger.info(f"📁 Found adapter in checkpoint: {latest_checkpoint}")
+                            except Exception as e:
+                                logger.warning(f"Error searching checkpoints: {e}")
+                    
+                    if adapter_path:
                         try:
                             logger.info(f"🔧 Loading adapter dynamically: {target_model} from {adapter_path}")
                             state.model.load_adapter(adapter_path, adapter_name=target_model)
@@ -82,7 +164,7 @@ async def generate_text(request: GenerateRequest) -> dict:
                                 context = state.model.disable_adapter()
                     else:
                         # 3. Fallback to default adapter
-                        logger.warning(f"Adapter {target_model} not found at {adapter_path}")
+                        logger.warning(f"Adapter {target_model} not found at {base_adapter_path}")
                         if "lora_best_r32" in state.model.peft_config:
                             logger.info("Using default adapter: lora_best_r32")
                             state.model.set_adapter("lora_best_r32")
@@ -94,28 +176,43 @@ async def generate_text(request: GenerateRequest) -> dict:
             inputs = state.tokenizer(full_prompt, return_tensors="pt").to(state.model.device)
 
             # 🔧 Temperature Validation
-            safe_temp = max(request.temperature, 0.01) if request.temperature else 0.7
+            safe_temp = max(request.temperature, 0.01) if request.temperature else 0.4  # ✅ 기본값 0.4 (일관성 향상)
 
             # Base Model Context 처리
-            if target_model == "base" or "base" in target_model:
+            use_base_mode = target_model == "base" or "base" in target_model
+            
+            if use_base_mode and is_peft_model:
+                # PeftModel에서 base 모델 사용
                 with state.model.disable_adapter():
                     outputs = state.model.generate(
                         **inputs,
                         max_new_tokens=request.max_new_tokens,
                         temperature=safe_temp,
                         top_p=request.top_p,
-                        repetition_penalty=1.2,
+                        repetition_penalty=1.3,  # ✅ 반복 억제 강화
                         do_sample=True,
                         pad_token_id=state.tokenizer.eos_token_id,
                         eos_token_id=[state.tokenizer.eos_token_id, state.tokenizer.convert_tokens_to_ids("<|eot_id|>")]
                     )
+            elif use_base_mode and not is_peft_model:
+                # 일반 모델 (PeftModel 아님) - 그냥 생성
+                outputs = state.model.generate(
+                    **inputs,
+                    max_new_tokens=request.max_new_tokens,
+                    temperature=safe_temp,
+                    top_p=request.top_p,
+                    repetition_penalty=1.3,
+                    do_sample=True,
+                    pad_token_id=state.tokenizer.eos_token_id,
+                    eos_token_id=[state.tokenizer.eos_token_id, state.tokenizer.convert_tokens_to_ids("<|eot_id|>")]
+                )
             else:
                 outputs = state.model.generate(
                     **inputs,
                     max_new_tokens=request.max_new_tokens,
                     temperature=safe_temp,
                     top_p=request.top_p,
-                    repetition_penalty=1.2,
+                    repetition_penalty=1.3,
                     do_sample=True,
                     pad_token_id=state.tokenizer.eos_token_id,
                     eos_token_id=[state.tokenizer.eos_token_id, state.tokenizer.convert_tokens_to_ids("<|eot_id|>")]
@@ -125,12 +222,30 @@ async def generate_text(request: GenerateRequest) -> dict:
             prompt_token_len = inputs.input_ids.shape[1]
             response_tokens = outputs[0][prompt_token_len:]
             response_text = state.tokenizer.decode(response_tokens, skip_special_tokens=True)
+            
+            # ✅ 디버깅 로그 추가
+            print(f"📊 Prompt tokens: {prompt_token_len}, Generated tokens: {len(response_tokens)}")
+            print(f"📝 Raw response (first 500 chars): {response_text[:500] if response_text else '(EMPTY)'}")
+            
+            # ✅ 빈 응답 시 fallback 메시지
+            final_response = response_text.strip()
+            if not final_response:
+                final_response = "(AI가 응답을 생성하지 못했습니다. 다시 시도해주세요.)"
+                logger.warning(f"Empty response! Prompt tokens: {prompt_token_len}, max_new_tokens: {request.max_new_tokens}")
 
-            return {"output": response_text.strip()}
+            # ✅ RAG 사용 시 출처 정보 포함
+            result = {"output": final_response}
+            if rag_sources:
+                result["sources"] = rag_sources
+            return result
 
     except Exception as e:
-        print(f"Generation Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"❌ Generation Error: {e}")
+        print(f"📋 Stack trace:\n{error_trace}")
+        logger.error(f"Generation Error: {e}\n{error_trace}")
+        raise HTTPException(status_code=500, detail=f"생성 오류: {str(e)}")
 
 
 def reload_model():

@@ -70,10 +70,11 @@ class AIChatService:
             response = requests.post(api_url, headers=headers, json=payload, timeout=60)
             response.raise_for_status()
             data = response.json()
-            return data.get("output", "")
+            # ✅ Return full response for sources access
+            return data
         except Exception as e:
             logger.error(f"RunPod API Call Failed: {e}")
-            return f"AI Error: {str(e)}"
+            return {"output": f"AI Error: {str(e)}"}
     
     def chat(self, text: str, model: str = None, options: dict = None) -> dict:
         """
@@ -85,17 +86,27 @@ class AIChatService:
             options: 추가 옵션 (max_new_tokens, use_rag 등)
             
         Returns:
-            {"response": "AI 응답"}
+            {"response": "AI 응답", "sources": [...]}  # RAG 사용 시 출처 포함
         """
-        # Llama-3 Prompt Template
+        # Llama-3 Prompt Template (한국어 응답 강화, 중립적)
         prompt = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+당신은 친절하고 유능한 AI 어시스턴트입니다.
 
-You are a helpful AI assistant for the Belong platform.<|eot_id|><|start_header_id|>user<|end_header_id|>
-
+**중요 규칙:**
+1. 반드시 한국어로만 답변하세요. (ALWAYS respond in Korean only)
+2. 사용자의 질문이 영어여도 한국어로 답변하세요.
+3. 주어진 문서가 있다면 그 내용을 바탕으로 답변하세요.
+4. 정확하고 도움이 되는 답변을 제공하세요.
+5. 모르는 내용은 모른다고 솔직히 말하세요.<|eot_id|><|start_header_id|>user<|end_header_id|>
 {text}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"""
         
         opts = options or {}
         max_tokens = opts.pop('max_new_tokens', 512)
         
-        response_text = self._call_runpod(prompt, max_tokens=max_tokens, model=model, **opts)
-        return {"response": response_text}
+        result = self._call_runpod(prompt, max_tokens=max_tokens, model=model, **opts)
+        
+        # ✅ Build response with optional sources
+        response = {"response": result.get("output", str(result))}
+        if "sources" in result:
+            response["sources"] = result["sources"]
+        return response

@@ -85,6 +85,18 @@ async def api_delete_trained_model(model_name: str):
     return await training.delete_trained_model(model_name)
 
 
+@app.post("/train/storage/cleanup")
+async def api_cleanup_storage():
+    """스토리지 정리 API - 고아 폴더 및 오래된 체크포인트 삭제"""
+    return await training.cleanup_storage()
+
+
+@app.get("/train/storage/info")
+async def api_storage_info():
+    """스토리지 사용량 정보 API"""
+    return await training.get_storage_info()
+
+
 # ============================================================
 # API Routes - Health & Utility
 # ============================================================

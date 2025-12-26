@@ -113,7 +113,7 @@ async def ingest_document(file: UploadFile) -> dict:
         # 3. 텍스트 청킹
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=500,
-            chunk_overlap=50,
+            chunk_overlap=100,  # ✅ 20% 오버랩 (문맥 보존 강화)
             length_function=len,
             separators=["\n\n", "\n", " ", ""]
         )

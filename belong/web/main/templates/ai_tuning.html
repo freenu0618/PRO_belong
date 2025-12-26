@@ -228,15 +228,28 @@
                             </div>
                         </div>
 
-                        <!-- Loss 차트 -->
+                        <!-- Loss 차트 (Enhanced UX) -->
                         <div class="card bg-secondary bg-opacity-10 border-secondary mb-3">
                             <div class="card-header bg-transparent border-secondary">
-                                <h6 class="mb-0 text-white">
-                                    <i class="bi bi-graph-down me-2"></i>Loss 추이
-                                </h6>
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <h6 class="mb-0 text-white">
+                                        <i class="bi bi-graph-down me-2"></i>학습 곡선 (Loss Curve)
+                                    </h6>
+                                    <!-- 스무딩 슬라이더 -->
+                                    <div class="d-flex align-items-center gap-2">
+                                        <label class="text-muted small mb-0" for="smoothing-slider">스무딩:</label>
+                                        <input type="range" class="form-range" id="smoothing-slider" min="0" max="0.99"
+                                            step="0.01" value="0.6" style="width: 100px;">
+                                        <span class="text-info small" id="smoothing-value">0.6</span>
+                                    </div>
+                                </div>
+                                <!-- 인사이트 메시지 -->
+                                <div id="chart-insight" class="chart-insight small mt-2 text-info">
+                                    ⏳ 데이터 수집 중...
+                                </div>
                             </div>
                             <div class="card-body">
-                                <canvas id="loss-chart" height="80"></canvas>
+                                <canvas id="loss-chart" height="100"></canvas>
                             </div>
                         </div>
 
@@ -342,12 +355,17 @@
 
                 <!-- Model B Pane -->
                 <div class="compare-pane">
-                    <div class="compare-header d-flex justify-content-between align-items-center">
+                    <div class="compare-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <span class="badge bg-success">Model B</span>
-                        <select class="form-select form-select-sm bg-dark text-white border-secondary w-50"
-                            id="model-b-select">
+                        <select class="form-select form-select-sm bg-dark text-white border-secondary"
+                            style="width: 120px;" id="model-b-select">
                             <option value="">로딩 중...</option>
                         </select>
+                        <!-- ✅ Model B RAG Toggle -->
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="toggle-rag-model-b">
+                            <label class="form-check-label text-info small" for="toggle-rag-model-b">RAG</label>
+                        </div>
                     </div>
                     <div class="compare-body" id="compare-box-b"></div>
                 </div>

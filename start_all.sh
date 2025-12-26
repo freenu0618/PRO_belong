@@ -53,8 +53,15 @@ if [ -d "$LATEST_BACKUP" ] && [ -f "$LATEST_BACKUP/belong_db.dump" ]; then
     echo "📊 Users in database after restore: $USER_COUNT"
 else
     echo "⚠️ No backup found, starting fresh..."
-    # Run Flask DB migrations for fresh database
-    flask db upgrade || echo "⚠️ Migration had issues, continuing..."
+    # ✅ 마이그레이션 대신 db.create_all() 사용 (테이블 순서 문제 해결)
+    python -c "
+from belong.app import create_app
+from belong.extensions import db
+app = create_app()
+with app.app_context():
+    db.create_all()
+    print('✅ Database tables created successfully!')
+" || echo "⚠️ Table creation had issues, continuing..."
 fi
 
 # 4. Seed Data

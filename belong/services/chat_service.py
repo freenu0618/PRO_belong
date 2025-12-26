@@ -171,22 +171,30 @@ class ChatService:
         service 값에 따라 적절한 AIService 메서드를 호출하고,
         (원본 result, 사용자에게 보여줄 assistant_text) 튜플을 반환한다.
         """
-        if service == "sentiment":
-            return self._run_sentiment(text)
-        elif service == "entities":
-            return self._run_entities(text)
-        elif service == "qa":
-            return self._run_qa(text, options)
-        elif service == "chat":
-            return self._run_free_chat(text)
-        elif service == "translate":
-            return self._run_translate(text, options)
-        elif service == "summarize":
-            return self._run_summarize(text)
-        else:
-            # 알 수 없는 service 값인 경우
-            result: Dict[str, Any] = {"error": f"지원하지 않는 service 입니다: {service}"}
-            assistant_text = "지원하지 않는 서비스입니다."
+        try:
+            if service == "sentiment":
+                return self._run_sentiment(text)
+            elif service == "entities":
+                return self._run_entities(text)
+            elif service == "qa":
+                return self._run_qa(text, options)
+            elif service == "chat":
+                return self._run_free_chat(text)
+            elif service == "translate":
+                return self._run_translate(text, options)
+            elif service == "summarize":
+                return self._run_summarize(text)
+            else:
+                # 알 수 없는 service 값인 경우
+                result: Dict[str, Any] = {"error": f"지원하지 않는 service 입니다: {service}"}
+                assistant_text = "지원하지 않는 서비스입니다."
+                return result, assistant_text
+        except Exception as e:
+            # ✅ AI 서비스 호출 실패 시 graceful 처리
+            import logging
+            logging.getLogger(__name__).exception(f"AI 서비스 호출 실패 ({service}): {e}")
+            result: Dict[str, Any] = {"error": f"AI 서비스 일시적 오류: {str(e)}"}
+            assistant_text = "죄송합니다. AI 서비스에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요."
             return result, assistant_text
 
     # ---------------------------

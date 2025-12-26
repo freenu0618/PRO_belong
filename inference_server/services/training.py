@@ -410,13 +410,13 @@ async def list_trained_models() -> dict:
 
 async def delete_trained_model(model_name: str) -> dict:
     """
-    파인튜닝된 모델 삭제
+    파인튜닝된 모델 삭제 + 스토리지 정리
     
     Args:
         model_name: 삭제할 모델 이름
         
     Returns:
-        {"ok": True, "message": "삭제 완료"}
+        {"ok": True, "message": "삭제 완료", "freed_mb": 용량}
     """
     import shutil
     
@@ -426,29 +426,176 @@ async def delete_trained_model(model_name: str) -> dict:
         return {"ok": False, "error": f"'{model_name}'은(는) 삭제할 수 없습니다."}
     
     deleted = False
+    freed_bytes = 0
     
-    # /workspace/output에서 찾아서 삭제
+    def get_folder_size(path):
+        """폴더 크기 계산 (바이트)"""
+        total = 0
+        try:
+            for dirpath, dirnames, filenames in os.walk(path):
+                for f in filenames:
+                    fp = os.path.join(dirpath, f)
+                    if os.path.exists(fp):
+                        total += os.path.getsize(fp)
+        except:
+            pass
+        return total
+    
+    # 1. /workspace/output에서 찾아서 삭제
     output_path = f"/workspace/output/{model_name}"
     if os.path.exists(output_path):
         try:
+            freed_bytes += get_folder_size(output_path)
             shutil.rmtree(output_path)
             logger.info(f"🗑️ Deleted model: {output_path}")
             deleted = True
         except Exception as e:
             return {"ok": False, "error": f"삭제 실패: {e}"}
     
-    # fine_tune 폴더에서도 확인
+    # 2. fine_tune 폴더에서도 확인
     local_path = os.path.join(os.getcwd(), "belong", "ml", "fine_tune", model_name)
     if os.path.exists(local_path):
         try:
+            freed_bytes += get_folder_size(local_path)
             shutil.rmtree(local_path)
             logger.info(f"🗑️ Deleted model: {local_path}")
             deleted = True
         except Exception as e:
             return {"ok": False, "error": f"삭제 실패: {e}"}
     
+    freed_mb = round(freed_bytes / (1024 * 1024), 2)
+    
     if deleted:
-        return {"ok": True, "message": f"'{model_name}' 삭제 완료"}
+        logger.info(f"✅ Model '{model_name}' deleted, freed {freed_mb}MB")
+        return {"ok": True, "message": f"'{model_name}' 삭제 완료 ({freed_mb}MB 확보)", "freed_mb": freed_mb}
     else:
         return {"ok": False, "error": f"'{model_name}'을(를) 찾을 수 없습니다."}
+
+
+async def cleanup_storage() -> dict:
+    """
+    스토리지 정리 - 고아 폴더 및 오래된 체크포인트 삭제
+    
+    Returns:
+        {"ok": True, "cleaned": [...], "freed_mb": 용량}
+    """
+    import shutil
+    
+    cleaned = []
+    freed_bytes = 0
+    protected = ["base", "lora_best_r32"]
+    
+    def get_folder_size(path):
+        total = 0
+        try:
+            for dirpath, dirnames, filenames in os.walk(path):
+                for f in filenames:
+                    fp = os.path.join(dirpath, f)
+                    if os.path.exists(fp):
+                        total += os.path.getsize(fp)
+        except:
+            pass
+        return total
+    
+    output_dir = "/workspace/output"
+    
+    if not os.path.exists(output_dir):
+        return {"ok": True, "message": "정리할 폴더가 없습니다.", "cleaned": [], "freed_mb": 0}
+    
+    for folder_name in os.listdir(output_dir):
+        folder_path = os.path.join(output_dir, folder_name)
+        
+        if not os.path.isdir(folder_path):
+            continue
+        
+        # 보호된 폴더 건너뛰기
+        if folder_name in protected:
+            continue
+        
+        # 1. 오래된 checkpoint 정리 (최신 1개만 유지)
+        checkpoints = [d for d in os.listdir(folder_path) 
+                      if os.path.isdir(os.path.join(folder_path, d)) and d.startswith("checkpoint-")]
+        
+        if len(checkpoints) > 1:
+            # 스텝 번호로 정렬
+            try:
+                checkpoints.sort(key=lambda x: int(x.split('-')[-1]) if x.split('-')[-1].isdigit() else 0)
+                # 마지막 것 제외하고 삭제
+                for old_cp in checkpoints[:-1]:
+                    old_path = os.path.join(folder_path, old_cp)
+                    size = get_folder_size(old_path)
+                    shutil.rmtree(old_path)
+                    freed_bytes += size
+                    cleaned.append(f"{folder_name}/{old_cp}")
+                    logger.info(f"🗑️ Deleted old checkpoint: {old_path}")
+            except Exception as e:
+                logger.warning(f"Failed to cleanup checkpoints: {e}")
+        
+        # 2. adapter_config.json이 없는 폴더 = 불완전한 학습 → 삭제
+        has_adapter = os.path.exists(os.path.join(folder_path, "adapter_config.json"))
+        has_checkpoint_adapter = any(
+            os.path.exists(os.path.join(folder_path, cp, "adapter_config.json"))
+            for cp in os.listdir(folder_path) if os.path.isdir(os.path.join(folder_path, cp))
+        ) if os.path.exists(folder_path) else False
+        
+        if not has_adapter and not has_checkpoint_adapter:
+            # 불완전한 학습 데이터 삭제
+            try:
+                size = get_folder_size(folder_path)
+                shutil.rmtree(folder_path)
+                freed_bytes += size
+                cleaned.append(f"{folder_name} (불완전)")
+                logger.info(f"🗑️ Deleted incomplete model: {folder_path}")
+            except Exception as e:
+                logger.warning(f"Failed to delete incomplete model: {e}")
+    
+    freed_mb = round(freed_bytes / (1024 * 1024), 2)
+    
+    return {
+        "ok": True, 
+        "message": f"스토리지 정리 완료! {len(cleaned)}개 항목, {freed_mb}MB 확보",
+        "cleaned": cleaned,
+        "freed_mb": freed_mb
+    }
+
+
+async def get_storage_info() -> dict:
+    """스토리지 사용량 정보"""
+    import shutil
+    
+    output_dir = "/workspace/output"
+    
+    if not os.path.exists(output_dir):
+        return {"ok": True, "total_mb": 0, "models": []}
+    
+    def get_folder_size(path):
+        total = 0
+        try:
+            for dirpath, dirnames, filenames in os.walk(path):
+                for f in filenames:
+                    fp = os.path.join(dirpath, f)
+                    if os.path.exists(fp):
+                        total += os.path.getsize(fp)
+        except:
+            pass
+        return total
+    
+    models = []
+    total_bytes = 0
+    
+    for folder_name in os.listdir(output_dir):
+        folder_path = os.path.join(output_dir, folder_name)
+        if os.path.isdir(folder_path):
+            size = get_folder_size(folder_path)
+            total_bytes += size
+            models.append({
+                "name": folder_name,
+                "size_mb": round(size / (1024 * 1024), 2)
+            })
+    
+    return {
+        "ok": True,
+        "total_mb": round(total_bytes / (1024 * 1024), 2),
+        "models": sorted(models, key=lambda x: x["size_mb"], reverse=True)
+    }
 

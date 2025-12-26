@@ -94,6 +94,10 @@ class AIService:
     def get_training_status(self, job_id: str) -> dict:
         return self._training.get_training_status(job_id)
     
+    def delete_model(self, model_name: str) -> dict:
+        """파인튜닝된 모델 삭제"""
+        return self._training.delete_model(model_name)
+    
     # ========== Utility ==========
     def get_utility_models(self) -> dict:
         """사용 가능한 유틸리티 모델 목록 반환"""

@@ -5,8 +5,14 @@ from belong.services.ai_service import AIService
 from .response_utils import success_response, bad_request, server_error
 import os
 
-# Initialize AIService (Uses RunPod Config)
-ai_service = AIService()
+# Lazy initialization to prevent model loading during Flask startup
+_ai_service_instance = None
+
+def get_ai_service():
+    global _ai_service_instance
+    if _ai_service_instance is None:
+        _ai_service_instance = AIService()
+    return _ai_service_instance
 
 @api_bp.post("/tuning/chat")
 @jwt_required
@@ -32,12 +38,16 @@ def api_tuning_chat():
         return bad_request("텍스트를 입력해주세요")
 
     # Use AIService (RunPod) instead of OllamaService
-    result = ai_service.chat(user_text, model=model, options=options)
+    result = get_ai_service().chat(user_text, model=model, options=options)
     
     # Adapt response to frontend expectation
     if "response" in result:
+        # ✅ Include sources when RAG was used
+        data = {"result": result['response']}
+        if "sources" in result:
+            data["sources"] = result["sources"]
         return success_response(
-            data={"result": result['response']},
+            data=data,
             message="AI 응답 생성 완료"
         )
         
@@ -59,7 +69,7 @@ def api_tuning_compare():
         return bad_request("텍스트와 모델이 필요합니다")
         
     # Use AIService (RunPod)
-    result = ai_service.chat(text, model=model, options=options)
+    result = get_ai_service().chat(text, model=model, options=options)
     
     if "response" in result:
         return success_response(
@@ -73,7 +83,7 @@ def api_tuning_compare():
 @api_bp.route("/tuning/models", methods=["GET"])
 def api_tuning_models():
     """사용 가능한 모델 리스트 반환"""
-    models = ai_service.get_available_models()
+    models = get_ai_service().get_available_models()
     return success_response(
         data={"models": models},
         message="모델 목록 조회 성공"
@@ -91,7 +101,7 @@ def api_tuning_start():
         return bad_request("모델 이름이 필요합니다")
         
     # Start Training
-    result = ai_service.start_training(model_name, payload)
+    result = get_ai_service().start_training(model_name, payload)
     return success_response(
         data=result,
         message="학습이 시작되었습니다"
@@ -102,7 +112,7 @@ def api_tuning_start():
 @jwt_required
 def api_tuning_status(job_id):
     """학습 상태 조회 (Mock or Real)"""
-    result = ai_service.get_training_status(job_id)
+    result = get_ai_service().get_training_status(job_id)
     return success_response(
         data=result,
         message="학습 상태 조회 성공"
@@ -113,7 +123,7 @@ def api_tuning_status(job_id):
 @jwt_required
 def api_delete_model(model_name):
     """파인튜닝 모델 삭제"""
-    result = ai_service.delete_model(model_name)
+    result = get_ai_service().delete_model(model_name)
     if result.get("ok"):
         return success_response(
             data=result,
@@ -144,7 +154,7 @@ def api_docs_upload():
         if file and file.filename:
             try:
                 # Pass FileStorage directly to service
-                res = ai_service.upload_document(file)
+                res = get_ai_service().upload_document(file)
                 results.append(res)
             except Exception as e:
                 errors.append(f"{file.filename}: {str(e)}")

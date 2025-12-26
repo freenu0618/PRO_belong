@@ -24,6 +24,51 @@ class FunctionCallService:
     def __init__(self, loader: ModelLoaderService = None):
         self._loader = loader or ModelLoaderService()
     
+    def _parse_llm_json(self, response_text: str) -> dict:
+        """
+        LLM 응답에서 JSON을 안전하게 추출
+        
+        처리 순서:
+        1. 코드블록(```json...```) 추출
+        2. JSON 객체 패턴 매칭
+        3. 파싱 시도 및 복구
+        """
+        try:
+            # 1. 코드블록 추출 시도
+            code_block = re.search(r'```(?:json)?\s*([\s\S]*?)```', response_text)
+            if code_block:
+                response_text = code_block.group(1).strip()
+            
+            # 2. JSON 객체 추출 (중첩된 객체 지원)
+            json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response_text, re.DOTALL)
+            if not json_match:
+                # 간단한 패턴 재시도
+                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            
+            if not json_match:
+                return None
+            
+            json_str = json_match.group()
+            
+            # 3. 파싱 시도
+            try:
+                return json.loads(json_str)
+            except json.JSONDecodeError:
+                # 4. 복구 시도: 흔한 오류 수정
+                # 작은따옴표 -> 큰따옴표
+                fixed = json_str.replace("'", '"')
+                # 후행 쉼표 제거
+                fixed = re.sub(r',\s*}', '}', fixed)
+                fixed = re.sub(r',\s*]', ']', fixed)
+                try:
+                    return json.loads(fixed)
+                except json.JSONDecodeError:
+                    logger.warning(f"JSON 파싱 실패: {json_str[:100]}...")
+                    return None
+        except Exception as e:
+            logger.error(f"JSON 추출 오류: {e}")
+            return None
+    
     def generate(self, prompt: str, functions: list = None, model: str = None) -> dict:
         """
         Function Call 생성
@@ -63,18 +108,14 @@ Generate a function call to handle this request."""
             if isinstance(result, list) and len(result) > 0:
                 generated = result[0].get("generated_text", "")
                 
-                # JSON 파싱 시도
-                json_match = re.search(r'\{.*\}', generated, re.DOTALL)
-                if json_match:
-                    try:
-                        parsed = json.loads(json_match.group())
-                        return {
-                            "function_name": parsed.get("name", parsed.get("function", "")),
-                            "arguments": parsed.get("arguments", parsed.get("params", {})),
-                            "raw_output": generated
-                        }
-                    except json.JSONDecodeError:
-                        pass
+                # ✅ 강화된 JSON 파싱
+                parsed = self._parse_llm_json(generated)
+                if parsed:
+                    return {
+                        "function_name": parsed.get("name", parsed.get("function", "")),
+                        "arguments": parsed.get("arguments", parsed.get("params", {})),
+                        "raw_output": generated
+                    }
                 
                 return {"function_name": None, "arguments": {}, "raw_output": generated}
             

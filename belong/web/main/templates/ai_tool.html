@@ -130,6 +130,15 @@
             </select>
           </div>
 
+          <!-- Model Selection (New) -->
+          <div class="option-group" id="opt-model-select">
+            <div class="option-label">사용 모델 (Model)</div>
+            <select class="form-select form-select-sm" id="ai-model-select">
+              <option value="base">Llama-3-Base</option>
+              <option value="lora_best_r32">파인튜닝 (LORA)</option>
+            </select>
+          </div>
+
           <!-- RAG Options Removed - Now only in AI Lab -->
           <!-- Users should use /tuning for RAG functionality -->
 
@@ -163,5 +172,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/ai_page.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/ai_page/main.js') }}"></script>
 {% endblock %}
