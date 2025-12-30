@@ -8,7 +8,7 @@ import logging
 from fastapi import UploadFile, File, HTTPException
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from .. import state
+from inference_server import state
 
 logger = logging.getLogger(__name__)
 

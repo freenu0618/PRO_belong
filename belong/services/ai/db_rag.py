@@ -91,21 +91,27 @@ class DBRagService:
         
         try:
             from belong.models.elderly_history import ElderlyHistory
+            from belong.models.region import Region
             
-            query = self.db_session.query(ElderlyHistory)
+            # ElderlyHistory는 region_id (FK)를 사용하므로 Region과 조인 필요
+            query = self.db_session.query(
+                Region.name.label('region_name'),
+                ElderlyHistory.year,
+                ElderlyHistory.elderly_population
+            ).join(Region, ElderlyHistory.region_id == Region.id)
             
             if regions:
-                query = query.filter(ElderlyHistory.region_name.in_(regions))
+                query = query.filter(Region.name.in_(regions))
             
             # 최근 5년 데이터
             query = query.filter(ElderlyHistory.year >= 2019)
-            results = query.order_by(ElderlyHistory.region_name, ElderlyHistory.year).all()
+            results = query.order_by(Region.name, ElderlyHistory.year).all()
             
             return [
                 {
                     "region": r.region_name,
                     "year": r.year,
-                    "value": r.death_count if hasattr(r, 'death_count') else r.value
+                    "value": r.elderly_population if r.elderly_population else 0
                 }
                 for r in results
             ]

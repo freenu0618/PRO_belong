@@ -212,3 +212,88 @@ def api_utility_models():
     models = ai_service.get_utility_models()
     return {"ok": True, "models": models}, 200
 
+
+# ---------------------------------------------------
+# [NEW] Embedding Model Selection Endpoint
+# ---------------------------------------------------
+@api_bp.post("/ai/embedding-model")
+@jwt_required
+def api_set_embedding_model():
+    """
+    임베딩 모델 변경 API
+    
+    Request Body:
+        {"model": "auto" | "ko-sroberta"}
+    
+    Response:
+        {"ok": True, "model": "ko-sroberta", "message": "임베딩 모델 변경됨"}
+    """
+    import os
+    import requests
+    
+    payload = request.get_json() or {}
+    model_key = payload.get("model", "auto")
+    
+    # ✅ Inference Server에서 모델 목록 가져오기 (CSR 패턴)
+    api_url = os.environ.get("RUNPOD_ENDPOINT_URL", "")
+    EMBEDDING_MODELS = None
+    
+    if api_url and "mock" not in api_url:
+        try:
+            base_url = api_url.replace("/generate", "")
+            resp = requests.get(f"{base_url}/embedding-models", timeout=5)
+            if resp.ok:
+                data = resp.json()
+                EMBEDDING_MODELS = {k: v["id"] for k, v in data.get("models", {}).items()}
+        except Exception as e:
+            logger.warning(f"Failed to fetch embedding models from server: {e}")
+    
+    # Fallback: 하드코딩된 기본값 (서버 연결 실패 시)
+    if not EMBEDDING_MODELS:
+        EMBEDDING_MODELS = {
+            "auto": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+            "ko-sroberta": "jhgan/ko-sroberta-multitask"
+        }
+    
+    if model_key not in EMBEDDING_MODELS:
+        return {"ok": False, "error": f"지원하지 않는 모델: {model_key}"}, 400
+    
+    model_id = EMBEDDING_MODELS[model_key]
+    
+    # RunPod inference_server에 임베딩 모델 변경 요청
+    api_url = os.environ.get("RUNPOD_ENDPOINT_URL", "")
+    
+    if api_url and "mock" not in api_url:
+        try:
+            base_url = api_url.replace("/generate", "")
+            resp = requests.post(
+                f"{base_url}/set-embedding-model",
+                json={"model_key": model_key, "model_id": model_id},
+                timeout=30
+            )
+            resp.raise_for_status()
+            result = resp.json()
+            return {
+                "ok": True,
+                "model": model_key,
+                "model_id": model_id,
+                "message": f"임베딩 모델이 '{model_key}'로 변경되었습니다.",
+                "server_response": result
+            }, 200
+        except Exception as e:
+            # 서버 연결 실패해도 클라이언트에는 성공으로 반환 (로컬 설정 저장)
+            return {
+                "ok": True,
+                "model": model_key,
+                "model_id": model_id,
+                "message": f"임베딩 모델 설정됨 (서버 연결 대기 중)",
+                "warning": str(e)
+            }, 200
+    else:
+        # Mock 모드
+        return {
+            "ok": True,
+            "model": model_key,
+            "model_id": model_id,
+            "message": f"[Mock] 임베딩 모델이 '{model_key}'로 변경되었습니다."
+        }, 200

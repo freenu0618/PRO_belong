@@ -2,13 +2,85 @@
 """텍스트 생성 전담 서비스"""
 
 import os
+import re
 import logging
 from fastapi import HTTPException
 
-from .. import state
+from inference_server import state
 from ..schemas import GenerateRequest
 
 logger = logging.getLogger(__name__)
+
+
+def clean_response(text: str) -> str:
+    """
+    RAG 오염 텍스트 및 불필요한 패턴 제거
+    
+    제거 대상:
+    - 시스템 프롬프트 관련 텍스트 (assistantsystem, system, user 등)
+    - 이전 대화 이력 패턴 (사용자 질문:, 응:, 답변: 등)
+    - RAG 문서에서 유입된 노이즈 텍스트
+    """
+    if not text:
+        return ""
+    
+    cleaned = text.strip()
+    
+    # 1. 응답 시작 부분의 오염된 prefix 제거
+    noise_prefixes = [
+        r'^\.ai\s*\n*',                  # .ai 로 시작
+        r'^assistantsystem[^\n]*\n*',    # assistantsystem으로 시작하는 라인
+        r'^assistantAI[^\n]*\n*',        # assistantAI로 시작
+        r'^assistant\s*:?\s*',           # assistant: 로 시작
+        r'^system\s*:?\s*',              # system: 로 시작
+        r'^시스템\s*:?\s*안녕하세요[^\n]*\n*',  # "시스템 : 안녕하세요..." 로 시작
+        r'^안녕하세요!?\s*저는[^\n]*설계되었습니다[^\n]*\n*',  # 챗봇 소개 템플릿
+        r'^AI\s*:?\s*',                  # AI: 로 시작
+        r'^봇\s*:?\s*',                  # 봇: 로 시작
+        r'^응\s*:?\s*',                  # 응: 로 시작 (이전 대화 유출)
+        r'^답변\s*:?\s*',                # 답변: 로 시작
+        r'^---+\s*\n*',                  # --- 로 시작
+        r'^사용자\s*질문\s*:[^\n]*\n*',    # "사용자 질문: ..." 로 시작
+        r'^사용자가\s*입력한\s*값\s*:[^\n]*\n*',  # "사용자가 입력한 값 : ..." 로 시작
+    ]
+    
+    for pattern in noise_prefixes:
+        cleaned = re.sub(pattern, '', cleaned, flags=re.IGNORECASE | re.MULTILINE)
+    
+    # 2. 이전 대화 이력 패턴 제거 (RAG에서 유입된 경우)
+    # "사용자 질문: ... 응: ..." 형태의 텍스트 블록 제거
+    conversation_patterns = [
+        r'사용자\s*질문\s*:\s*[^\n]+\n*응\s*:\s*[^\n]+',  # 사용자 질문: ... 응: ...
+        r'User\s*:\s*[^\n]+\n*Assistant\s*:\s*[^\n]+',    # User: ... Assistant: ...
+    ]
+    
+    for pattern in conversation_patterns:
+        # 응답에서 이전 대화 이력이 섞여있으면 첫 번째 것만 제거하고 중단
+        cleaned = re.sub(pattern, '', cleaned, count=3, flags=re.IGNORECASE)
+    
+    # 3. 특정 오염 키워드가 응답 시작에 있으면 제거
+    contamination_keywords = [
+        'chatbot', 'artificialintelligence', '인공지능', '톡톡AI',
+        'AIchatbot', '고독사독거', 
+        'intelligencechatbot', 'chatbotkorean', '취업력',
+        'chatgptopenai', 'openai', 'chatgpt', 'NLPseoul',
+    ]
+    
+    # 응답 시작 부분(처음 100자)에서 오염 키워드 체크
+    first_100 = cleaned[:100].lower() if len(cleaned) > 100 else cleaned.lower()
+    
+    for keyword in contamination_keywords:
+        if keyword.lower() in first_100:
+            # 키워드가 포함된 첫 번째 줄 제거 시도
+            lines = cleaned.split('\n')
+            if lines and keyword.lower() in lines[0].lower():
+                cleaned = '\n'.join(lines[1:]).strip()
+    
+    # 4. 빈 줄 정리
+    cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
+    
+    return cleaned.strip()
+
 
 
 async def generate_text(request: GenerateRequest) -> dict:
@@ -34,17 +106,42 @@ async def generate_text(request: GenerateRequest) -> dict:
             # RAG Context Retrieval
             rag_context = ""
             rag_sources = []  # ✅ 출처 정보 저장
-            if request.use_rag:
-                if state.vectordb:
+            use_rag = getattr(request, 'use_rag', False)
+            
+            # ✅ 디버깅: VectorDB 상태 확인
+            print(f"🔧 DEBUG: state.vectordb = {state.vectordb}, type = {type(state.vectordb)}")
+            
+            # ✅ RAG 사용 여부 명시적 로깅
+            logger.info(f"🔍 RAG Status: {'ENABLED' if use_rag else 'DISABLED'} for model={target_model}")
+            
+            if use_rag:
+                if state.vectordb is not None:  # ✅ Chroma 객체는 빈 상태에서 bool() = False이므로 명시적 체크
                     try:
-                        print(f"🔍 Searching RAG for: {request.prompt}")
+                        # ✅ RAG 검색 쿼리: user_query 필드 우선, 없으면 프롬프트에서 추출
+                        search_query = getattr(request, 'user_query', None) or ""
+                        
+                        if not search_query:
+                            # 프롬프트에서 사용자 질문 추출 시도
+                            prompt = request.prompt
+                            if "사용자 질문:" in prompt:
+                                # DB RAG 컨텍스트 형식: "...사용자 질문: 실제질문"
+                                search_query = prompt.split("사용자 질문:")[-1].strip()
+                            elif "<|start_header_id|>user<|end_header_id|>" in prompt:
+                                # Llama 3 프롬프트 형식
+                                parts = prompt.split("<|start_header_id|>user<|end_header_id|>")
+                                search_query = parts[-1].split("<|eot_id|>")[0].strip()
+                            else:
+                                search_query = prompt[:500]  # 최대 500자만 사용
+                        
+                        print(f"🔍 Searching RAG for: {search_query[:100]}...")  # 처음 100자만 로그
                         # ✅ 1단계: 넉넉하게 20개 검색
-                        docs = state.vectordb.similarity_search(request.prompt, k=20)
+                        docs = state.vectordb.similarity_search(search_query, k=20)
+                        print(f"🔎 RAG Search returned: {len(docs)} documents")  # ✅ 디버깅용
                         
                         # ✅ 2단계: Reranker로 Top 3 선별
-                        from services.reranker import reranker
+                        from .reranker import reranker
                         if docs and reranker.load_model():
-                            reranked = reranker.rerank(request.prompt, docs, top_k=3)
+                            reranked = reranker.rerank(search_query, docs, top_k=3)
                             docs = [doc for doc, score in reranked]
                             print(f"📊 Reranked: {len(reranked)} docs selected")
                         elif docs:
@@ -238,8 +335,9 @@ async def generate_text(request: GenerateRequest) -> dict:
             print(f"📊 Prompt tokens: {prompt_token_len}, Generated tokens: {len(response_tokens)}")
             print(f"📝 Raw response (first 500 chars): {response_text[:500] if response_text else '(EMPTY)'}")
             
-            # ✅ 빈 응답 시 fallback 메시지
-            final_response = response_text.strip()
+            # ✅ 응답 정제: RAG 오염 텍스트 필터링
+            final_response = clean_response(response_text)
+            
             if not final_response:
                 final_response = "(AI가 응답을 생성하지 못했습니다. 다시 시도해주세요.)"
                 logger.warning(f"Empty response! Prompt tokens: {prompt_token_len}, max_new_tokens: {request.max_new_tokens}")

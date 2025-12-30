@@ -7,7 +7,7 @@ import time
 import logging
 from fastapi import HTTPException
 
-from .. import state
+from inference_server import state
 from ..schemas import TrainRequest
 
 logger = logging.getLogger(__name__)
@@ -300,8 +300,8 @@ def run_training_task(job_id: str, params: dict):
         state.training_jobs[job_id]["logs"].append("💡 GPU 메모리 부족 또는 점유 상태일 수 있습니다.")
         try:
             torch.cuda.empty_cache()
-        except:
-            pass
+        except Exception as cache_err:
+            logger.warning(f"GPU cache cleanup failed: {cache_err}")
 
     except Exception as e:
         # 일반 에러 처리
@@ -318,8 +318,8 @@ def run_training_task(job_id: str, params: dict):
         # GPU 메모리 정리 시도
         try:
             torch.cuda.empty_cache()
-        except:
-            pass
+        except Exception as cache_err:
+            logger.warning(f"GPU cache cleanup failed: {cache_err}")
 
 
 
@@ -437,8 +437,8 @@ async def delete_trained_model(model_name: str) -> dict:
                     fp = os.path.join(dirpath, f)
                     if os.path.exists(fp):
                         total += os.path.getsize(fp)
-        except:
-            pass
+        except (OSError, IOError) as e:
+            logger.warning(f"Failed to calculate folder size for {path}: {e}")
         return total
     
     # 1. /workspace/output에서 찾아서 삭제
@@ -493,8 +493,8 @@ async def cleanup_storage() -> dict:
                     fp = os.path.join(dirpath, f)
                     if os.path.exists(fp):
                         total += os.path.getsize(fp)
-        except:
-            pass
+        except (OSError, IOError) as e:
+            logger.warning(f"Failed to calculate folder size for {path}: {e}")
         return total
     
     output_dir = "/workspace/output"
@@ -576,8 +576,8 @@ async def get_storage_info() -> dict:
                     fp = os.path.join(dirpath, f)
                     if os.path.exists(fp):
                         total += os.path.getsize(fp)
-        except:
-            pass
+        except (OSError, IOError) as e:
+            logger.warning(f"Failed to calculate folder size for {path}: {e}")
         return total
     
     models = []

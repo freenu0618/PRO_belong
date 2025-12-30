@@ -65,6 +65,7 @@ class AIChatService:
             "top_p": 0.9
         }
         payload.update(kwargs)
+        logger.info(f"🔧 DEBUG payload: use_rag={payload.get('use_rag')}, model={payload.get('model')}")  # ✅ 디버깅
         
         try:
             response = requests.post(api_url, headers=headers, json=payload, timeout=60)
@@ -90,7 +91,10 @@ class AIChatService:
         """
         opts = options or {}
         max_tokens = opts.pop('max_new_tokens', 512)
-        use_db_rag = opts.pop('use_db_rag', True)  # ✅ 기본적으로 DB RAG 활성화
+        
+        # ✅ RAG 버그 수정: use_rag가 True일 때만 DB RAG도 활성화
+        use_rag = opts.get('use_rag', False)
+        use_db_rag = opts.pop('use_db_rag', use_rag)  # use_rag 값을 기본값으로 사용
         
         # ✅ DB RAG: 질문에서 지역/연도 추출하여 DB 데이터 컨텍스트 추가
         db_context = ""
@@ -108,6 +112,9 @@ class AIChatService:
         prompt_text = text
         if db_context:
             prompt_text = f"{db_context}\n\n---\n사용자 질문: {text}"
+        
+        # ✅ RAG 검색용 원본 질문 전달
+        opts['user_query'] = text
         
         result = self._call_runpod(prompt_text, max_tokens=max_tokens, model=model, **opts)
         

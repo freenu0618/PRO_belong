@@ -8,6 +8,7 @@ from typing import Optional
 class GenerateRequest(BaseModel):
     """텍스트 생성 요청"""
     prompt: str
+    user_query: Optional[str] = None  # ✅ RAG 검색용 원본 질문 (없으면 prompt에서 추출)
     max_new_tokens: int = 512
     temperature: float = 0.7
     top_p: float = 0.9

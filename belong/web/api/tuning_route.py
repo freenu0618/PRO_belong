@@ -72,8 +72,12 @@ def api_tuning_compare():
     result = get_ai_service().chat(text, model=model, options=options)
     
     if "response" in result:
+        # ✅ Include sources when RAG was used (Chat API와 동일)
+        data = {"result": result["response"]}
+        if "sources" in result:
+            data["sources"] = result["sources"]
         return success_response(
-            data={"result": result["response"]},
+            data=data,
             message="비교 응답 생성 완료"
         )
 

@@ -233,6 +233,52 @@ $(document).ready(function () {
     });
     $("#btn-close-rag-panel").on("click", () => $("#rag-upload-panel").addClass("d-none"));
 
+    // ✅ Model B RAG Toggle - 임베딩 모델 패널 표시/숨김
+    $("#toggle-rag-model-b").on("change", function () {
+        if ($(this).is(":checked")) {
+            $("#embedding-model-panel").removeClass("d-none");
+        } else {
+            $("#embedding-model-panel").addClass("d-none");
+        }
+    });
+
+    // ✅ 임베딩 모델 적용 버튼
+    $("#btn-apply-embedding").on("click", function () {
+        const embeddingModel = $("#embedding-model-select").val();
+        const $btn = $(this);
+        const $status = $("#embedding-status");
+
+        $btn.prop("disabled", true).text("적용 중...");
+        $status.html('<span class="text-warning">⏳</span>');
+
+        const token = localStorage.getItem("access_token");
+
+        $.ajax({
+            url: "/api/ai/embedding-model",
+            type: "POST",
+            contentType: "application/json",
+            headers: { "Authorization": "Bearer " + token },
+            data: JSON.stringify({ model: embeddingModel }),
+            success: function (res) {
+                const data = res.data || res;
+                if (data.ok) {
+                    $status.html('<span class="text-success">✅ 적용됨</span>');
+                    console.log("임베딩 모델 변경:", embeddingModel);
+                } else {
+                    $status.html('<span class="text-danger">❌ 실패</span>');
+                }
+            },
+            error: function (xhr) {
+                const msg = xhr.responseJSON?.error?.message || "적용 실패";
+                $status.html(`<span class="text-danger">❌ ${msg}</span>`);
+            },
+            complete: function () {
+                $btn.prop("disabled", false).text("적용");
+            }
+        });
+    });
+
+
     // ✅ 7-1. Compare Button Handler
     let isCompareSending = false;
 
@@ -282,15 +328,17 @@ $(document).ready(function () {
             const dataA = resA.data || resA;
             const dataB = resB.data || resB;
 
-            const resultA = dataA.result || "(응답 없음)";
-            const resultB = dataB.result || "(응답 없음)";
+            // ✅ result가 객체({response, sources})인 경우 처리
+            const resultA = typeof dataA.result === 'object' ? (dataA.result?.response || JSON.stringify(dataA.result)) : (dataA.result || "(응답 없음)");
+            const resultB = typeof dataB.result === 'object' ? (dataB.result?.response || JSON.stringify(dataB.result)) : (dataB.result || "(응답 없음)");
 
             // ✅ RAG 출처 정보 표시 (Model B)
             let sourcesHtmlB = "";
-            if (dataB.sources && dataB.sources.length > 0) {
+            const sourcesB = dataB.result?.sources || dataB.sources;  // ✅ result.sources 우선
+            if (sourcesB && sourcesB.length > 0) {
                 sourcesHtmlB = `<div class="rag-sources mt-2 pt-2 border-top border-secondary">
                     <small class="text-muted">📚 참조 출처:</small><ul class="mb-0 ps-3">`;
-                dataB.sources.forEach(s => {
+                sourcesB.forEach(s => {
                     const pageInfo = s.page ? ` (p.${s.page})` : "";
                     sourcesHtmlB += `<li><small class="text-info">${s.source}${pageInfo}</small></li>`;
                 });

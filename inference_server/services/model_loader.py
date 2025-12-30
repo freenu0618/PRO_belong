@@ -9,7 +9,7 @@ from peft import PeftModel
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
-from .. import state
+from inference_server import state
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,20 @@ async def load_models():
 
     # 1. Base Model ID
     base_model_id = "meta-llama/Meta-Llama-3-8B"
-    adapter_path = os.path.join(os.getcwd(), "belong", "ml", "fine_tune", "lora_best_r32")
+    
+    # ✅ 어댑터 경로: /workspace/output (영구 스토리지) 우선, 없으면 /app (도커 이미지)
+    workspace_adapter = "/workspace/output/max500"  # 학습된 모델 (adapter_config.json 최상위에 있음)
+    bundled_adapter = os.path.join(os.getcwd(), "belong", "ml", "fine_tune", "lora_best_r32")
+    
+    if os.path.exists(os.path.join(workspace_adapter, "adapter_config.json")):
+        adapter_path = workspace_adapter
+        print(f"📁 Using workspace adapter: {adapter_path}")
+    elif os.path.exists(bundled_adapter):
+        adapter_path = bundled_adapter
+        print(f"📁 Using bundled adapter: {adapter_path}")
+    else:
+        adapter_path = bundled_adapter  # 기본값
+        print(f"⚠️ No adapter found, will try: {adapter_path}")
 
     try:
         import time
@@ -105,7 +118,7 @@ async def load_models():
                 except Exception as e:
                     print(f"⚠️ Checkpoint search error: {e}")
 
-            state.model = PeftModel.from_pretrained(state.model, adapter_path, adapter_name="lora_best_r32", token=hf_token)
+            state.model = PeftModel.from_pretrained(state.model, adapter_path, adapter_name="lora_best_r32")
             print(f"✅ LoRA adapter loaded from {adapter_path}")
         else:
             print(f"⚠️ Adapter not found at {adapter_path}. Using base model only.")
@@ -129,8 +142,21 @@ async def load_models():
             model_kwargs={'device': 'cpu'},
             encode_kwargs={'normalize_embeddings': True}
         )
-        state.vectordb = Chroma(persist_directory="chroma_db", embedding_function=embeddings)
-        print("✅ RAG VectorStore ready")
+        # ✅ ChromaDB 경로: 실제 데이터가 있는 경로 우선 선택
+        possible_paths = [
+            "/workspace/chroma_db",  # 사용자가 업로드한 영구 데이터
+            "/app/chroma_db",        # Docker 이미지 내 기본 데이터
+            "chroma_db"              # 로컬 개발 환경
+        ]
+        chroma_path = "chroma_db"  # 기본값
+        for path in possible_paths:
+            sqlite_file = os.path.join(path, "chroma.sqlite3")
+            if os.path.exists(sqlite_file):
+                chroma_path = path
+                break
+        
+        state.vectordb = Chroma(persist_directory=chroma_path, embedding_function=embeddings)
+        print(f"✅ RAG VectorStore ready at {chroma_path}")
 
         total_time = time.time() - start_time
         print("=" * 60)
