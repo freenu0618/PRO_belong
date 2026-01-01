@@ -119,7 +119,14 @@ def api_ai_translate():
     direction = options.get("direction", "ko-en")
     ai_service = get_ai_service()
     result = ai_service.translate(text, direction=direction, model=model)
-    return _make_ai_response("translate", text, result), 200
+    
+    # ✅ translation 서비스는 {"translation": "..."} 형태로 반환하므로 추출
+    if isinstance(result, dict) and "translation" in result:
+        translation_text = result["translation"]
+        return _make_ai_response("translate", text, translation_text), 200
+    else:
+        # fallback: 그대로 반환
+        return _make_ai_response("translate", text, result), 200
 
 
 @api_bp.post("/ai/rerank")

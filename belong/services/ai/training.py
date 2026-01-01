@@ -33,32 +33,35 @@ class TrainingService:
     
     def get_available_models(self) -> list:
         """
-        사용 가능한 모델 리스트 반환 (inference server에서 조회)
+        사용 가능한 모델 리스트 반환 (inference server의 /adapters 호출)
         
         Returns:
-            ["base", "model1", "model2", ...]
+            ["base", "lora_best_r32_checkpoint-1000", "lora_light_r16_checkpoint-100", ...]
         """
         try:
-            url = f"{self._get_inference_url()}/train/models"
-            logger.info(f"Fetching models from: {url}")
+            # ✅ 새로운 /adapters API 호출
+            url = f"{self._get_inference_url()}/adapters"
+            logger.info(f"Fetching adapters from: {url}")
             
             response = requests.get(url, timeout=10)
             if response.status_code == 200:
                 data = response.json()
-                return data.get("models", ["base"])
+                if data.get("ok"):
+                    models = ["base"]  # Base 모델 항상 포함
+                    
+                    # LoRA adapter 추가
+                    adapters = data.get("adapters", [])
+                    for adapter in adapters:
+                        models.append(adapter["name"])
+                    
+                    logger.info(f"✅ Found {len(models)} models: {models}")
+                    return models
         except Exception as e:
-            logger.warning(f"Failed to fetch models from inference server: {e}")
+            logger.warning(f"Failed to fetch adapters from inference server: {e}")
         
-        # Fallback: 로컬 폴더 스캔
-        models = ["base"]
-        base_path = os.path.join(current_app.root_path, "ml", "fine_tune")
-        
-        if os.path.exists(base_path):
-            for name in os.listdir(base_path):
-                if os.path.isdir(os.path.join(base_path, name)):
-                    models.append(name)
-        
-        return models
+        # Fallback: Base 모델만 반환
+        logger.info("Fallback: returning base model only")
+        return ["base"]
     
     def start_training(self, model_name: str, params: dict) -> dict:
         """
