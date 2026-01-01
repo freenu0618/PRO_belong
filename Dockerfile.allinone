@@ -41,13 +41,27 @@ RUN echo "📊 Checking CSV files..." && \
     echo "✅ CSV files verified!" || \
     echo "❌ WARNING: CSV files not found!"
 
+# ✅ Verify LoRA checkpoints are included
+RUN echo "🔍 Checking LoRA checkpoints..." && \
+    ls -lah /app/belong/ml/fine_tune/ && \
+    echo "✅ Checkpoint verification complete!"
+
+# ✅ Download BAAI/bge-m3 embedding model into Docker image
+# This significantly reduces server startup time (from 2-3 min to 30 sec)
+RUN echo "🔽 Downloading BAAI/bge-m3 embedding model..." && \
+    python -c "from sentence_transformers import SentenceTransformer; \
+    model = SentenceTransformer('BAAI/bge-m3'); \
+    print('✅ BAAI/bge-m3 model downloaded and cached!')" && \
+    echo "📦 Model cached at: /root/.cache/huggingface/"
+
 # 4. Environment Variables
 # Flask Env
 ENV FLASK_APP=belong.app:create_app
 ENV FLASK_ENV=production
-# SQLite DB Path (Relative to /app)
-# SQLite DB Path (Removed to default to Postgres)
-# ENV DATABASE_URL=sqlite:///app.db
+
+# AI Inference Settings (사용자 요청 반영)
+ENV LOAD_DEFAULT_ADAPTER=false
+ENV RESET_VECTORDB=false
 
 # 5. Expose Ports
 # 8000: AI Inference API

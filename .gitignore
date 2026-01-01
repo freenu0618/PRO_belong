@@ -40,10 +40,16 @@ merged_models/
 output/
 llama.cpp/
 _unused/
+fine_tuned_models/
+checkpoint*/
+lora_*/
 
 # Documentation exceptions
 # Documentation exceptions
-# docs/
+docs/
+
+# Test files
+test_model_loader_changes.py
 
 # Ignore local Vector DB
 chroma_db/

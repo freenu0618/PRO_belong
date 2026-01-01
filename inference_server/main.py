@@ -134,115 +134,70 @@ async def health_check():
     return status_info
 
 
-# ============================================================
-# API Routes - Embedding Model Selection
-# ============================================================
-
-# ✅ 지원되는 임베딩 모델 (Single Source of Truth)
-EMBEDDING_MODELS = {
-    "auto": {
-        "id": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-        "name": "다국어 (기본)",
-        "dim": 384
-    },
-    "ko-sroberta": {
-        "id": "jhgan/ko-sroberta-multitask",
-        "name": "한글 특화 (ko-sRoBERTa)",
-        "dim": 768
-    }
-}
-
-
-@app.get("/embedding-models")
-async def get_embedding_models():
-    """지원되는 임베딩 모델 목록 조회 API"""
-    return {
-        "models": EMBEDDING_MODELS,
-        "current": getattr(state, 'current_embedding_model', 'auto')
-    }
-
-
-@app.post("/set-embedding-model")
-async def set_embedding_model(request_data: dict = None):
+@app.get("/adapters")
+async def get_available_adapters():
     """
-    임베딩 모델 변경 및 VectorDB 재초기화
+    사용 가능한 LoRA 어댑터 목록 조회 API
     
-    Request Body:
-        {"model_key": "ko-sroberta", "model_id": "jhgan/ko-sroberta-multitask"}
+    Returns:
+        {
+            "ok": true,
+            "adapters": [
+                {
+                    "name": "lora_best_r32_checkpoint-1000",
+                    "path": "/app/belong/ml/fine_tune/lora_best_r32/checkpoint-1000",
+                    "type": "checkpoint"
+                },
+                {
+                    "name": "lora_light_r16_checkpoint-100",
+                    "path": "/app/belong/ml/fine_tune/lora_light_r16/checkpoint-100",
+                    "type": "checkpoint"
+                }
+            ],
+            "base_model": {
+                "name": "base",
+                "display_name": "Llama-3-8B (Base)",
+                "description": "Fine-tuning 없는 기본 모델"
+            }
+        }
     """
-    from pydantic import BaseModel
-    from langchain_community.embeddings import HuggingFaceEmbeddings
-    from langchain_community.vectorstores import Chroma
+    # model_loader에서 탐색된 어댑터 리스트 가져오기
+    from .services.model_loader import _discover_adapters
     
     try:
-        # Request body 파싱
-        if request_data is None:
-            from fastapi import Request
-            # FastAPI에서 body 파싱
-            import json
-            body = await request.body()
-            request_data = json.loads(body) if body else {}
+        discovered_adapters = _discover_adapters()
         
-        model_key = request_data.get("model_key", "auto")
-        model_config = EMBEDDING_MODELS.get(model_key, EMBEDDING_MODELS["auto"])
-        model_id = request_data.get("model_id") or model_config["id"]
-        requested_dim = model_config.get("dim", 384)
-        
-        # ✅ 기존 데이터의 임베딩 차원 확인
-        existing_dim = 384  # 기본값 (paraphrase-multilingual-MiniLM-L12-v2)
-        try:
-            import chromadb
-            chroma_path = "/app/chroma_db"
-            if not os.path.exists(os.path.join(chroma_path, "chroma.sqlite3")):
-                chroma_path = "/workspace/chroma_db"
-            client = chromadb.PersistentClient(path=chroma_path)
-            collection = client.get_collection("langchain")
-            if collection.count() > 0:
-                sample = collection.peek(1)
-                if sample and sample.get("embeddings"):
-                    existing_dim = len(sample["embeddings"][0])
-        except Exception as e:
-            logger.warning(f"기존 임베딩 차원 확인 실패: {e}")
-        
-        # ✅ 차원 불일치 시 거부
-        if requested_dim != existing_dim:
-            return {
-                "ok": False,
-                "error": f"⚠️ 임베딩 차원 불일치! 기존 데이터: {existing_dim}차원, 요청된 모델: {requested_dim}차원. 데이터를 다시 인덱싱해야 합니다."
-            }
-        
-        logger.info(f"🔄 Changing embedding model to: {model_key} ({model_id})")
-        
-        # 임베딩 모델 로드
-        embeddings = HuggingFaceEmbeddings(
-            model_name=model_id,
-            model_kwargs={'device': 'cuda' if torch.cuda.is_available() else 'cpu'},
-            encode_kwargs={'normalize_embeddings': True}
-        )
-        
-        # ✅ 기존 ChromaDB 경로 유지 (데이터가 있는 곳)
-        state.vectordb = Chroma(
-            persist_directory=chroma_path,
-            embedding_function=embeddings
-            # ✅ collection_name 제거 → 기본값 'langchain' 사용
-        )
-        
-        # 현재 임베딩 모델 저장
-        state.current_embedding_model = model_key
-        
-        logger.info(f"✅ Embedding model changed to: {model_key}")
+        # UI 친화적 형식으로 변환
+        adapter_list = []
+        for adapter in discovered_adapters:
+            adapter_list.append({
+                "name": adapter["name"],
+                "path": adapter["path"],
+                "type": adapter.get("type", "unknown"),
+                "display_name": adapter["name"].replace("_checkpoint", " (ckpt)").replace("_", " ").title()
+            })
         
         return {
             "ok": True,
-            "model_key": model_key,
-            "model_id": model_id,
-            "chroma_path": chroma_path,
-            "message": f"임베딩 모델이 '{model_key}'로 변경되었습니다."
+            "adapters": adapter_list,
+            "base_model": {
+                "name": "base",
+                "display_name": "Llama-3-8B (Base)",
+                "description": "Fine-tuning 없는 기본 모델"
+            },
+            "count": len(adapter_list)
         }
-        
+    
     except Exception as e:
-        logger.error(f"❌ Failed to change embedding model: {e}")
+        logger.error(f"❌ Failed to get adapters: {e}")
         return {
             "ok": False,
-            "error": str(e)
+            "error": str(e),
+            "adapters": [],
+            "base_model": {
+                "name": "base",
+                "display_name": "Llama-3-8B (Base)",
+                "description": "Fine-tuning 없는 기본 모델"
+            }
         }
+

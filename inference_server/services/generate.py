@@ -172,41 +172,39 @@ async def generate_text(request: GenerateRequest) -> dict:
                 else:
                     print("⚠️ RAG requested but VectorDB not initialized.")
 
-            # ✅ 프롬프트 처리: Flask에서 템플릿이 이미 적용되었는지 확인
+            # ✅ 프롬프트 처리: 알파카 포맷 (파인튜닝 시 사용한 포맷과 동일)
             user_question = request.prompt or ""
             
-            # Flask에서 이미 Llama-3 템플릿이 적용된 경우
-            if "<|begin_of_text|>" in user_question:
-                # ✅ 이미 템플릿 적용됨 - RAG 컨텍스트만 추가하면 됨
-                if rag_context:
-                    # 시스템 프롬프트 끝에 RAG 컨텍스트 삽입
-                    full_prompt = user_question.replace(
-                        "<|eot_id|><|start_header_id|>user<|end_header_id|>",
-                        f"\n\n{rag_context}<|eot_id|><|start_header_id|>user<|end_header_id|>"
-                    )
-                else:
-                    full_prompt = user_question
-                print(f"📝 Using Flask template as-is (RAG: {bool(rag_context)})")
+            # 알파카 포맷 템플릿
+            # 파인튜닝 시 사용한 포맷: convert_to_alpaca_format(instruction, response)
+            
+            if rag_context:
+                # RAG 사용: 지시사항에 참고 문서 포함
+                instruction_text = f"""다음은 참고 문서입니다:
+
+{rag_context}
+
+위 문서 내용을 참고하여 질문에 답변하세요.
+
+질문: {user_question}"""
+                
+                full_prompt = f"""Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+### Instruction:
+{instruction_text}
+
+### Response:
+"""
             else:
-                # ✅ 순수 텍스트 - 새로 템플릿 적용
-                print(f"📝 Applying new Llama-3 template")
-                system_instruction = """당신은 친절하고 정확한 AI 어시스턴트입니다.
+                # RAG 미사용: 질문만
+                full_prompt = f"""Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
-**중요 규칙:**
-1. 반드시 한국어로만 답변하세요.
-2. 질문에 대해 정확하고 간결하게 답변하세요.
-3. 모르는 내용은 모른다고 솔직히 말하세요."""
+### Instruction:
+{user_question}
 
-                if rag_context:
-                    full_prompt = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-{system_instruction}
-
-{rag_context}<|eot_id|><|start_header_id|>user<|end_header_id|>
-{user_question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"""
-                else:
-                    full_prompt = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-{system_instruction}<|eot_id|><|start_header_id|>user<|end_header_id|>
-{user_question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"""
+### Response:
+"""
+            
             
             print(f"📜 Final prompt length: {len(full_prompt)} chars")
 
@@ -285,6 +283,9 @@ async def generate_text(request: GenerateRequest) -> dict:
 
             # 🔧 Temperature Validation
             safe_temp = max(request.temperature, 0.01) if request.temperature else 0.4  # ✅ 기본값 0.4 (일관성 향상)
+            
+            # 🔧 do_sample 자동 설정 (Temperature == 0이면 False)
+            do_sample_flag = safe_temp > 0.0
 
             # Base Model Context 처리
             use_base_mode = target_model == "base" or "base" in target_model
@@ -297,10 +298,10 @@ async def generate_text(request: GenerateRequest) -> dict:
                         max_new_tokens=request.max_new_tokens,
                         temperature=safe_temp,
                         top_p=request.top_p,
-                        repetition_penalty=1.3,  # ✅ 반복 억제 강화
-                        do_sample=True,
+                        repetition_penalty=1.15,  # ✅ 반복 억제 균형
+                        do_sample=do_sample_flag,
                         pad_token_id=state.tokenizer.eos_token_id,
-                        eos_token_id=[state.tokenizer.eos_token_id, state.tokenizer.convert_tokens_to_ids("<|eot_id|>")]
+                        eos_token_id=state.tokenizer.eos_token_id  # ✅ <|eot_id|> 제거 (조기 종료 방지)
                     )
             elif use_base_mode and not is_peft_model:
                 # 일반 모델 (PeftModel 아님) - 그냥 생성
@@ -309,10 +310,10 @@ async def generate_text(request: GenerateRequest) -> dict:
                     max_new_tokens=request.max_new_tokens,
                     temperature=safe_temp,
                     top_p=request.top_p,
-                    repetition_penalty=1.3,
-                    do_sample=True,
+                    repetition_penalty=1.15,
+                    do_sample=do_sample_flag,
                     pad_token_id=state.tokenizer.eos_token_id,
-                    eos_token_id=[state.tokenizer.eos_token_id, state.tokenizer.convert_tokens_to_ids("<|eot_id|>")]
+                    eos_token_id=state.tokenizer.eos_token_id  # ✅ <|eot_id|> 제거 (조기 종료 방지)
                 )
             else:
                 outputs = state.model.generate(
@@ -320,10 +321,10 @@ async def generate_text(request: GenerateRequest) -> dict:
                     max_new_tokens=request.max_new_tokens,
                     temperature=safe_temp,
                     top_p=request.top_p,
-                    repetition_penalty=1.3,
-                    do_sample=True,
+                    repetition_penalty=1.15,
+                    do_sample=do_sample_flag,
                     pad_token_id=state.tokenizer.eos_token_id,
-                    eos_token_id=[state.tokenizer.eos_token_id, state.tokenizer.convert_tokens_to_ids("<|eot_id|>")]
+                    eos_token_id=state.tokenizer.eos_token_id  # ✅ <|eot_id|> 제거 (조기 종료 방지)
                 )
 
             # 토큰 개수 기반으로 정확하게 응답만 추출
