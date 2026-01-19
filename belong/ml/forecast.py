@@ -3,15 +3,22 @@ from pathlib import Path
 from sklearn.linear_model import LinearRegression
 import joblib
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-ALONE_POPULATION_PATH = BASE_DIR / "dataset/raw_data" / "alone_person.csv" #추가된 PATH임
+# BASE_DIR should be the directory containing 'dataset'
+# Since dataset is in c:\project_belong\belong\ml\dataset, and this file is in c:\project_belong\belong\ml\forecast.py
+# BASE_DIR should be c:\project_belong\belong\ml (which is Path(__file__).parent)
+BASE_DIR = Path(__file__).resolve().parent 
+
+ALONE_POPULATION_PATH = BASE_DIR / "dataset/raw_data/alone_person.csv"
 # 2007년~ 2023년도 독거노인 인구수 데이터 추가해서 넣어놨음
 DATA_PATH = BASE_DIR / "dataset" / "merged_sum.csv"
-MODEL_PATH = Path(__file__).resolve().parent / "forecast_v1.pkl"
+MODEL_PATH = Path(__file__).resolve().parent / "forecast_model.pkl"
 
 TARGET_COLUMN = "value"
 
 def load_dataset():
+    # Check if file exists
+    if not ALONE_POPULATION_PATH.exists():
+        raise FileNotFoundError(f"Dataset not found at {ALONE_POPULATION_PATH}")
     return pd.read_csv(ALONE_POPULATION_PATH)
 
 def make_timeseries(df):
@@ -47,9 +54,11 @@ def save_models(models):
     joblib.dump(models, MODEL_PATH)
 
 if __name__ == "__main__":
-    df = load_dataset()
-    ts = make_timeseries(df)
-    models = train_all_models(ts)
-    save_models(models)
-    print("saved:", MODEL_PATH)
-
+    try:
+        df = load_dataset()
+        ts = make_timeseries(df)
+        models = train_all_models(ts)
+        save_models(models)
+        print("saved:", MODEL_PATH)
+    except Exception as e:
+        print("Error running forecast.py:", e)

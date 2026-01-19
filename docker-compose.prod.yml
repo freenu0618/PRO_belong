@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  # 1. Web Service (Flask)
+  web:
+    image: freenu0618/belong-web:latest
+    container_name: belong-web
+    restart: always
+    ports:
+      - "5000:5000" # RunPod HTTP Port
+    environment:
+      - APP_ENV=production
+      - RUNPOD_ENDPOINT_URL=http://194.68.245.66:22109/generate # AI Pod IP (Check again!)
+      - DATABASE_URI=postgresql://postgres:password@db:5432/belong_db
+    depends_on:
+      - db
+
+  # 2. Database Service (PostgreSQL 15)
+  db:
+    image: postgres:15
+    container_name: belong-db
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=belong_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Data Persistence
+
+volumes:
+  postgres_data:

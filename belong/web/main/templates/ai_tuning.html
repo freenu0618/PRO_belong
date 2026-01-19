@@ -1,0 +1,517 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ai_tuning.css') }}">
+{% endblock %}
+
+
+{% block content %}
+<div class="tuning-container">
+    <!-- Left Sidebar -->
+    <aside class="tuning-sidebar">
+        <div class="mb-4 px-2">
+            <h5 class="fw-bold text-white mb-0">AI Studio</h5>
+            <small class="text-muted">Fine-tuning & Evaluation</small>
+        </div>
+
+        <button class="tuning-nav-btn active" data-section="tuning">
+            <span class="tuning-nav-icon">🛠️</span>
+            <span>모델 학습 (Fine-tuning)</span>
+        </button>
+        <button class="tuning-nav-btn" data-section="chat">
+            <span class="tuning-nav-icon">🤖</span>
+            <span>모델 대화 (Chat)</span>
+        </button>
+        <button class="tuning-nav-btn" data-section="compare">
+            <span class="tuning-nav-icon">⚖️</span>
+            <span>성능 비교 (Evaluation)</span>
+        </button>
+        <!-- Docs Nav Removed -->
+
+        <button class="tuning-nav-btn mt-auto" id="btn-show-help">
+            <span class="tuning-nav-icon">❓</span>
+            <span>도움말</span>
+        </button>
+    </aside>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div class="tuning-sidebar-overlay" id="tuning-sidebar-overlay"></div>
+
+    <!-- Main Content -->
+    <main class="tuning-main">
+        <!-- Toggle Button (Visible on Mobile) -->
+        <button class="btn btn-dark d-md-none m-3 mb-0" id="btn-toggle-sidebar" style="width: fit-content;">
+            <span class="fs-4">☰</span>
+        </button>
+
+        <!-- 1. Fine-Tuning Section -->
+        <section id="section-tuning" class="tuning-section active">
+            <!-- (Existing content) -->
+            <h3 class="mb-4">RunPod 파인튜닝 설정</h3>
+            <div class="tuning-card">
+                <!-- ... form ... -->
+                <form id="tuning-form">
+                    <!-- Row 0: Model Name -->
+                    <div class="mb-3">
+                        <label class="form-label">모델 이름 (Target Model Name)</label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary" name="model_name"
+                            placeholder="예: my-law-bot-v1 (영문, 숫자, 하이픈만 가능)" pattern="[a-zA-Z0-9_-]+" required>
+                        <div class="form-text text-muted">학습 완료 후 이 이름으로 모델이 저장됩니다.</div>
+                    </div>
+
+                    <!-- Row 1: Steps & Rate -->
+                    <div class="row mb-3">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Max Steps <i class="bi bi-question-circle help-icon"
+                                    data-key="max_steps"></i></label>
+                            <input type="number" class="form-control bg-dark text-white border-secondary"
+                                name="max_steps" value="100">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Warmup Steps <i class="bi bi-question-circle help-icon"
+                                    data-key="warmup_steps"></i></label>
+                            <input type="number" class="form-control bg-dark text-white border-secondary"
+                                name="warmup_steps" value="10">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Learning Rate <i class="bi bi-question-circle help-icon"
+                                    data-key="learning_rate"></i></label>
+                            <input type="number" class="form-control bg-dark text-white border-secondary"
+                                name="learning_rate" value="0.0002" step="0.0001">
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Evaluation & Saving -->
+                    <div class="row mb-3">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Eval Steps <i class="bi bi-question-circle help-icon"
+                                    data-key="eval_steps"></i></label>
+                            <input type="number" class="form-control bg-dark text-white border-secondary"
+                                name="eval_steps" value="20">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Save Steps <i class="bi bi-question-circle help-icon"
+                                    data-key="save_steps"></i></label>
+                            <input type="number" class="form-control bg-dark text-white border-secondary"
+                                name="save_steps" value="20">
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Strategies -->
+                    <div class="row mb-3">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Evaluation Strategy</label>
+                            <select class="form-select bg-dark text-white border-secondary" name="evaluation_strategy">
+                                <option value="steps" selected>Steps</option>
+                                <option value="epoch">Epoch</option>
+                                <option value="no">No</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Save Strategy</label>
+                            <select class="form-select bg-dark text-white border-secondary" name="save_strategy">
+                                <option value="steps" selected>Steps</option>
+                                <option value="epoch">Epoch</option>
+                                <option value="no">No</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Row 4: Advanced -->
+                    <div class="row mb-3">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Optimizer</label>
+                            <select class="form-select bg-dark text-white border-secondary" name="optim">
+                                <option value="adamw_torch" selected>adamw_torch</option>
+                                <option value="adamw_hf">adamw_hf</option>
+                                <option value="sgd">sgd</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Weight Decay</label>
+                            <input type="number" class="form-control bg-dark text-white border-secondary"
+                                name="weight_decay" value="0.01" step="0.01">
+                        </div>
+                    </div>
+
+                    <!-- Row 5: Quantization -->
+                    <div class="row mb-3">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">양자화 (Quantization) <i class="bi bi-question-circle help-icon"
+                                    data-key="quantization"></i></label>
+                            <select class="form-select bg-dark text-white border-secondary" name="quantization">
+                                <option value="4bit" selected>4-bit (NF4) - 권장</option>
+                                <option value="8bit">8-bit</option>
+                                <option value="none">None (Full Precision)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3 d-flex align-items-end">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="use_double_quant"
+                                    name="use_double_quant" checked>
+                                <label class="form-check-label text-white" for="use_double_quant">Double Quantization
+                                    (메모리 절약)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">RunPod 학습 시작</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- ✅ 실시간 학습 진행 상황 (인라인) -->
+            <div id="training-progress-section" class="mt-4" style="display: none;">
+                <div class="card bg-dark border-info">
+                    <div
+                        class="card-header bg-info bg-opacity-10 border-info d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 text-info">
+                            <i class="bi bi-graph-up me-2"></i>실시간 학습 진행 상황
+                        </h5>
+                        <button type="button" class="btn btn-sm btn-outline-danger" id="btn-stop-training"
+                            style="display: none;">
+                            <i class="bi bi-stop-circle me-1"></i>중지
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <!-- 진행도 바 -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-white fw-bold">
+                                    <i class="bi bi-hourglass-split me-2"></i>전체 진행률
+                                </span>
+                                <span id="progress-percentage" class="text-info fw-bold">0%</span>
+                            </div>
+                            <div class="progress" style="height: 25px;">
+                                <div id="progress-bar"
+                                    class="progress-bar progress-bar-striped progress-bar-animated bg-info"
+                                    role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0"
+                                    aria-valuemax="100">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 메트릭 그리드 -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <div class="card bg-secondary bg-opacity-10 border-secondary">
+                                    <div class="card-body p-2 text-center">
+                                        <div class="text-muted small">현재 Step</div>
+                                        <div class="h5 mb-0 text-white" id="current-step">0/100</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-secondary bg-opacity-10 border-secondary">
+                                    <div class="card-body p-2 text-center">
+                                        <div class="text-muted small">경과 시간</div>
+                                        <div class="h5 mb-0 text-white" id="elapsed-time">00:00:00</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-warning bg-opacity-10 border-warning">
+                                    <div class="card-body p-2 text-center">
+                                        <div class="text-muted small">Training Loss</div>
+                                        <div class="h5 mb-0 text-warning" id="train-loss">-</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-success bg-opacity-10 border-success">
+                                    <div class="card-body p-2 text-center">
+                                        <div class="text-muted small">Eval Loss</div>
+                                        <div class="h5 mb-0 text-success" id="eval-loss">-</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Loss 차트 (Enhanced UX) -->
+                        <div class="card bg-secondary bg-opacity-10 border-secondary mb-3">
+                            <div class="card-header bg-transparent border-secondary">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <h6 class="mb-0 text-white">
+                                        <i class="bi bi-graph-down me-2"></i>학습 곡선 (Loss Curve)
+                                    </h6>
+                                    <!-- 스무딩 슬라이더 -->
+                                    <div class="d-flex align-items-center gap-2">
+                                        <label class="text-muted small mb-0" for="smoothing-slider">스무딩:</label>
+                                        <input type="range" class="form-range" id="smoothing-slider" min="0" max="0.99"
+                                            step="0.01" value="0.6" style="width: 100px;">
+                                        <span class="text-info small" id="smoothing-value">0.6</span>
+                                    </div>
+                                </div>
+                                <!-- 인사이트 메시지 -->
+                                <div id="chart-insight" class="chart-insight small mt-2 text-info">
+                                    ⏳ 데이터 수집 중...
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="loss-chart" height="100"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- 로그 -->
+                        <div class="card bg-dark border-secondary">
+                            <div class="card-header bg-transparent border-secondary">
+                                <h6 class="mb-0 text-white">
+                                    <i class="bi bi-terminal me-2"></i>학습 로그
+                                </h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="training-logs" class="p-3"
+                                    style="max-height: 200px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.85rem; line-height: 1.4;">
+                                    <div class="text-muted">로그 준비 중...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ✅ 저장된 모델 관리 -->
+            <div class="tuning-card mt-4">
+                <h5 class="mb-3 text-white"><i class="bi bi-database me-2"></i>저장된 모델 관리</h5>
+                <div class="mb-3">
+                    <button type="button" class="btn btn-outline-info btn-sm" id="btn-refresh-models">
+                        <i class="bi bi-arrow-clockwise me-1"></i>새로고침
+                    </button>
+                </div>
+                <div id="saved-models-list" class="row g-2">
+                    <div class="text-muted">로딩 중...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Chat Section -->
+        <section id="section-chat" class="tuning-section">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>튜닝된 모델과 대화</h3>
+                <div class="d-flex gap-2">
+                    <!-- RAG Toggle -->
+                    <div
+                        class="form-check form-switch d-flex align-items-center bg-dark border border-secondary rounded px-3 me-2">
+                        <input class="form-check-input my-auto me-2" type="checkbox" id="toggle-use-rag">
+                        <label class="form-check-label text-white my-auto small" for="toggle-use-rag">RAG (지식)</label>
+                    </div>
+
+                    <select class="form-select form-select-sm bg-dark text-white border-secondary"
+                        id="chat-model-select" style="width: 200px;">
+                        <option value="">로딩 중...</option>
+                    </select>
+                    <button class="btn btn-sm btn-outline-light" id="btn-chat-settings">고급 설정</button>
+                    <button class="btn btn-sm btn-success" id="btn-chat-export">📥 Export</button>
+                </div>
+            </div>
+
+            <!-- RAG Upload Panel (Visible when RAG is checked or toggled) -->
+            <div id="rag-upload-panel" class="card bg-dark border-secondary mb-3 d-none">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="card-title text-info mb-0 small">📂 지식 베이스 업로드 (Knowledge Base)</h6>
+                        <button type="button" class="btn-close btn-close-white small" id="btn-close-rag-panel"></button>
+                    </div>
+                    <div class="input-group input-group-sm">
+                        <input type="file" class="form-control bg-dark text-white border-secondary"
+                            id="doc-upload-input" accept=".pdf,.txt" multiple>
+                        <button class="btn btn-outline-info" type="button" id="btn-doc-upload">업로드 (Upload)</button>
+                    </div>
+                    <div id="doc-upload-status" class="mt-1 small"></div>
+                </div>
+            </div>
+
+            <div class="chat-window bg-dark rounded border border-secondary mb-3" id="chat-single-box">
+                <div class="chat-bubble bot">안녕하세요! 어떤 모델을 테스트해볼까요?</div>
+            </div>
+
+            <div class="input-group mobile-sticky">
+                <textarea class="form-control bg-dark text-white border-secondary" id="chat-single-input" rows="1"
+                    placeholder="메시지를 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)"></textarea>
+                <button class="btn btn-primary" id="btn-single-send">전송</button>
+            </div>
+        </section>
+
+        <!-- 3. Compare Section -->
+        <section id="section-compare" class="tuning-section">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="mb-0">모델 성능 비교</h3>
+                <button class="btn btn-sm btn-outline-light" id="btn-compare-settings">고급 설정</button>
+            </div>
+
+            <div class="compare-container mb-3">
+                <!-- Model A Pane -->
+                <div class="compare-pane">
+                    <div class="compare-header d-flex justify-content-between align-items-center">
+                        <span class="badge bg-primary">Model A</span>
+                        <select class="form-select form-select-sm bg-dark text-white border-secondary w-50"
+                            id="model-a-select">
+                            <option value="base" selected>Llama-3-8B-Base</option>
+                        </select>
+                    </div>
+                    <div class="compare-body" id="compare-box-a"></div>
+                </div>
+
+                <!-- Model B Pane -->
+                <div class="compare-pane">
+                    <div class="compare-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <span class="badge bg-success">Model B</span>
+                        <select class="form-select form-select-sm bg-dark text-white border-secondary"
+                            style="width: 120px;" id="model-b-select">
+                            <option value="">로딩 중...</option>
+                        </select>
+                        <!-- ✅ Model B RAG Toggle -->
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="toggle-rag-model-b">
+                            <label class="form-check-label text-info small" for="toggle-rag-model-b">RAG</label>
+                        </div>
+                    </div>
+                    <div class="compare-body" id="compare-box-b"></div>
+                </div>
+            </div>
+
+            <div class="input-group mobile-sticky">
+                <textarea class="form-control bg-dark text-white border-secondary" id="compare-input" rows="1"
+                    placeholder="두 모델에게 동시에 질문하기... (Enter: 전송, Shift+Enter: 줄바꿈)"></textarea>
+                <button class="btn btn-primary" id="btn-compare-send">비교하기</button>
+            </div>
+        </section>
+
+        <!-- Docs Section Removed (Merged into Chat) -->
+
+    </main>
+</div>
+
+<!-- Chat Settings Modal -->
+<div class="modal fade" id="chatSettingsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">고급 설정 (Advanced Settings)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="chat-settings-form">
+                    <div class="mb-3">
+                        <label class="form-label">Creativity (Temperature)</label>
+                        <input type="range" class="form-range" id="setting-temp" min="0" max="1" step="0.1" value="0.7">
+                        <div class="d-flex justify-content-between text-muted small">
+                            <span>0 (Logical)</span>
+                            <span id="label-temp-val">0.7</span>
+                            <span>1 (Creative)</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">New Max Tokens (Length)</label>
+                        <input type="range" class="form-range" id="setting-max-tokens" min="50" max="2000" step="10"
+                            value="200">
+                        <div class="d-flex justify-content-between text-muted small">
+                            <span>50</span>
+                            <span id="label-tokens-val">200</span>
+                            <span>2000</span>
+                        </div>
+                    </div>
+
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="setting-use-cache" checked>
+                        <label class="form-check-label" for="setting-use-cache">Use Cache</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                <button type="button" class="btn btn-primary" id="btn-save-settings">저장하기</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Container (Dynamic Content) -->
+<div class="modal fade" id="tuningHelpModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">도움말</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="tuningHelpBody">
+                <!-- Content injected by JS -->
+            </div>
+        </div>
+    </div>
+    <!-- Training Progress Modal -->
+    <div class="modal fade" id="trainingProgressModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-dark text-white border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">🚀 모델 학습 진행 중 (Training in progress...)</h5>
+                </div>
+                <div class="modal-body">
+                    <!-- Step Counter -->
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">진행률</span>
+                        <span id="training-step-info" class="badge bg-primary fs-6">Step 0 / 0</span>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="progress mb-3" style="height: 28px;">
+                        <div id="training-progress-bar"
+                            class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                            role="progressbar" style="width: 0%;">0%</div>
+                    </div>
+
+                    <!-- Metrics Dashboard -->
+                    <div class="row text-center mb-3 g-2">
+                        <div class="col-4">
+                            <div class="card bg-secondary bg-opacity-25 border-0">
+                                <div class="card-body p-2">
+                                    <small class="text-muted d-block">📉 Loss</small>
+                                    <h5 id="train-loss" class="mb-0 text-warning">-</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="card bg-secondary bg-opacity-25 border-0">
+                                <div class="card-body p-2">
+                                    <small class="text-muted d-block">⚙️ LR</small>
+                                    <h5 id="train-lr" class="mb-0 text-info">-</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="card bg-secondary bg-opacity-25 border-0">
+                                <div class="card-body p-2">
+                                    <small class="text-muted d-block">⏱️ 예상 완료</small>
+                                    <h5 id="train-eta" class="mb-0 text-success">-</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Log Console -->
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-muted small">실시간 로그</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-0"
+                            id="btn-clear-logs">지우기</button>
+                    </div>
+                    <div id="training-log-console" class="bg-black text-success p-2 rounded font-monospace"
+                        style="height: 220px; overflow-y: auto; font-size: 0.8rem;">
+                        <div class="text-muted">Waiting for logs...</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <span id="training-status-text" class="me-auto text-muted small">준비 중...</span>
+                    <button type="button" class="btn btn-secondary" id="btn-close-training" disabled>닫기 (Close)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+
+    {% block scripts %}
+    <!-- Chart.js for Loss Chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ai_tuning/main.js') }}?v=4"></script>
+    {% endblock %}

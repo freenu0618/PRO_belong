@@ -1,268 +1,261 @@
-/* ===== Fixed Navbar 보정 ===== */
+/* static/css/style.css */
+
+/* =========================================
+   Belong Design System (Global)
+   Theme: Future & Safe (Dark Mode + Neon)
+   Base: Bootstrap 5 Overrides
+========================================= */
+
+:root {
+  /* 1. Color Palette (Dark Neon) */
+  --color-bg-main: #0f172a;
+  /* Deep Slate (Main Background) */
+  --color-bg-card: rgba(30, 41, 59, 0.7);
+  /* Slate 800 (Glass Card) */
+  --color-bg-input: #1e293b;
+  /* Input Background */
+
+  --color-text-main: #f1f5f9;
+  /* Slate 100 */
+  --color-text-sub: #94a3b8;
+  /* Slate 400 */
+
+  --color-primary: #06b6d4;
+  /* Cyan 500 (Access Point) */
+  --color-primary-hover: #22d3ee;
+  /* Cyan 400 */
+  --color-secondary: #8b5cf6;
+  /* Violet 500 */
+
+  --color-border: rgba(148, 163, 184, 0.15);
+  /* Subtle Border */
+  --color-shadow: rgba(0, 0, 0, 0.4);
+  /* Deep Shadow */
+  --color-neon-glow: rgba(6, 182, 212, 0.3);
+  /* Neon Glow */
+
+  /* 2. Metrics */
+  --header-height: 60px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+}
+
+/* Base Stylings */
 body {
-    padding-top: 0 !important;
-    margin-top: 0 !important;
-    background-color: #f7f0e4;
+  background-color: var(--color-bg-main);
+  color: var(--color-text-main);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  line-height: 1.6;
 }
 
-/* ===== Uracle 스타일: Fullscreen Carousel ===== */
-.main-slide {
-    position: relative;
-    height: 100vh;
-    background-size: cover;
-    background-position: center;
+a {
+  text-decoration: none;
+  color: var(--color-primary);
+  transition: color 0.2s;
 }
 
-.main-slide:nth-child(1) {
-    background-image: url("https://source.unsplash.com/1600x900/?ai,tech");
-}
-.main-slide:nth-child(2) {
-    background-image: url("https://source.unsplash.com/1600x900/?seoul,city");
-}
-.main-slide:nth-child(3) {
-    background-image: url("https://source.unsplash.com/1600x900/?data,visualization");
+a:hover {
+  color: var(--color-primary-hover);
+  text-shadow: 0 0 5px var(--color-neon-glow);
 }
 
-.overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,0.55);
+/* Container */
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
 }
 
-.carousel-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    color: white;
+/* Glassmorphism Card Utility */
+.card-soft,
+.card {
+  background: var(--color-bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 20px var(--color-shadow);
+  color: var(--color-text-main);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
-.carousel-content h1 {
-    font-size: 3.2rem;
-    font-weight: 700;
+/* Micro-interaction: Card Hover Glow */
+.card-soft:hover,
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(6, 182, 212, 0.1);
+  border-color: rgba(6, 182, 212, 0.3);
 }
 
-.carousel-content p {
-    margin-top: 15px;
-    font-size: 1.2rem;
+/* Typography */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
-
-
-/* =====================================================
-   🔵 메인 페이지 (index.html) 전용 카드 스타일
-   Prefix: .main-card
-===================================================== */
-.main-wrapper {
-    margin-top: 80px;
+.text-muted {
+  color: var(--color-text-sub) !important;
 }
 
-.main-card {
-    border: none;
-    overflow: hidden;
-    border-radius: 20px;
-    min-height: 450px;
-    transition: all 0.4s ease;
-    box-shadow: 0 0 12px rgba(0,0,0,0.2);
+/* Buttons (Neon Style) */
+.btn-primary {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #0f172a;
+  /* Dark Text on Cyan */
+  font-weight: 700;
+  box-shadow: 0 0 10px var(--color-neon-glow);
+  transition: all 0.3s ease;
 }
 
-.main-card-has-bg {
-    width: 100%;
-    height: 100%;
-    background-size: cover;   /* 비율 유지하면서 카드 영역을 꽉 채움 */
-    background-position: center center;  /* 중앙 기준으로 잘라서 보여줌 */
-    background-repeat: no-repeat;
+.btn-primary:hover,
+.btn-primary:active,
+.btn-primary:focus {
+  background-color: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+  color: #0f172a !important;
+  box-shadow: 0 0 20px var(--color-neon-glow), 0 0 5px #fff;
+  /* Stronger Glow */
+  transform: translateY(-2px);
 }
 
-.main-card-has-bg:hover {
-    background-size: 130%;
-    transform: scale(0.98);
+.btn-outline-primary {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: transparent;
+  transition: all 0.3s ease;
 }
 
-.main-card-img-overlay {
-    background: linear-gradient(0deg, rgba(255,186,33,0.3), rgba(255,186,33,1));
-    transition: background 0.4s ease;
+.btn-outline-primary:hover {
+  background-color: var(--color-primary);
+  color: #0f172a;
+  box-shadow: 0 0 15px var(--color-neon-glow);
+  transform: translateY(-2px);
 }
 
-.main-card:hover .main-card-img-overlay {
-    background: linear-gradient(0deg, rgba(255,186,33,0.6), rgba(255,186,33,1));
+/* Form Inputs (Dark + Focus Anim) */
+.form-control,
+.form-select {
+  background-color: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-main);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
 }
 
-.main-card-body {
-    transition: margin 0.4s ease;
+.form-control:focus,
+.form-select:focus {
+  background-color: #252f45;
+  /* Slightly lighter on focus */
+  border-color: var(--color-primary);
+  color: var(--color-text-main);
+  box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.2);
+  /* Expanded glow ring */
+  outline: none;
 }
 
-.main-card:hover .main-card-body {
-    margin-top: 20px;
+.form-control::placeholder {
+  color: rgba(148, 163, 184, 0.5);
 }
 
-
-
-/* =====================================================
-   🔵 대시보드 페이지 (dashboard.html) 전용 카드 스타일
-   Prefix: .dash-card
-===================================================== */
-
-.dash-card {
-    background-color: #fff;
-    border-radius: 10px;
-    border: none;
-    position: relative;
-    margin-bottom: 30px;
-    padding: 20px;
-    box-shadow: 
-        0 0.46875rem 2.1875rem rgba(90,97,105,0.1),
-        0 0.9375rem 1.40625rem rgba(90,97,105,0.1),
-        0 0.25rem 0.53125rem rgba(90,97,105,0.12),
-        0 0.125rem 0.1875rem rgba(90,97,105,0.1);
+/* Navbar */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
-.l-bg-purple {
-    background: linear-gradient(to right, #7b4397, #dc2430) !important;
-    color: #fff;
-}
-.l-bg-blue {
-    background: linear-gradient(to right, #373b44, #4286f4) !important;
-    color: #fff;
-}
-.l-bg-green {
-    background: linear-gradient(to right, #0a504a, #38ef7d) !important;
-    color: #fff;
+.navbar {
+  background: rgba(15, 23, 42, 0.95);
+  /* More opaque */
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-border);
+  transition: background 0.3s;
 }
 
-.card-icon-large i {
-    font-size: 75px;
-    opacity: 0.15;
-    position: absolute;
-    right: 20px;
-    top: 20px;
+.navbar-brand {
+  font-weight: 800;
+  color: #fff !important;
+  text-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
 }
 
-/* ================================
-   REGION DETAIL - PREDICT MODAL UI
-   (prefix: rdp-)
-================================ */
-
-.rdp-container {
-    display: flex;
-    justify-content: center;
-    margin-top: 30px;
+.nav-link {
+  color: #cbd5e1 !important;
+  /* Brighter than slate-400 */
+  font-weight: 500;
+  transition: color 0.2s, text-shadow 0.2s;
 }
 
-.rdp-btn {
-    background-color: #198754;
-    color: #fff;
+.nav-link.active,
+.nav-link:hover,
+.nav-link:focus {
+  color: var(--color-primary) !important;
+  text-shadow: 0 0 5px var(--color-neon-glow);
 }
 
-.rdp-modal-body {
-    border: none;
-    background-color: white;
+/* Modal (Dark Neon Theme) */
+.modal-content {
+  background-color: #1e293b;
+  /* Dark Slate */
+  border: 1px solid var(--color-border);
+  color: #f1f5f9;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
-.rdp-modal-content {
-    border: none;
-    background: transparent;
+.modal-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.rdp-close {
-    font-size: 28px;
-    font-weight: bold;
-    color: #000;
+.modal-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.rdp-form-control {
-    width: 80%;
-    height: 50px;
-    border-radius: 20px;
+.btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+  /* Make close button white */
 }
 
-/* 지도 프레임(하얀 박스) - 가운데 정렬 */
-.map-frame {
-    width: 800px;                 /* 전체 박스 가로 (원하는 값으로) */
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    background-color: #ffffff;
-    padding: 20px;
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.03);
-    margin: 0 auto;
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-/* 지도 컨테이너: 왼쪽 정렬 + 세로 가운데 */
-#map-container {
-    width: 100%;
-    height: 500px;                 /* 컨테이너 세로 */
-    display: flex;
-    justify-content: center;   /* ✅ 왼쪽에 붙이기 */
-    align-items: center;           /* 세로 가운데 */
-    overflow: hidden;
-    padding-left: 0px;            /* 왼쪽 여백 (조절 가능) */
+::-webkit-scrollbar-track {
+  background: var(--color-bg-main);
 }
 
-/* ✅ 여기서 실제 지도 크기를 고정 */
-#map-container svg {
-    width: 560px;                  /* ← 최소 줌일 때 느낌 나는 값으로 맞추기 */
-    height: auto;
-    display: block;
-    margin-left: -10px;
-    transform: none !important;    /* 혹시 남아있던 transform 강제로 제거 */
-    transform-origin: 50% 50% !important;
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
 }
 
-
-/* 반응형 - 화면 좁을 때는 조금 더 줄이기 */
-@media (max-width: 992px) {
-    .map-frame {
-        width: 100%;
-    }
-
-    .map-container {
-        height: 380px;
-    }
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
 }
 
-/* ===========================================
-   🔵 Dashboard Line Chart 고정 높이
-   (무한 세로 확장 방지)
-   prefix: .db-chart-wrapper
-=========================================== */
-
-.db-chart-wrapper {
-    position: relative;
-    height: 800px;      /* 필요하면 260~400px 사이로 조절 */
-    max-height: 800px;
+/* Loading Spinner (Neon) */
+.loader-neon {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(6, 182, 212, 0.3);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
 }
 
-#dashboard-chart {
-    width: 100% !important;
-    height: 100% !important;
-}
-
-/* === 상관관계 페이지 전체를 스냅 스크롤 컨테이너로 === */
-.corr-page {
-    height: calc(100vh - 70px);   /* 70px = 네가 main에 준 margin-top 정도 */
-    overflow-y: auto;
-    scroll-snap-type: y mandatory;   /* 세로 방향 스냅 */
-}
-
-/* 각 섹션을 '페이지' 처럼 취급 */
-.corr-hero {
-    scroll-snap-align: start;
-    min-height: calc(100vh - 70px);
-    display: flex;
-    align-items: flex-start;  /* ✅ content를 위쪽으로 */
-    padding-top: 24px;        /* 적당한 위 여백 */
-}
-
-.corr-detail-section {
-    scroll-snap-align: start;
-    min-height: calc(100vh - 70px);  /* 화면 한 페이지 정도 높이 */
-    display: flex;
-    align-items: center;             /* 내용 세로 가운데 (원하면 유지) */
-}
-
-/* 필요하면 2페이지는 위아래 여백만 */
-.corr-detail-section {
-    padding: 20px 0 40px 0;
-    align-items: flex-start;         /* 분석 섹션은 위쪽 정렬이 더 좋으면 이렇게 */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

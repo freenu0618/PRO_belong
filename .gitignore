@@ -16,6 +16,8 @@ Thumbs.db
 *.log
 *.sqlite3
 *.db
+
+
 .vscode/
 .idea/
 *.pkl
@@ -30,3 +32,47 @@ data/
 *.json
 /migrations/
 probelong.cmd
+ui_dump.py
+
+# Model outputs
+gguf_models/
+merged_models/
+output/
+llama.cpp/
+_unused/
+fine_tuned_models/
+checkpoint*/
+lora_*/
+
+# Documentation exceptions
+# Documentation exceptions
+docs/
+
+# Test files
+test_model_loader_changes.py
+
+# Jupyter Notebooks with secrets (exclude from tracking)
+belong/services/ai/LLaMA3-8B_pretrained_Model.ipynb
+belong/services/ai/LLaMa-3-8B Fine-Tuning_Evaluation_model.ipynb
+belong/services/ai/LlaMa3-8B-Fine-Tuned_Model_Result.ipynb
+
+
+# Ignore local Vector DB
+chroma_db/
+
+# Allow specific dataset for portfolio
+!belong/ml/dataset/raw_data/*.csv
+
+# Claude Code temporary files
+.claude/
+tmpclaude-*
+*.backup
+
+# IDE and development documentation (keep locally, exclude from Git)
+CLAUDE.md
+MCP_IMPLEMENTATION_COMPLETE.md
+MCP_IMPLEMENTATION_GUIDE.md
+MCP_TECHNICAL_DETAILS.md
+TASK_PLAN_PHASE1-4_2026-01-15.md
+ENVIRONMENT_SETUP.md
+TESTING_GUIDE.md

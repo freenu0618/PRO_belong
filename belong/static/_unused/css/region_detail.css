@@ -1,0 +1,128 @@
+/* static/css/region_detail.css */
+/* =========================================
+   Belong Region Detail Styles (PAGE ONLY)
+   - 반드시 .region-page 내부에서만 적용되도록 스코프 고정
+   - 전역(style.css / bootstrap)과 충돌 최소화
+========================================= */
+
+/* ✅ 페이지 루트: 여기 아래로만 스타일이 퍼지게 만든다 */
+.region-page{
+  /* page-local tokens (전역 var 없을 때도 안전하게 fallback) */
+  --rd-primary: var(--color-primary, #2563eb);
+  --rd-primary-dark: var(--color-primary-dark, #1d4ed8);
+  --rd-text: var(--color-text-main, #0f172a);
+  --rd-border: var(--color-border, rgba(15, 23, 42, 0.12));
+  --rd-bg: #f5f7fb;
+
+  padding-top: 1.5rem;
+  padding-bottom: 5rem;
+}
+
+/* ✅ (기존 style.css에 있던 body 배경 설정을 여기로 “이관”)
+   - 템플릿에서 body에 region-detail-page를 붙였을 때만 배경 적용 */
+body.region-detail-page{
+  background-color: var(--rd-bg);
+}
+
+/* =========================
+   상단 헤더/요약 카드
+========================= */
+.region-page .region-header .card-body{
+  padding: 1.5rem;
+}
+
+/* 리스크 레벨 강조 (ID도 페이지 스코프로 묶어 충돌 차단) */
+.region-page #risk-level{
+  font-size: 2.2rem;
+  letter-spacing: -0.05em;
+  color: var(--rd-primary-dark);
+}
+
+/* 요약 트렌드 텍스트 */
+.region-page #elderly-trend-text,
+.region-page #lonely-trend-text{
+  font-size: 1.5rem;
+  color: var(--rd-text);
+  font-weight: 700;
+}
+
+/* 차트 영역 카드 패딩 */
+.region-page .card-body{
+  padding: 1.5rem;
+}
+
+/* 타임라인/레이더 차트 높이 고정 */
+.region-page #riskTimeLineChart,
+.region-page #riskRadarChart{
+  max-height: 360px;
+}
+
+/* =========================
+   데이터 테이블(상세 지표)
+========================= */
+.region-page .data-table-section{
+  padding-top: 2rem;
+}
+
+.region-page .metric-table{
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.95rem;
+}
+
+.region-page .metric-table th,
+.region-page .metric-table td{
+  padding: 0.8rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--rd-border);
+}
+
+.region-page .metric-table th{
+  background-color: #EBF4FF; /* 차분한 블루 */
+  color: var(--rd-primary-dark);
+  font-weight: 600;
+
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.region-page .metric-table tr:hover{
+  background-color: #F0F4F7;
+}
+
+/* 리스크 레벨 셀 강조 (전역 오염 방지) */
+.region-page .risk-high{
+  background-color: rgba(239, 68, 68, 0.1);
+  font-weight: 600;
+}
+
+.region-page .risk-low{
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+/* =========================
+   반응형
+========================= */
+@media (max-width: 991.98px){
+  .region-page #riskTimeLineChart,
+  .region-page #riskRadarChart{
+    max-height: 320px;
+  }
+
+  .region-page .metric-table{
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 575.98px){
+  .region-page{
+    padding-bottom: 3.5rem;
+  }
+
+  .region-page .metric-table th,
+  .region-page .metric-table td{
+    padding: 0.7rem 0.8rem;
+  }
+}

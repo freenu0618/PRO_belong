@@ -1,69 +1,78 @@
 {% extends "base.html" %}
 {% block title %}로그인{% endblock %}
 
-{% block content %}
-<div class="container py-5" style="max-width: 420px;">
-
-    <h3 class="text-center mb-4 fw-bold">로그인</h3>
-
-    <div id="login-error" class="alert alert-danger" style="display:none;"></div>
-
-    <form id="login-form">
-        <div class="mb-3">
-            <label class="form-label">아이디</label>
-            <input type="text" class="form-control" id="username" required>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">비밀번호</label>
-            <input type="password" class="form-control" id="password" required>
-        </div>
-
-        <button type="submit" class="btn btn-primary w-100 mt-2">로그인</button>
-
-        <div class="text-center mt-3">
-            <a href="{{ url_for('web.signup') }}">회원가입</a>
-        </div>
-    </form>
-
-</div>
-
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
 {% endblock %}
 
-{% block scripts %}
-<script>
-document.getElementById("login-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
+{% block content %}
+<div class="auth-page page-gradient">
+  <div class="auth-card">
 
-    const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value.trim();
-    const errorBox = document.getElementById("login-error");
+    <!-- LEFT PANEL (Brand) -->
+    <div class="auth-left">
+      <div class="auth-left-overlay">
+        <div class="auth-badge mb-3">
+          <span class="auth-dot"></span>
+          <span>Belong Project</span>
+        </div>
+        <h2 class="auth-title-main">
+          함께하면,<br>
+          <span class="auth-highlight">보이지 않던 위험</span>이 보입니다.
+        </h2>
+        <p style="opacity: 0.9;">
+          1인 고령가구 데이터를 기반으로,<br>
+          고독사 위험을 예방합니다.
+        </p>
+      </div>
+      <div class="mt-4" style="opacity: 0.7; font-size: 0.85rem;">
+        © 2025 Belong. All rights reserved.
+      </div>
+    </div>
 
-    try {
-        const res = await fetch("/api/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password })
-        });
+    <!-- RIGHT PANEL (Form) -->
+    <div class="auth-right">
+      <div class="mb-4 text-center text-md-start">
+        <h3 class="fw-bold mb-2" style="color: var(--color-primary);">로그인</h3>
+        <p class="text-muted mb-0">서비스 이용을 위해 계정에 로그인하세요.</p>
+      </div>
 
-        const json = await res.json();
+      <div id="login-error" class="alert alert-danger py-2 px-3 small rounded-3" style="display:none;"></div>
 
-        if (!res.ok || json.status !== "success") {
-            errorBox.innerText = json.message || "아이디 또는 비밀번호가 올바르지 않습니다.";
-            errorBox.style.display = "block";
-            return;
-        }
+      <form id="login-form" novalidate>
+        <div class="mb-3">
+          <label class="form-label auth-input-label">아이디</label>
+          <input type="text" class="form-control auth-input" id="username" required autocomplete="username">
+        </div>
 
-        // ✔ 로그인 성공 → localStorage 저장
-        localStorage.setItem("belong_user", json.data.username);
+        <div class="mb-4">
+          <label class="form-label auth-input-label">비밀번호</label>
+          <input type="password" class="form-control auth-input" id="password" required autocomplete="current-password">
+        </div>
 
-        // ✔ 메인 페이지 이동
-        window.location.href = "{{ url_for('web.index') }}";
+        <div class="d-flex justify-content-between align-items-center mb-4 small">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="rememberMe">
+            <label class="form-check-label text-muted" for="rememberMe">
+              로그인 상태 유지
+            </label>
+          </div>
+        </div>
 
-    } catch (err) {
-        errorBox.innerText = "서버와 연결할 수 없습니다.";
-        errorBox.style.display = "block";
-    }
-});
-</script>
+        <button type="submit" class="auth-btn-primary mb-3">
+          로그인
+        </button>
+
+        <div class="auth-footer-text">
+          아직 계정이 없으신가요?
+          <a href="{{ url_for('web.signup') }}" class="auth-link ms-1">회원가입</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/login.js') }}"></script>
 {% endblock %}

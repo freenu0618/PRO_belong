@@ -1,0 +1,176 @@
+{# templates/ai_tool.html #}
+{% extends "base.html" %}
+
+{% block title %}Belong AI Chat{% endblock %}
+{% block page_id %}ai-tool{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ai.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="ai-layout">
+
+  <!-- 1. Sidebar -->
+  <aside class="ai-sidebar" id="ai-sidebar">
+    <div class="ai-sidebar-header">AI Service Workspace</div>
+
+    <!-- Group: Utility Tools (유틸리티 도구) -->
+    <div class="sidebar-group-label">유틸리티 도구 (HuggingFace)</div>
+    <button class="ai-nav-btn active" data-mode="translate">
+      <span class="ai-nav-icon">🌐</span>
+      <span>AI 번역 (Translate)</span>
+    </button>
+    <button class="ai-nav-btn" data-mode="summary">
+      <span class="ai-nav-icon">📝</span>
+      <span>텍스트 요약 (Summary)</span>
+    </button>
+    <button class="ai-nav-btn" data-mode="rerank">
+      <span class="ai-nav-icon">📊</span>
+      <span>문서 재순위 (Reranker)</span>
+    </button>
+    <button class="ai-nav-btn" data-mode="text-gen">
+      <span class="ai-nav-icon">⚡</span>
+      <span>AI 텍스트 생성</span>
+    </button>
+    <button class="ai-nav-btn" data-mode="qa">
+      <span class="ai-nav-icon">❓</span>
+      <span>문서 질의 (Q&A)</span>
+    </button>
+
+    <div class="mt-auto">
+      <button class="ai-nav-btn text-danger" id="btn-clear-chat">
+        <span class="ai-nav-icon">🗑️</span>
+        <span>대화 초기화</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Mobile Sidebar Overlay -->
+  <div class="ai-sidebar-overlay" id="ai-sidebar-overlay"></div>
+
+  <!-- 2. Main Chat Area -->
+  <main class="ai-main">
+    <!-- Toggle Button (Visible on Mobile) -->
+    <button class="btn btn-dark d-md-none m-3 mb-0" id="btn-toggle-sidebar"
+      style="position:absolute; top:10px; left:10px; z-index:800;">
+      <span class="fs-4">☰</span>
+    </button>
+    <div class="ai-chat-container" id="ai-chat-container">
+      <!-- Welcome Screen -->
+      <!-- Welcome Screen -->
+      <div class="ai-welcome-screen" id="ai-welcome">
+        <div class="ai-logo-large">✨</div>
+        <h2 class="mb-2">AI Service Workspace</h2>
+        <p class="text-muted mb-5">원하시는 AI 기능을 선택하여 업무 효율을 높여보세요.</p>
+
+        <div class="welcome-grid">
+          <!-- Card 1: Agent -->
+          <div class="welcome-card" data-mode="agent">
+            <div class="icon">🤖</div>
+            <div class="title">AI 에이전트</div>
+            <div class="desc">사내 규정 및 정책 문서를 기반으로<br>정확하고 전문적인 답변을 제공합니다.</div>
+          </div>
+
+          <!-- Card 2: General Chat (Mapped to Agent/QA or a specific mode if we had one. Using QA context for now or just generic info) -->
+          <!-- Actually, let's point to QA purely for 'General' if Agent is specialized. Or just Tools. -->
+          <div class="welcome-card" data-mode="qa">
+            <div class="icon">❓</div>
+            <div class="title">문서 질의 (Q&A)</div>
+            <div class="desc">사용자가 입력한 문서를 바탕으로<br>질문에 답하는 맞춤형 질의응답입니다.</div>
+          </div>
+
+          <!-- Card 3: Tools -->
+          <div class="welcome-card" data-mode="translate">
+            <div class="icon">🛠️</div>
+            <div class="title">유틸리티 도구</div>
+            <div class="desc">번역, 요약, 감정 분석 등<br>다양한 언어 처리 도구를 사용하세요.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Buckets -->
+      <div class="ai-bubble-container" id="ai-chat-box">
+        <!-- Bubbles go here -->
+      </div>
+
+      <!-- Comparison Buckets (Hidden by default) -->
+      <div class="compare-container d-none" id="ai-compare-box" style="padding: 0 20px;">
+        <!-- Model A -->
+        <div class="compare-pane">
+          <div class="compare-header">
+            <span class="badge bg-primary">기본 모델 (Llama-3 Base)</span>
+          </div>
+          <div class="compare-body" id="compare-body-a"></div>
+        </div>
+        <!-- Model B -->
+        <div class="compare-pane">
+          <div class="compare-header">
+            <span class="badge bg-success">파인튜닝 모델 (lora_best_r32)</span>
+          </div>
+          <div class="compare-body" id="compare-body-b"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Bottom Input Area -->
+    <div class="ai-input-area">
+      <div class="ai-input-wrapper">
+        <!-- Plus Button (Options Toggle) -->
+        <button class="ai-btn-plus" id="btn-toggle-options" title="옵션 설정">+</button>
+
+        <!-- Dynamic Options Menu (Popover) -->
+        <div class="ai-options-menu" id="ai-options-menu">
+          <!-- Translation Options -->
+          <div class="option-group" id="opt-translate">
+            <div class="option-label">번역 방향</div>
+            <select class="form-select form-select-sm" id="opt-trans-direction">
+              <option value="ko_en">한국어 → 영어</option>
+              <option value="en_ko">영어 → 한국어</option>
+            </select>
+          </div>
+
+          <!-- Model Selection (New) -->
+          <div class="option-group" id="opt-model-select">
+            <div class="option-label">사용 모델 (Model)</div>
+            <select class="form-select form-select-sm" id="ai-model-select">
+              <option value="base">Llama-3-Base</option>
+              <option value="lora_best_r32">파인튜닝 (LORA)</option>
+            </select>
+          </div>
+
+          <!-- RAG Options Removed - Now only in AI Lab -->
+          <!-- Users should use /tuning for RAG functionality -->
+
+          <!-- QA Options -->
+          <div class="option-group" id="opt-qa" style="display:none;">
+            <div class="option-label">지문 (Context)</div>
+            <textarea class="form-control form-select-sm bg-dark text-white" id="opt-qa-context" rows="3"
+              placeholder="질문의 근거가 될 텍스트를 입력하세요..."></textarea>
+          </div>
+
+          <div class="text-end mt-2">
+            <small class="text-muted">옵션을 닫으려면 + 버튼 클릭</small>
+          </div>
+        </div>
+
+        <!-- Text Input -->
+        <textarea class="ai-textarea" id="ai-input-text" rows="1" placeholder="메시지를 입력하세요..."></textarea>
+
+        <!-- Send Button -->
+        <button class="ai-btn-send" id="ai-run-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+      <div class="text-center mt-2 small text-muted">Belong AI can make mistakes. Check important info.</div>
+    </div>
+  </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module" src="{{ url_for('static', filename='js/ai_page/main.js') }}"></script>
+{% endblock %}

@@ -1,117 +1,174 @@
-import joblib
-from pathlib import Path
-from typing import Dict, Any, Optional
+# belong/services/forecast_service.py
 
-from config import Config
+from __future__ import annotations
+
+from typing import List, Dict, Any
+
 from belong.extensions import logger
-from belong.repositories.elderly_repo import (
-    ElderlyHistoryRepository,
-    SqlAlchemyElderlyHistoryRepository,
-    InMemoryElderlyHistoryRepository,
-)
+from belong.models.region import Region
+from belong.repositories.elderly_history_repo import ElderlyHistoryRepository
+
+# 2023년까지는 실측, 이후는 예측으로 취급
+ACTUAL_LAST_YEAR = 2023
 
 
 class ForecastService:
-    def __init__(self, repo: Optional[ElderlyHistoryRepository] = None) -> None:
+    """
+    ELDERLY_HISTORY 기반 노인 인구 실측/예측 서비스.
+
+    - get_total_trend: /api/elderly/trend
+    - get_top5:       /api/elderly/top5
+    - forecast_region:/api/elderly/forecast/<region>
+    """
+
+    def __init__(self, elderly_repo: ElderlyHistoryRepository = None):
         """
-        repo: 독거노인/고령인구 히스토리를 제공하는 Repository
-              - 기본값: SqlAlchemyElderlyHistoryRepository
-              - 나중에 Oracle/SQLAlchemy 기반 Repo로 교체 예정
+        Args:
+            elderly_repo: ElderlyHistoryRepository 인스턴스 (DI)
         """
-        # 1) Repository DI
-        self.repo: ElderlyHistoryRepository = (
-            repo if repo is not None else InMemoryElderlyHistoryRepository()
-        )
+        self.elderly_repo = elderly_repo or ElderlyHistoryRepository()
 
-        # 2) 모델 로딩 (환경변수 우선, 없으면 로컬 pkl 경로)
-        model_path = Config.MODEL_PATH or (
-            Path(__file__).resolve().parent.parent / "ml" / "forecast_model.pkl"
-        )
-
-        try:
-            self.model = joblib.load(model_path)
-            logger.info(f"Model loaded successfully from {model_path}")
-        except Exception as e:
-            self.model = None
-            logger.warning(f"Failed to load model from {model_path}. Reason: {e}")
-
-    # --- 내부 헬퍼: history 조회 ---
-
-    def _get_history(self, region: str):
+    def get_total_trend(self, start_year: int, end_year: int) -> List[Dict[str, Any]]:
         """
-        v0.2: SqlAlchemyElderlyHistoryRepository에서 조회.
-        v0.3~: Oracle/SQLAlchemy 기반 Repo로 교체 가능.
+        전체 서울 노인 인구 추세.
+
+        반환 형식:
+        [
+          {
+            "year": 2017,
+            "total_elderly_population": 12345,
+            "is_forecast": "N"
+          },
+          ...
+        ]
         """
-        return self.repo.get_history(region)
+        # Repository를 통한 데이터 접근
+        rows = self.elderly_repo.get_total_trend(start_year, end_year)
 
-    # --- 메인 비즈니스 로직: 단기/장기 예측 ---
+        result: List[Dict[str, Any]] = []
+        for year, total in rows:
+            year_int = int(year)
+            total_int = int(total or 0)
+            result.append(
+                {
+                    "year": year_int,
+                    "total_elderly_population": total_int,
+                    "is_forecast": "Y" if year_int > ACTUAL_LAST_YEAR else "N",
+                }
+            )
 
-    def forecast_region(
-        self,
-        region: str,
-        n_years: int = 2,
-        horizon: str = "short",
-    ) -> Dict[str, Any]:
+        return result
+
+    # --------------------------------------------------
+    # TOP5 (증가율 / 증가 인원수)
+    # --------------------------------------------------
+    def get_top5(
+        self, base_year: int, target_year: int, by: str = "ratio"
+    ) -> List[Dict[str, Any]]:
         """
-        단기/장기 horizon을 고려한 예측 서비스 메소드.
+        구별 노인 인구 증가 TOP5.
 
-        - 지금은 모델이 없어도 dummy 규칙으로 forecast를 항상 채운다.
-        - 나중에 Oracle/실제 모델을 붙여도 이 함수 시그니처는 그대로 유지.
+        반환 형식:
+        [
+          {
+            "region": "강남구",
+            "base_value": 1234,
+            "target_value": 2345,
+            "diff": 1111,
+            "metric_value": 0.35  # ratio일 때는 비율(0.35 → 35%)
+          },
+          ...
+        ]
         """
-        logger.info(
-            f"[REQUEST] Forecast service called "
-            f"for region={region}, years={n_years}, horizon={horizon}"
-        )
+        if by not in ("ratio", "absolute"):
+            raise ValueError("by 파라미터는 'ratio' 또는 'absolute' 이어야 합니다.")
 
-        history = self._get_history(region)
+        # Repository를 통한 데이터 접근
+        rows = self.elderly_repo.get_top5_regions(base_year, target_year)
 
-        if history is None:
-            logger.warning(f"No history data found for region: {region}")
+        items: List[Dict[str, Any]] = []
+        for region, base_val, target_val in rows:
+            base_val = int(base_val or 0)
+            target_val = int(target_val or 0)
+            diff = target_val - base_val
+
+            if by == "ratio":
+                if base_val <= 0:
+                    # 기준 값이 0이면 증가율 계산 불가 → 스킵
+                    continue
+                metric = diff / base_val
+            else:
+                metric = diff
+
+            items.append(
+                {
+                    "region": region,
+                    "base_value": base_val,
+                    "target_value": target_val,
+                    "diff": diff,
+                    "metric_value": float(metric),
+                }
+            )
+
+        # metric_value 기준 내림차순 정렬 후 TOP5
+        items.sort(key=lambda x: x["metric_value"], reverse=True)
+        return items[:5]
+
+    # --------------------------------------------------
+    # 구별 예측 (모달)
+    # --------------------------------------------------
+    def forecast_region(self, region_name: str) -> Dict[str, Any]:
+        """
+        특정 구의 노인 인구 실측/예측 시계열.
+
+        반환 형식:
+        {
+          "region": "강남구",
+          "history": [ {"year": 2017, "value": 8502}, ... ],
+          "forecast": [ {"year": 2024, "value": 14123}, ... ],
+          "message": "ELDERLY_HISTORY 기반 실측/예측 데이터입니다."
+        }
+        """
+        # Region 조회 (TODO: 향후 RegionRepository로 이동 검토)
+        region: Region | None = Region.query.filter_by(name=region_name).first()
+        if region is None:
+            logger.warning(f"[ForecastService] Region not found: {region_name}")
             return {
-                "region": region,
-                "history": None,
-                "forecast": None,
-                "message": "No history data available for this region.",
+                "region": region_name,
+                "history": [],
+                "forecast": [],
+                "message": f"'{region_name}' 구를 REGION 테이블에서 찾을 수 없습니다.",
             }
 
-        last_year = history[-1]["year"]
-        last_value = history[-1]["value"]
+        # Repository를 통한 데이터 접근
+        rows = self.elderly_repo.get_region_forecast(region.id)
 
-        # 1) 실제 모델이 있는 경우 → 나중에 여기서 model.predict(...) 사용
-        if self.model is not None:
-            logger.info(
-                "Model is loaded. (Currently using dummy values) "
-                f"horizon={horizon}, n_years={n_years}"
-            )
-            # TODO: 진짜 예측으로 교체할 자리
-            forecast_values = [int(last_value * 1.05)] * n_years  # placeholder
-        else:
-            # 2) 모델이 없는 경우 → horizon별 증가율로 dummy 예측
-            if horizon == "short":
-                growth_rate = 0.03  # 단기: 3% 증가
-            elif horizon == "long":
-                growth_rate = 0.02  # 장기: 2% 완만 증가
+        history: List[Dict[str, Any]] = []
+        forecast: List[Dict[str, Any]] = []
+
+        for year, value, is_fc in rows:
+            item = {
+                "year": int(year),
+                "value": int(value or 0),
+            }
+
+            flag = (is_fc or "N").upper()
+            if flag == "Y" or int(year) > ACTUAL_LAST_YEAR:
+                forecast.append(item)
             else:
-                growth_rate = 0.025  # fallback
+                history.append(item)
 
-            forecast_values = []
-            value = last_value
-            for _ in range(n_years):
-                value = int(value * (1 + growth_rate))
-                forecast_values.append(value)
-
-        forecast = [
-            {"year": last_year + i + 1, "value": forecast_values[i]}
-            for i in range(n_years)
-        ]
+        if not history and not forecast:
+            return {
+                "region": region_name,
+                "history": [],
+                "forecast": [],
+                "message": "ELDERLY_HISTORY에서 해당 구의 데이터를 찾을 수 없습니다.",
+            }
 
         return {
-            "region": region,
+            "region": region_name,
             "history": history,
             "forecast": forecast,
-            "message": (
-                "Dummy forecast (model not loaded)"
-                if self.model is None
-                else "Model forecast (dummy values)"
-            ),
+            "message": "ELDERLY_HISTORY 기반 실측/예측 데이터입니다.",
         }

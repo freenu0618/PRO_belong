@@ -233,42 +233,34 @@ class CorrelationService:
         year_from: Optional[int] = None,
         year_to: Optional[int] = None,
         region_ids: Optional[List[int]] = None,
+        region_name: Optional[str] = None,
         vif_threshold: float = 10.0,
     ) -> Dict[str, Any]:
         """
         상관 + VIF + 선형회귀 계수를 모두 계산한 결과를 반환.
-
-        1. ELDERLY_STATS에서 필요한 행들을 조회해서 DataFrame으로 로드
-        2. 타깃 컬럼 + 피처 컬럼들을 숫자형(float)으로 강제 변환
-        3. NaN 포함된 행 제거
-        4. 피어슨 상관계수 계산
-        5. VIF 기준으로 컬럼 선택 (threshold 기본 10.0)
-        6. 선택된 컬럼들로 표준화 선형회귀 계수 계산
-        7. JSON 형태로 반환
-
-        반환 구조 예시:
-
-        {
-          "target": "elderly_population",
-          "vif_threshold": 10.0,
-          "features": [
-            {
-              "feature": "single_household_ratio",
-              "label": "1인가구 비율",
-              "corr": 0.82,
-              "vif": 2.31,
-              "coef_std": 0.55,
-              "selected": true
-            },
-            ...
-          ],
-          "correlations": [
-            {"feature": "single_household_ratio", "corr": 0.82},
-            ...
-          ],
-          "feature_desc": { ... }
-        }
+        region_name이 주어지면 내부에서 Region ID를 조회해서 region_ids에 추가한다.
         """
+        # 0) region_name 처리
+        if region_name:
+            from belong.models.region import Region
+            region_obj = self.session.query(Region).filter(Region.name == region_name).first()
+            if region_obj:
+                if region_ids is None:
+                    region_ids = []
+                region_ids.append(region_obj.id)
+            else:
+                # Region not found -> return empty result or handle error
+                # Here we just return empty result as if no data match
+                return {
+                    "target": TARGET_COLUMN,
+                    "vif_threshold": vif_threshold,
+                    "features": [],
+                    "correlations": [],
+                    "feature_desc": FEATURE_DESC,
+                    "error": f"Region '{region_name}' not found",
+                }
+
+
         # 1) 데이터 로드
         raw_df = self._load_dataframe(
             year_from=year_from,

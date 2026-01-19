@@ -1,5 +1,7 @@
 from typing import List, Dict
 from belong.repositories.lonely_repo import LonelyStatsRepository
+from belong.services.prediction_service import PredictionService
+from belong.services.lonely_forecast_service import ACTUAL_LAST_YEAR
 
 
 class LonelyService:
@@ -7,10 +9,15 @@ class LonelyService:
     고독사(타깃: target_value) 대시보드용 서비스.
     """
 
-    def __init__(self, repo: LonelyStatsRepository):
+    def __init__(
+        self,
+        repo: LonelyStatsRepository,
+        prediction_service: PredictionService | None = None,
+    ):
         self.repo = repo
+        self.prediction_service = prediction_service
 
-    def get_total_trend(self, start_year: int = 2017, end_year: int = 2050) -> Dict:
+    def get_total_trend(self, start_year: int = 2017, end_year: int = 2035) -> Dict:
         items = self.repo.get_total_trend(start_year, end_year)
         return {
             "start_year": start_year,
@@ -19,11 +26,28 @@ class LonelyService:
         }
 
     def get_top5_growth(
-        self,
-        base_year: int,
-        target_year: int,
-        by: str = "ratio",
+            self,
+            base_year: int,
+            target_year: int,
+            by: str = "ratio",
     ) -> Dict:
+        """
+        base_year → target_year 사이 증가율/증가량 기준 TOP5 구.
+        - target_year가 ACTUAL_LAST_YEAR(예: 2023)보다 크면,
+          PredictionService를 사용해 해당 연도의 예측값을 먼저 생성한다.
+        """
+
+        # ⚠️ [임시 비활성화] PredictionService가 elderly_population 전용으로 하드코딩됨
+        # LonelyService에서 호출 시 고독사 데이터가 노인 인구 값으로 오염되는 문제 방지
+        # TODO: LonelyPredictionService 분리 또는 target_type 파라미터 추가 후 활성화
+        # if target_year > ACTUAL_LAST_YEAR:
+        #     if self.prediction_service is None:
+        #         raise RuntimeError(
+        #             "미래 연도 고독사 TOP5를 계산하려면 PredictionService가 필요합니다."
+        #         )
+        #     self.prediction_service.ensure_predictions_for_year(target_year)
+
+        # 2) 그 다음 기존 로직대로 repo에서 (base, target) 값을 가져온다.
         rows = self.repo.get_region_values_for_years(base_year, target_year)
 
         results: List[Dict] = []
@@ -58,3 +82,4 @@ class LonelyService:
             "by": by,
             "items": top5,
         }
+

@@ -1,0 +1,398 @@
+/* static/css/ai.css */
+/* =========================================
+   AI Chat Page (ChatGPT Style Overhaul)
+   Theme: Dark Neon
+========================================= */
+
+/* Layout Container */
+.ai-layout {
+  display: flex;
+  height: calc(100vh - var(--header-height));
+  background: var(--color-bg-main);
+  overflow: hidden;
+  position: relative;
+}
+
+/* 1. Sidebar (Left) */
+.ai-sidebar {
+  width: 260px;
+  background: rgba(15, 23, 42, 0.95);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  transition: transform 0.3s ease;
+  z-index: 20;
+}
+
+/* Sidebar Responsive Logic */
+@media (max-width: 768px) {
+  .ai-sidebar {
+    position: absolute;
+    height: 100%;
+    left: 0;
+    top: 0;
+    transform: translateX(-100%);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+  }
+
+  .ai-sidebar.open {
+    transform: translateX(0);
+  }
+}
+
+/* Overlay */
+.ai-sidebar-overlay {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 15;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.ai-sidebar-overlay.show {
+  display: block;
+  opacity: 1;
+}
+
+.ai-sidebar-header {
+  margin-bottom: 2rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-sub);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.ai-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.03);
+  /* Slight background */
+  color: #f1f5f9;
+  /* Much brighter text */
+  text-align: left;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.ai-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.ai-nav-btn.active {
+  background: rgba(6, 182, 212, 0.15);
+  border-color: rgba(6, 182, 212, 0.3);
+  color: var(--color-primary);
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.1);
+}
+
+.ai-nav-icon {
+  font-size: 1.2rem;
+}
+
+/* 2. Main Chat Area (Center) */
+.ai-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: radial-gradient(circle at center, #151e32 0%, #0f172a 100%);
+}
+
+.ai-chat-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 0;
+  scroll-behavior: smooth;
+}
+
+.ai-welcome-screen {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--color-text-sub);
+  padding: 20px;
+}
+
+.ai-logo-large {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  color: var(--color-primary);
+  filter: drop-shadow(0 0 20px rgba(6, 182, 212, 0.4));
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* 3. Bottom Input Bar */
+.ai-input-area {
+  padding: 20px;
+  background: linear-gradient(to top, var(--color-bg-main) 20%, transparent 100%);
+  position: relative;
+  z-index: 10;
+}
+
+.ai-input-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+  background: rgba(30, 41, 59, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  padding: 10px 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.ai-input-wrapper:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+}
+
+.ai-btn-plus {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-bottom: 4px;
+  /* Align with input bottom */
+}
+
+.ai-btn-plus:hover {
+  background: var(--color-text-sub);
+  color: #0f172a;
+}
+
+.ai-btn-plus.open {
+  transform: rotate(45deg);
+  background: var(--color-text-sub);
+  color: #0f172a;
+}
+
+.ai-textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #fff;
+  resize: none;
+  max-height: 200px;
+  padding: 10px 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  outline: none;
+}
+
+.ai-textarea::placeholder {
+  color: rgba(148, 163, 184, 0.5);
+}
+
+.ai-btn-send {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--color-primary);
+  border: none;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.ai-btn-send:hover {
+  background: var(--color-primary-hover);
+  transform: scale(1.05);
+}
+
+.ai-btn-send:disabled {
+  background: #334155;
+  color: #64748b;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 4. Options Menu (Popup above + button) */
+.ai-options-menu {
+  position: absolute;
+  bottom: 80px;
+  left: 20px;
+  /* Aligned with + button roughly */
+  width: 280px;
+  background: #1e293b;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  display: none;
+  /* Toggled by JS */
+  z-index: 100;
+}
+
+.ai-options-menu.show {
+  display: block;
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.option-group {
+  margin-bottom: 12px;
+}
+
+.option-label {
+  font-size: 0.75rem;
+  color: var(--color-text-sub);
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+/* 5. Chat Bubbles (Retaining improved styles) */
+.ai-bubble-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-bubble {
+  max-width: 85%;
+  margin-bottom: 20px;
+  padding: 16px 24px;
+  border-radius: 16px;
+  line-height: 1.6;
+  position: relative;
+  font-size: 1rem;
+  /* Text overflow fixes */
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.ai-user {
+  align-self: flex-end;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #f1f5f9;
+  border-bottom-right-radius: 4px;
+}
+
+.ai-assistant {
+  align-self: flex-start;
+  background: transparent;
+  /* Clean look */
+  padding-left: 0;
+  color: #e2e8f0;
+}
+
+/* Add an icon for assistant */
+.ai-assistant::before {
+  content: "🤖";
+  display: inline-block;
+  margin-right: 10px;
+  font-size: 1.2rem;
+}
+
+/* Code Blocks & Typing (Imported) */
+.ai-code-block {
+  margin: 15px 0;
+  background: #1e1e1e;
+  border-radius: 8px;
+  border: 1px solid #333;
+  font-family: 'Consolas', monospace;
+}
+
+.code-header {
+  background: #252526;
+  padding: 6px 12px;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #333;
+  color: #ccc;
+  font-size: 0.8rem;
+}
+
+.btn-copy {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ccc;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.typing-dot {
+  color: var(--color-primary);
+  font-size: 10px;
+  animation: typingBounce 1.4s infinite ease-in-out both;
+}
+
+@keyframes typingBounce {
+
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+
+  40% {
+    transform: scale(1);
+    opacity: 1;
+    text-shadow: 0 0 5px var(--color-primary);
+  }
+}

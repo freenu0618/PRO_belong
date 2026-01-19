@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # 1. 우리 앱 (Flask + Oracle Client)
+  app:
+    container_name: belong_app_container
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      # 개발용 Hot Reload (내 코드를 도커와 연결)
+      - ./:/app
+      # 모델 캐시 공유 (다운로드 시간 절약)
+      # 윈도우 경로를 도커 포맷으로 변환이 필요할 수 있어 상대 경로 대신 절대경로 권장하지만, 
+      # 사용자 편의를 위해 환경변수나 직접 마운트 방식을 가이드에 기재함.
+      # 여기서는 사용자가 실행 시점에 수정하거나, .env에서 경로를 받도록 설정.
+      # 일단 하드코딩된 C 드라이브 경로는 호환성을 위해 아래처럼 주석 처리 후 가이드 함.
+      # - C:\Users\luyji\.cache\huggingface:/root/.cache/huggingface
+      # 대체: Compose에서는 호스트 경로를 직접 명시하기보다, 실행 시 -v를 덮어쓰거나 사용자별 .env 설정이 필요함.
+      # 하지만 사용자가 "내 컴퓨터" 기준이므로 아예 절대 경로를 박아드리겠습니다.
+      - C:/Users/luyji/.cache/huggingface:/root/.cache/huggingface
+    environment:
+      - ORACLE_DSN=host.docker.internal:1521/xe
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - FLASK_DEBUG=0
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # 2. Ngrok (외부 접속용 터널)
+  ngrok:
+    container_name: belong_ngrok
+    image: ngrok/ngrok:latest
+    restart: unless-stopped
+    command: "http app:5000"
+    ports:
+      - "4040:4040" # 상태 확인 대시보드
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    depends_on:
+      - app

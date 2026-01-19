@@ -1,0 +1,213 @@
+{# templates/region_predict.html #}
+{% extends "base.html" %}
+
+{% block title %}지역 예측 - Belong{% endblock %}
+
+{% block extra_css %}
+<style>
+  .rp-wrap{ padding: 28px 0 60px; }
+  .rp-hero{
+    border-radius: 18px;
+    background: linear-gradient(180deg,#eef6ff 0%, #ffffff 70%);
+    border: 1px solid rgba(15,23,42,.10);
+  }
+  .rp-hero .badge{ border-radius: 999px; }
+  .rp-card{
+    border-radius: 18px;
+    border: 1px solid rgba(15,23,42,.10);
+    box-shadow: 0 10px 30px rgba(15,23,42,.08);
+  }
+  .rp-chart{
+    position: relative;
+    height: 340px;
+    border-radius: 14px;
+    border: 1px solid rgba(15,23,42,.10);
+    background: #fff;
+    padding: 10px;
+  }
+  .rp-chart canvas{ width:100% !important; height:100% !important; }
+  .rp-small{ font-size: .92rem; color: rgba(15,23,42,.65); }
+  .rp-kpi{
+    display:flex; gap:14px; flex-wrap:wrap;
+  }
+  .rp-kpi .kpi{
+    flex: 1 1 160px;
+    border-radius: 14px;
+    border: 1px solid rgba(15,23,42,.10);
+    background:#fff;
+    padding: 14px 14px;
+  }
+  .kpi .label{ font-size:.85rem; color:rgba(15,23,42,.65); }
+  .kpi .value{ font-size:1.25rem; font-weight:800; margin-top:4px; }
+  #loading{ display:none; }
+  #error-message{ display:none; }
+</style>
+{% endblock %}
+
+{% block header %}
+  <div class="page-container">
+    {% include "navbar.html" %}
+  </div>
+{% endblock %}
+
+{% block content %}
+<div class="container rp-wrap"
+     data-region="{{ region_name|default('') }}"
+     data-year="{{ year|default('') }}"
+     id="rp-root">
+
+  <!-- 헤더 -->
+  <div class="rp-hero p-4 mb-3">
+    <span class="badge text-bg-primary px-3 py-2">지역 예측</span>
+    <h2 class="fw-bold mt-3 mb-2" style="letter-spacing:-0.02em;">
+      구/연도 단일 예측
+    </h2>
+    <div class="rp-small">
+      실측(2017~2023) + 선택 연도 예측값을 함께 보여줍니다.
+    </div>
+  </div>
+
+  <!-- 입력 폼 -->
+  <div class="rp-card p-4 mb-3">
+    <div class="row g-3 align-items-end">
+      <div class="col-12 col-lg-5">
+        <label class="form-label fw-semibold">구 이름</label>
+        <input id="predict-region"
+               class="form-control"
+               placeholder="예: 강남구"
+               autocomplete="off">
+        <div class="rp-small mt-1">예측할 지역(구)을 입력하세요.</div>
+      </div>
+
+      <div class="col-12 col-lg-3">
+        <label class="form-label fw-semibold">예측 연도</label>
+        <input id="predict-year"
+               type="number"
+               class="form-control"
+               min="2017"
+               max="2035"
+               placeholder="예: 2028">
+        <div class="rp-small mt-1">2017 ~ 2035</div>
+      </div>
+
+      <div class="col-12 col-lg-4">
+        <form id="predict-form" class="d-grid">
+          <button class="btn btn-primary btn-lg rounded-4 fw-bold" type="submit">
+            예측 실행
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="mt-3">
+      <div id="loading" class="alert alert-info py-2 mb-2">불러오는 중...</div>
+      <div id="error-message" class="alert alert-danger py-2 mb-0"></div>
+    </div>
+  </div>
+
+  <!-- KPI 요약 -->
+  <div id="summary-section" class="rp-card p-4 mb-3" style="display:none;">
+    <h5 class="fw-bold mb-3">요약</h5>
+    <div class="rp-kpi">
+      <div class="kpi">
+        <div class="label">최근 실측(2023)</div>
+        <div class="value" id="latest-pop">-</div>
+      </div>
+      <div class="kpi">
+        <div class="label">선택 연도 예측</div>
+        <div class="value" id="predicted-pop">-</div>
+      </div>
+      <div class="kpi">
+        <div class="label">증감률(예측 vs 2023)</div>
+        <div class="value" id="growth-rate">-</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 차트 -->
+  <div id="chart-btn-section" class="rp-card p-4 mb-3" style="display:none;">
+    <h5 class="fw-bold mb-2">실측 + 선택 예측</h5>
+    <div class="rp-small mb-3">
+      빨간 점이 “선택 연도 예측값”입니다.
+    </div>
+    <div class="rp-chart">
+      <canvas id="forecast-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- 예측 이력 -->
+  <div id="history-section" class="rp-card p-4" style="display:none;">
+    <h5 class="fw-bold mb-2">예측 이력</h5>
+    <div class="rp-small mb-3">
+      해당 구에 대해 저장된 예측 기록이 있으면 표시됩니다.
+    </div>
+    <div class="rp-chart" style="height:300px;">
+      <canvas id="prediction-history-chart"></canvas>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="{{ url_for('static', filename='js/region_predict.js') }}"></script>
+
+  <script>
+    // 템플릿 변수 또는 쿼리스트링에서 region/year 가져오기
+    function getInitValue() {
+      const root = document.getElementById("rp-root");
+      const qs = new URLSearchParams(location.search);
+
+      const regionFromTpl = (root?.dataset?.region || "").trim();
+      const yearFromTpl = (root?.dataset?.year || "").trim();
+
+      const region = (regionFromTpl || qs.get("region") || "강남구").trim();
+      const year = parseInt((yearFromTpl || qs.get("year") || "2028"), 10);
+
+      return { region, year: (Number.isNaN(year) ? 2028 : year) };
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const { region, year } = getInitValue();
+
+      // 입력값 채우기
+      const rInput = document.getElementById("predict-region");
+      const yInput = document.getElementById("predict-year");
+      if (rInput) rInput.value = region;
+      if (yInput) yInput.value = year;
+
+      // region_predict.js는 initRegionPredictPage(region, year)를 제공함
+      // ※ region을 바꾸려면 "예측 실행" 눌렀을 때 쿼리스트링을 갱신 후 새로 초기화
+      const form = document.getElementById("predict-form");
+      if (form) {
+        form.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const rr = (rInput?.value || "").trim();
+          const yy = parseInt((yInput?.value || "2028"), 10);
+
+          if (!rr) {
+            const err = document.getElementById("error-message");
+            if (err) {
+              err.textContent = "구 이름을 입력해주세요.";
+              err.style.display = "block";
+            }
+            return;
+          }
+
+          // URL 상태를 저장(새로고침/공유 대비)
+          const qs = new URLSearchParams(location.search);
+          qs.set("region", rr);
+          qs.set("year", String(Number.isNaN(yy) ? 2028 : yy));
+          history.replaceState(null, "", `${location.pathname}?${qs.toString()}`);
+
+          // 실제 예측 실행
+          window.initRegionPredictPage(rr, Number.isNaN(yy) ? 2028 : yy);
+        });
+      }
+
+      // 최초 1회 자동 로딩
+      window.initRegionPredictPage(region, year);
+    });
+  </script>
+{% endblock %}

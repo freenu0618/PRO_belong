@@ -1,10 +1,16 @@
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 
 from belong.services.feature_stats_service import FeatureStatsService
 from belong.repositories.prediction_repo import PredictionRepository
 from belong.ml.model_loader import load_model
 from belong.extensions import logger
 
+SOURCE_PRIORITIES = [
+    "ml_linear_rate_v0_3",
+    "ml_catboost_rate_v1_0",
+    "model",
+    "rule_base",
+]
 
 class PredictionService:
     """
@@ -57,7 +63,7 @@ class PredictionService:
 
         history = features["history"]
         y_pred = None
-        source = "rule_based"
+        source = "ml_linear_rate_v0_3"
 
         # 1) 모델 예측 시도
         if self.model is not None and hasattr(self.model, "predict"):
@@ -110,6 +116,96 @@ class PredictionService:
 
         return result
 
+    def ensure_predictions_for_year(self, year: int) -> Dict[str, float]:
+        """
+        주어진 year에 대해,
+        - 모든 '구(region_name)'에 대한 예측값이 PREDICTION_RESULT에 존재하도록 보장하고
+        - {region_name: prediction_value} 딕셔너리를 반환한다.
+
+        로직:
+         1) 전체 구 목록(region 목록)을 가져온다.
+         2) 각 region/year에 대해, 이미 예측값이 DB에 있으면 재사용.
+         3) 없으면 predict_and_store(region, year)를 호출해서 새로 생성.
+        """
+
+        if self.prediction_repo is None:
+            raise RuntimeError("PredictionRepository가 설정되지 않았습니다.")
+
+        # 1) 전체 구 목록 가져오기
+        # FeatureStatsService 안에 region_repo가 있다고 가정
+        region_repo = getattr(self.feature_stats_service, "region_repo", None)
+        if region_repo is None:
+            raise RuntimeError(
+                "FeatureStatsService에 region_repo가 없어서 전체 구 목록을 가져올 수 없습니다."
+            )
+
+        # ⚠ 여기서 사용하는 메서드 이름은 네 RegionRepository 구현에 맞게 바꿔줘.
+        # 예: list_all(), get_all(), get_all_regions() 등
+        regions = region_repo.get_all()  # [Region(...), Region(...), ...]
+
+        result_map: Dict[str, float] = {}
+
+        for region in regions:
+            region_name = getattr(region, "name", None)
+            if not region_name:
+                continue
+
+            existing = None
+
+            # 1) 우선순위대로 기존 예측 찾기
+            for src in SOURCE_PRIORITIES:
+                existing = self.prediction_repo.get_predictions(
+                    region=region_name,
+                    start_year=year,
+                    end_year=year,
+                    source=src,
+                )
+                if existing:
+                    # 첫 번째로 찾은 예측을 사용하고 loop 탈출
+                    break
+
+            # 2) 그래도 없으면 새로 예측해서 저장
+            if existing:
+                prediction_value = float(existing[0]["value"])
+                logger.info(
+                    f"[PredictionService] 이미 존재하는 예측 사용: "
+                    f"region={region_name}, year={year}, value={prediction_value}"
+                )
+            else:
+                logger.info(
+                    f"[PredictionService] 예측 생성: region={region_name}, year={year}"
+                )
+                result = self.predict_and_store(region_name, year)
+                if result is None:
+                    logger.warning(
+                        f"[PredictionService] 예측 실패: region={region_name}, year={year} → 건너뜀"
+                    )
+                    continue
+
+                prediction_value = float(result["prediction"])
+
+            result_map[region_name] = prediction_value
+
+        return result_map
+
+    def get_prediction_history(self, region_name: str) -> List[Dict[str, Any]]:
+        """
+        특정 지역의 예측 기록을 조회하여 반환.
+        """
+        if self.prediction_repo is None:
+            return []
+            
+        rows = self.prediction_repo.list_by_region(region_name)
+        return [
+            {
+                "region": r.region_name,
+                "year": r.year,
+                "prediction": r.prediction_value,
+                "source": r.source,
+                "created_at": r.created_at.isoformat(),
+            }
+            for r in rows
+        ]
     # ------------------------------------------------------------------
     # 내부 헬퍼들
     # ------------------------------------------------------------------
